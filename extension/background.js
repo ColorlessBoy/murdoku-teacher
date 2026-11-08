@@ -2,6 +2,8 @@ import { info, warn, error, getLogs, clearLogs, stats } from './src/log.js';
 import { callLLM, normalizeSettings, extractJson } from './src/llm.js';
 import { recall, loadState, addFact, buildBrief, clearFacts, resetBoardState, saveMarks, savePrep, savePrepStatus } from './src/state.js';
 import { prepare } from './src/prep.js';
+import { mergeBatches } from './src/queue.js';
+import { tighten, condense } from './src/format.js';
 import { TOOL_DEFS, execTool } from './src/tools.js';
 import { buildMessages } from './src/prompt.js';
 import { recordChanges, answerQuestion, closeQuestion, getLedger, ledgerText, closeAllUnresolved, clearLedger, markAsked } from './src/ledger.js';
@@ -38,24 +40,6 @@ async function loadQueue(puzzle) {
 
 async function saveQueue(puzzle, q) {
   await chrome.storage.local.set({ [queueKey(puzzle)]: (q || []).slice(-8) });
-}
-
-function mergeBatches(batches) {
-  const out = [];
-  for (const b of batches || []) {
-    const keys = new Set((b.changes || []).map((c) => `${c.r},${c.c}`));
-    const hit = out.find((x) => (x.changes || []).some((c) => keys.has(`${c.r},${c.c}`)));
-    if (!hit) { out.push({ ...b }); continue; }
-    const map = new Map((hit.changes || []).map((c) => [`${c.r},${c.c}`, c]));
-    for (const c of b.changes || []) map.set(`${c.r},${c.c}`, c);
-    hit.changes = [...map.values()];
-    hit.board = b.board;
-    hit.clues = b.clues;
-    hit.title = b.title;
-    hit.tabId = b.tabId;
-    hit.ts = Date.now();
-  }
-  return out;
 }
 
 async function enqueueBoard(puzzle, batch) {
@@ -164,38 +148,6 @@ async function ensureAssistant(payload) {
   const text = String(payload?.text || '').trim() || '（模型没有返回内容）';
   return { text, marks: [], verdict: null };
 }
-
-function tighten(text, mode = 'exam') {
-  const src = String(text || '').trim();
-  const lines = src.split('\n').map((x) => x.trim()).filter(Boolean);
-  const vm = src.match(/结论[:：]\s*(VALID BUT INCOMPLETE|VALID|GAP|INVALID|UNPROVEN)/i);
-  const q = [...lines].reverse().find((l) => /[？?]/.test(l)) || '';
-  if (mode === 'exam' && /应标|应放|正确的是|下一步是|排除它/.test(src)) {
-    return ('结论：' + (vm ? vm[1].toUpperCase() : 'GAP') + '\n你的依据是什么？').slice(0, 180);
-  }
-  if (mode === 'exam' && vm && !q) {
-    return ('结论：' + vm[1].toUpperCase() + '\n你的依据是什么？').slice(0, 180);
-  }
-  if (vm) return ('结论：' + vm[1].toUpperCase() + (q ? '\n' + q.slice(0, 110) : '')).slice(0, 180);
-  if (src.length <= 160) return src;
-  const first = lines[0] || '';
-  if (q && q !== first) return (first + '\n' + q).slice(0, 220);
-  return src.slice(0, 160) + '…';
-}
-
-function condense(text) {
-  const src = String(text || '');
-  let removed = 0;
-  const lines = src.split('\n').map((line) => {
-    if (!/R\d+C\d+[^\n]*未证明/.test(line)) return line;
-    removed += (line.match(/R\d+C\d+/g) || []).length;
-    return '';
-  }).filter((l) => l.trim() !== '');
-  if (!removed) return src;
-  const head = `（${removed} 格“未证明”已省略；只保留结论与问题。）`;
-  return head + '\n' + lines.join('\n');
-}
-
 
 function focusText(q, board) {
   if (!q || !Array.isArray(q.cells) || !q.cells.length) return '';

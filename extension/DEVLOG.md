@@ -34,3 +34,9 @@
 - 队列在页面重载后的陈旧批次清理策略。
 - 迷你高尔夫规则下，老师对“区域/小径”类线索的审题回归。
 - UI 自动化回归脚本（不依赖 live 游戏时用 mock board）。
+
+## 0.7.14
+- 抽出纯函数模块：`src/queue.js`（批次合并）、`src/format.js`（tighten/condense），便于离线测试。
+- 新增 `test/queue.test.mjs`、`test/format.test.mjs`、`test/brief.test.mjs`，共 10 条测试全过。
+- 回归覆盖：重叠队列合并、考试模式防泄答案、未证明枚举压缩、迷你高尔夫规则 brief、备课 brief。
+- 测试命令：`node --test test/*.test.mjs`。
