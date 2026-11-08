@@ -70,6 +70,7 @@
       const queue = all['mm_queue_' + safe] || [];
       const qs = led ? (led.questions || []) : [];
       const unresolved = qs.filter((q) => q.status !== 'closed').length;
+      if (!boardCache.length && changesState) changesState.textContent = '等待游戏盘面…';
       const prepEl = root.querySelector('#mm-prep');
       if (prepEl && st) {
         prepEl.textContent = st.prepStatus === 'running' ? '备课中' : st.prepStatus === 'done' ? '备课✓' : st.prepStatus === 'failed' ? '备课×' : '备课—';
@@ -515,6 +516,10 @@
     catch (e) {
       clientLog('read_error', { message: e.message });
       if (changesState) changesState.textContent = '读盘失败：' + e.message;
+      return;
+    }
+    if (!boardCache.length) {
+      if (changesState) changesState.textContent = '等待游戏盘面…';
       return;
     }
     if (lastCount && boardCache.length !== lastCount) {
