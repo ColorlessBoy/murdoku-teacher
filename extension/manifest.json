@@ -1,9 +1,9 @@
 {
   "manifest_version": 3,
   "name": "墨墨 · Murdoku 陪练",
-  "version": "0.7.16",
+  "version": "0.7.17",
   "description": "Murdoku 教学/考试陪练：扩展内独立 agent、可配置 API Key、聊天记录与结构化日志。",
-  "permissions": ["storage", "unlimitedStorage", "tabs", "scripting"],
+  "permissions": ["storage", "unlimitedStorage", "tabs", "scripting", "alarms"],
   "host_permissions": ["https://murdoku.com/*", "https://*.murdoku.com/*", "https://opencode.ai/*", "https://api.openai.com/*", "https://api.deepseek.com/*"],
   "background": { "service_worker": "background.js", "type": "module" },
   "content_scripts": [

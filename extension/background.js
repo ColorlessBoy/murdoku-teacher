@@ -171,7 +171,7 @@ async function ensurePrep(puzzle, board, clues, settings) {
   const st = await loadState(puzzle);
   if (st.prep) return;
   const age = Date.now() - (st.prepAt || 0);
-  if (st.prepStatus === 'running' && age < 120000) return;
+  if (st.prepStatus === 'running' && age < 90000) return;
   if (st.prepStatus === 'failed' && age < 60000) return;
   prepBusy.add(puzzle);
   await savePrepStatus(puzzle, 'running');
@@ -358,9 +358,33 @@ async function handleBoardChanges({ tabId, puzzle, board, changes, clues, title 
   return { ok: true, ledger: state.counts };
 }
 
+const PREP_ALARM = 'mm_prep_watch';
+
+async function ensurePrepAlarm() {
+  try {
+    const a = await chrome.alarms.get(PREP_ALARM);
+    if (!a) chrome.alarms.create(PREP_ALARM, { periodInMinutes: 1 });
+  } catch (e) {}
+}
+
+chrome.alarms.onAlarm.addListener(async (alarm) => {
+  if (alarm.name !== PREP_ALARM) return;
+  try {
+    const { [LAST_PUZZLE_KEY]: puzzle } = await chrome.storage.local.get(LAST_PUZZLE_KEY);
+    if (!puzzle) return;
+    const st = await loadState(puzzle);
+    if (st.prep || !Array.isArray(st.board) || !st.board.length) return;
+    const settings = await getSettings();
+    ensurePrep(puzzle, st.board, (st.clues || []).join('\n'), settings);
+  } catch (e) {}
+});
+
+ensurePrepAlarm();
+
 chrome.runtime.onInstalled.addListener(async (details) => {
   try {
     if (details.reason === 'update' || details.reason === 'install') {
+      ensurePrepAlarm();
       const tabs = await chrome.tabs.query({ url: 'https://murdoku.com/*' });
       for (const t of tabs) {
         try { await chrome.tabs.reload(t.id); } catch (e) {}
