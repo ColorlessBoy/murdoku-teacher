@@ -558,7 +558,9 @@
     }
     await sleep(350);
     const board = readBoardSafe();
-    return { ok: true, action: name, cell: board.find((x) => x.r === r && x.c === c) || null, board };
+    const cellNow = board.find((x) => x.r === r && x.c === c) || null;
+    sendMsg({ type: 'mm:teacher-action', puzzle: PUZZLE, action: name, who, cell: cellNow, board });
+    return { ok: true, action: name, cell: cellNow, board };
   }
 
   function check() {
