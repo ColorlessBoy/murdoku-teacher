@@ -73,8 +73,9 @@
       if (!boardCache.length && changesState) changesState.textContent = '等待游戏盘面…';
       const prepEl = root.querySelector('#mm-prep');
       if (prepEl && st) {
-        prepEl.textContent = st.prepStatus === 'running' ? '备课中' : st.prepStatus === 'done' ? '备课✓' : st.prepStatus === 'failed' ? '备课×' : '备课—';
-        prepEl.dataset.status = st.prepStatus || 'idle';
+        const prepStale = st.prepStatus === 'running' && st.prepAt && Date.now() - st.prepAt > 120000;
+        prepEl.textContent = prepStale ? '备课超时' : st.prepStatus === 'running' ? '备课中' : st.prepStatus === 'done' ? '备课✓' : st.prepStatus === 'failed' ? '备课×' : '备课—';
+        prepEl.dataset.status = prepStale ? 'failed' : (st.prepStatus || 'idle');
         prepEl.title = st.prep && st.prep.chain ? `备课 ${st.prep.chain.length} 步` : '';
       }
       dbgEl.textContent = JSON.stringify({

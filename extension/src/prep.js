@@ -37,10 +37,10 @@ ${formatPrepBoard(board)}
       { role: 'system', content: system },
       { role: 'user', content: user },
     ],
-    settings: { ...settings, maxTokens: 4096 },
+    settings: { ...settings, maxTokens: 2048 },
     expectJson: true,
     timeoutMs: 60000,
-    session: 'prep_' + encodeURIComponent(String(puzzle)).slice(0, 50),
+    session: 'ses_prep_' + encodeURIComponent(String(puzzle)).slice(0, 50),
     puzzle: 'prep:' + puzzle,
   });
   return payload.json || null;
