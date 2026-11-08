@@ -783,7 +783,12 @@
       const r = await pending;
       if (r?.ok) {
         logEl.innerHTML = '';
-        addMsg('me', '新会话已开始：聊天记录、账本和旧上下文已清空；盘面保留。' + (t === '/new logs' ? ' 日志也清空了。' : ''), true);
+        const list = r.chat || [];
+        if (list.length) {
+          for (const m of list) addMsg(m.role, m.text, !!m.system, m.ts || Date.now());
+        } else {
+          addMsg('me', '新会话已开始：聊天记录、账本和旧上下文已清空；盘面保留。' + (t === '/new logs' ? ' 日志也清空了。' : ''), true);
+        }
         setPending(0);
         lastCount = boardCache.length;
         lastSnap = snapText();

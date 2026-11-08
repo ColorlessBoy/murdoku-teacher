@@ -441,6 +441,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
             if (!items.length) return;
             const fmt = (n) => n === 'board_note' ? '笔记' : n === 'board_place' ? '落子' : n === 'board_x' ? 'X' : n === 'board_erase' ? '清除' : n;
             const text = '老师动作：' + items.map((x) => `${fmt(x.name)} ${x.who ? x.who + ' ' : ''}@${x.label}`).join('；') + '。请审查这条推理（接受 / 质疑）。';
+            addChat(msg.puzzle, 'me', text).catch(() => {});
             sendToTab(tid, { type: 'mm:assistant', text, marks: [], verdict: null, system: true });
           }, 800);
           teacherPending.set(key, entry);
