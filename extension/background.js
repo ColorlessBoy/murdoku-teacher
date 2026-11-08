@@ -40,9 +40,40 @@ async function saveQueue(puzzle, q) {
   await chrome.storage.local.set({ [queueKey(puzzle)]: (q || []).slice(-8) });
 }
 
+function mergeBatches(batches) {
+  const out = [];
+  for (const b of batches || []) {
+    const keys = new Set((b.changes || []).map((c) => `${c.r},${c.c}`));
+    const hit = out.find((x) => (x.changes || []).some((c) => keys.has(`${c.r},${c.c}`)));
+    if (!hit) { out.push({ ...b }); continue; }
+    const map = new Map((hit.changes || []).map((c) => [`${c.r},${c.c}`, c]));
+    for (const c of b.changes || []) map.set(`${c.r},${c.c}`, c);
+    hit.changes = [...map.values()];
+    hit.board = b.board;
+    hit.clues = b.clues;
+    hit.title = b.title;
+    hit.tabId = b.tabId;
+    hit.ts = Date.now();
+  }
+  return out;
+}
+
 async function enqueueBoard(puzzle, batch) {
-  const q = await loadQueue(puzzle);
-  q.push({ ...batch, ts: Date.now() });
+  const q = mergeBatches(await loadQueue(puzzle));
+  const keys = new Set((batch.changes || []).map((c) => `${c.r},${c.c}`));
+  const hit = q.find((x) => (x.changes || []).some((c) => keys.has(`${c.r},${c.c}`)));
+  if (hit) {
+    const map = new Map((hit.changes || []).map((c) => [`${c.r},${c.c}`, c]));
+    for (const c of batch.changes || []) map.set(`${c.r},${c.c}`, c);
+    hit.changes = [...map.values()];
+    hit.board = batch.board;
+    hit.clues = batch.clues;
+    hit.title = batch.title;
+    hit.tabId = batch.tabId;
+    hit.ts = Date.now();
+  } else {
+    q.push({ ...batch, ts: Date.now() });
+  }
   await saveQueue(puzzle, q);
   return q.length;
 }
@@ -52,7 +83,8 @@ async function clearQueue(puzzle) {
 }
 
 async function processQueue(puzzle) {
-  const q = await loadQueue(puzzle);
+  const q = mergeBatches(await loadQueue(puzzle));
+  await saveQueue(puzzle, q);
   if (!q.length) return;
   const led = await getLedger(puzzle);
   if (led.unresolved.length) return;
