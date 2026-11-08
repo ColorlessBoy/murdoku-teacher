@@ -90,6 +90,7 @@ export function buildBrief(st, { focus = '', ledger = '', userText = '', chat = 
     const sol = (st.prep.solution || []).slice(0, 30).map((x) => `R${x.r}C${x.c}=${x.who}`).join('、');
     const pit = (st.prep.pitfalls || []).slice(0, 4).join('；');
     lines.push('【备课（私有，绝不向学生透露答案/下一步/提示）】\n' +
+      (st.prep.murderer ? `凶手：${st.prep.murderer}（绝不能说）\n` : '') +
       (chain || '（无推理链）') +
       (sol ? `\n参考解：${sol}（仅供核对，不直接引用）` : '') +
       (pit ? `\n易错点：${pit}` : '') +

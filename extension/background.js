@@ -2,6 +2,7 @@ import { info, warn, error, getLogs, clearLogs, stats } from './src/log.js';
 import { callLLM, normalizeSettings, extractJson } from './src/llm.js';
 import { recall, loadState, addFact, buildBrief, clearFacts, resetBoardState, saveMarks, savePrep, savePrepStatus } from './src/state.js';
 import { prepare } from './src/prep.js';
+import { loadBundledLesson } from './src/lesson.js';
 import { mergeBatches } from './src/queue.js';
 import { tighten, condense } from './src/format.js';
 import { TOOL_DEFS, execTool } from './src/tools.js';
@@ -171,6 +172,14 @@ async function ensurePrep(puzzle, board, clues, settings, force = false) {
   if (!settings?.apiKey || !Array.isArray(board) || !board.length) return null;
   if (prepPromise) return prepPromise;
   const st = await loadState(puzzle);
+  const lesson = await loadBundledLesson(puzzle);
+  if (lesson) {
+    if (!st.prep || st.prep.source !== 'bundled') {
+      await savePrep(puzzle, lesson);
+      await info('prep.bundled', { puzzle, chain: (lesson.chain || []).length, solution: (lesson.solution || []).length });
+    }
+    return lesson;
+  }
   if (st.prep) return st.prep;
   const age = Date.now() - (st.prepAt || 0);
   if (!force && st.prepStatus === 'running' && age < 90000) return null;

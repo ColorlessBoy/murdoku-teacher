@@ -1,0 +1,31 @@
+{
+  "source": "bundled",
+  "title": "迷你高尔夫 | Free Murdoku Puzzle (Hard)",
+  "type": "minigolf",
+  "murderer": "Elyana",
+  "victim": "Valeria",
+  "solution": [
+    { "r": 1, "c": 2, "who": "G" },
+    { "r": 2, "c": 5, "who": "I" },
+    { "r": 3, "c": 4, "who": "B" },
+    { "r": 4, "c": 9, "who": "V" },
+    { "r": 5, "c": 3, "who": "H" },
+    { "r": 6, "c": 8, "who": "E" },
+    { "r": 7, "c": 6, "who": "D" },
+    { "r": 8, "c": 7, "who": "C" },
+    { "r": 9, "c": 1, "who": "F" },
+    { "r": 10, "c": 10, "who": "A" }
+  ],
+  "chain": [
+    "官方解：G R1C2；I R2C5；B R3C4；V R4C9；H R5C3；E R6C8；D R7C6；C R8C7；F R9C1；A R10C10。",
+    "每行、每列恰好一人；迷你高尔夫没有“每间区域必须有人”。",
+    "G 独占最顶行；D 只在小径；B 只坐椅子；E 只在沙地；H 与花正交相邻。",
+    "凶手是 E（Elyana），与 V 同区域且单独；此条绝不能说给学生。"
+  ],
+  "pitfalls": [
+    "笔记是候选，不是落子；X 才是排除。",
+    "不要用“每间房不能空”判迷你高尔夫。",
+    "beside 是正交相邻；east of 是同行右侧。",
+    "官方解只用于审，不直接报答案、下一步或凶手。"
+  ]
+}
