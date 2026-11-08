@@ -28,3 +28,9 @@ test('unions overlapping batches but keeps latest after', () => {
   assert.equal(map.get('1,6').after.notes[0], 'D');
   assert.equal(map.get('1,7').after.notes[0], 'B');
 });
+
+test('drops stale batches when maxAge is set', () => {
+  const old = { changes: [cell(1, 6)], ts: Date.now() - 20 * 60 * 1000 };
+  const fresh = { changes: [cell(2, 5)], ts: Date.now() };
+  assert.equal(mergeBatches([old, fresh], 10 * 60 * 1000).length, 1);
+});

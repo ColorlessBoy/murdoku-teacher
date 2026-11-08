@@ -1,6 +1,8 @@
-export function mergeBatches(batches) {
+export function mergeBatches(batches, maxAgeMs = 0) {
   const out = [];
+  const now = Date.now();
   for (const b of batches || []) {
+    if (maxAgeMs && b.ts && now - b.ts > maxAgeMs) continue;
     const keys = new Set((b.changes || []).map((c) => `${c.r},${c.c}`));
     const hit = out.find((x) => (x.changes || []).some((c) => keys.has(`${c.r},${c.c}`)));
     if (!hit) { out.push({ ...b }); continue; }

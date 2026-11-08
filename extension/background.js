@@ -43,7 +43,7 @@ async function saveQueue(puzzle, q) {
 }
 
 async function enqueueBoard(puzzle, batch) {
-  const q = mergeBatches(await loadQueue(puzzle));
+  const q = mergeBatches(await loadQueue(puzzle), 600000);
   const keys = new Set((batch.changes || []).map((c) => `${c.r},${c.c}`));
   const hit = q.find((x) => (x.changes || []).some((c) => keys.has(`${c.r},${c.c}`)));
   if (hit) {
@@ -67,7 +67,7 @@ async function clearQueue(puzzle) {
 }
 
 async function processQueue(puzzle) {
-  const q = mergeBatches(await loadQueue(puzzle));
+  const q = mergeBatches(await loadQueue(puzzle), 600000);
   await saveQueue(puzzle, q);
   if (!q.length) return;
   const led = await getLedger(puzzle);

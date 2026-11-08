@@ -9,7 +9,9 @@ const emptyState = () => ({ type: 'murdoku', title: '', clues: [], board: [], fa
 export async function loadState(puzzle) {
   const key = storeKey(puzzle);
   const { [key]: st } = await chrome.storage.local.get(key);
-  return { ...emptyState(), ...(st || {}) };
+  const out = { ...emptyState(), ...(st || {}) };
+  for (const k of ['clueCells', 'terrain', 'objTypes', 'boardFacts']) delete out[k];
+  return out;
 }
 
 async function save(puzzle, st) {
