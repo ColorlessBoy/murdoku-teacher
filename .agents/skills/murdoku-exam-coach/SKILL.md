@@ -32,6 +32,20 @@ A claim is: **move** (place/note/X) + **reason** (one sentence).
   - rule: which rule?
   - conclusion: which cell/person?
 
+## Interaction protocol (live sidebar)
+
+- The user marks several cells at once. The panel batches changes (700 ms) and asks one question; never ask per cell.
+- **One pending question only.** A new question while one is open makes the first look ignored. The panel releases the gate when the user answers or when you post a verdict.
+- On panel reload, a 2.5 s warmup baselines the existing marks; do not re-question them.
+- The exam chat is server-owned (`exam.chat` / `exam-chat.json`); verdicts and user messages survive reloads. Never clear it.
+- If one rationale covers several pending questions, accept it once and close them together; do not make the user repeat it.
+
+## Candidate vs fixed
+
+- A note = "this person may be here". It is not a placement.
+- Clearing a note's whole row/column is premature until that cell is forced.
+- Ask once: 候选还是已定？ If fixed, ask which clue forced it; if candidate, stop the row/column clearing.
+
 ## Audit protocol
 
 Check in this order; stop at the first failure.
@@ -51,6 +65,9 @@ Check in this order; stop at the first failure.
 - One person per row and per column; rooms cannot be empty.
 - Vin's room contains exactly 2 people (Vin + one other).
 - Fred is alone in his room and sits on a chair.
+- Each column holds exactly one person. If E/F/C are confined to distinct columns, other people cannot use those columns — column exclusion is valid.
+- Count capacity in rows/columns, not only rooms: H + the woman = 2 in the Dining Room; four people cannot fit into rows 1–3.
+- Use room names (Guest Bedroom, Panic Room, Dining Room, Kitchen). Never say "room 8" or any data id. The data's room blocks can merge named rooms; defer to the user's visible boundary.
 
 ### 3. Entailment
 
@@ -103,6 +120,18 @@ Escalate only on request or after two failed attempts:
 - Hints used.
 - One drill for next time (e.g., "same-room beside", "capacity elimination", "read auto-X").
 
+## Feedback after a finished run
+
+- Feedback = strengths (valid chains) + remaining gaps (one line each) + one drill. No answer leakage.
+- Check the board first: notes are not placements. If the ten characters are not all placed, the puzzle is not submitted yet; say so.
+- If the user says "done", ask for the placement list or read the board; audit the final assignment only against the game's result, not from memory.
+
+## Recovery and consent
+
+- Never reload, replay, or clear the board without explicit consent. A reload can erase in-progress notation.
+- If the user asks to restore: take the last full snapshot (`mg_hist`, `/snap?idx=N`), clear first via the site's clear button, then apply placements → note groups → X; skip already-correct cells; verify cell by cell.
+- The exam chat is server-side; the board notation is not. State which one is safe before acting.
+
 ## Anti-patterns
 
 - Doing the deduction for the user.
@@ -111,6 +140,11 @@ Escalate only on request or after two failed attempts:
 - Listing five problems at once.
 - Ending with "the answer is..." to be helpful.
 - Judging from memory instead of reading the current board.
+- Saying "room 8" or any data id instead of the room name.
+- Re-asking a claim the user already answered.
+- Rejecting one-person-per-column exclusion.
+- Auto-reloading or auto-restoring the board without consent.
+- Treating a candidate batch as a placement.
 
 ## Murdoku rulebook quick reference
 
@@ -125,3 +159,11 @@ Escalate only on request or after two failed attempts:
 - Dawn: east of Benton, not beside a table.
 - Austin: not beside a table. Herman: beside a table.
 - Chloe: beside a shelf. Benton: bottom row.
+
+## Panic Room reference (10×10)
+
+Cast A–J: Alvin, Bobby, Charlie, Dina, Evan, Fawn, Graham, Harold, Iona, Violet (victim).
+
+Clues: Alvin beside a statue; Bobby on a chair; Charlie in the Guest Bedroom; Dina beside a shelf; Evan in the Panic Room; Fawn beside a TV; Graham exactly one row south of someone on a carpet; Harold with a woman in the Dining Room; Iona exactly two columns east of a woman.
+
+Live-run notes: the data's room blocks can merge named rooms; use the user's visible boundary. E/F/C occupy C8–C10 (one per column), which excludes everyone else from those columns.

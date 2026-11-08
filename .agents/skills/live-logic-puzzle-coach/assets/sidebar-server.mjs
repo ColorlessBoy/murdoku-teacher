@@ -172,6 +172,7 @@ const CHAT = () => {
     }
   };
 };
+const MARKS_SRC = '(' + MARKS.toString() + ')()';
 const CHAT_SRC = '(' + CHAT.toString() + ')()';
 
 const browser = await chromium.connectOverCDP(process.env.CDP_URL || 'http://127.0.0.1:19988');

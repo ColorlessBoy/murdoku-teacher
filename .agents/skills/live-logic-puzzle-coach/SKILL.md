@@ -129,6 +129,28 @@ The bundled panel is a chat, not a debug console:
 - header: status dot + "老师在讲解第 N 步 · 等你确认" or "推理记录已同步";
 - messages scroll to the bottom; the sidebar is resizable and collapses to a tab.
 
+## Current panel (v7)
+
+- Two modes: 教学 (purple/gold) and 考试 (dark red); Momo persona; one log with 教学/考试 labels.
+- Endpoints: `/state`, `/board`, `/health`, `/ui`, `/exam/state`, `/exam/wait`, `/exam/reply`, `/clear`, `/new?force=1`, `/reload`, `/snaps`, `/snap?idx=N`, `/localhist`, `/apply?idx=N`, `/rollback?to=N`, `/cells`, `/dupes`, `/tool`, `/labels`.
+- `/clear` = the site's clear button `button[title="长按以清除所有格子"]` (long-press ~1.2 s) + clear marks + keep chat. Never reload for clear.
+- `/new?force=1` = full reset (chat + board); gated.
+- Exam: batches changes over 700 ms; one question pending; 2.5 s warmup after injection; the gate releases on the user's answer or on a verdict.
+
+## Board DOM contract
+
+- 200 `[data-cell-index]` elements, 100 unique indices, two layers at identical rects. Compute columns from **unique** indices (10), not `Math.sqrt(200)` (14).
+- Placement: single-letter text or portrait; notes: `.grid-note-letter`; X: `img` with `src` containing `87.7`.
+- `clearBoard` long-presses the clear button; never use reload as clear.
+- The game may persist some pieces but not all in-progress notation; localStorage `mg_hist` is the recovery source.
+
+## Consent and recovery
+
+- Never reload, replay, or clear the board without explicit consent; a reload can wipe in-progress notation.
+- Restore: last full snapshot (`/snap?idx=N`) → clear via the site button → placements → note groups (one card click per letter) → X in one batch (skip existing) → verify.
+- Do not toggle notes per cell; select a letter once and click all its cells.
+- Old MutationObservers survive panel injection; use a generation token and one reload; duplicate questions come from two observers.
+
 ## Failure modes
 
 | Symptom | Root cause | Fix |
@@ -142,6 +164,11 @@ The bundled panel is a chat, not a debug console:
 | Multiple queued plans, UI chaos | Fired plans without waiting | One plan at a time; kill/stop before resending |
 | Submit click hung | Selector/action blocked | Free CDP, click directly, verify the result modal |
 | User says "you can't see the board" | Reasoning from memory, not DOM | Re-read `/board` before every claim |
+| Duplicate questions for one change | Old MutationObserver still running after a version bump | Generation token + one page reload |
+| Chat empty after clear | Exam messages were page-local | Server-owned `exam.chat` + `exam-chat.json` |
+| Notation wiped by reload | Game does not persist all in-progress marks | Never reload without consent; restore from `mg_hist` |
+| Restore toggles notes | Per-cell note clicks toggle | Clear first; group notes by letter; X in one batch |
+| Highlight offset | Columns computed from 200 cells (`sqrt`=14) | Use 100 unique indices (10) |
 
 ## Checklists
 
