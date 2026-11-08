@@ -1,8 +1,7 @@
 import { info, warn, error, getLogs, clearLogs, stats } from './src/log.js';
 import { callLLM, normalizeSettings, extractJson } from './src/llm.js';
 import { recall, loadState, addFact, buildBrief, clearFacts, resetBoardState, saveMarks, savePrep, savePrepStatus } from './src/state.js';
-import { prepare } from './src/prep.js';
-import { loadBundledLesson } from './src/lesson.js';
+import { getBundledLesson } from './src/lessons.js';
 import { mergeBatches } from './src/queue.js';
 import { tighten, condense } from './src/format.js';
 import { TOOL_DEFS, execTool } from './src/tools.js';
@@ -165,50 +164,15 @@ function focusText(q, board) {
   }).join('\n');
 }
 
-const prepBusy = new Set();
-let prepPromise = null;
-
 async function ensurePrep(puzzle, board, clues, settings, force = false) {
-  if (!settings?.apiKey || !Array.isArray(board) || !board.length) return null;
-  if (prepPromise) return prepPromise;
+  const lesson = getBundledLesson(puzzle);
+  if (!lesson) return null;
   const st = await loadState(puzzle);
-  const lesson = await loadBundledLesson(puzzle);
-  if (lesson) {
-    if (!st.prep || st.prep.source !== 'bundled') {
-      await savePrep(puzzle, lesson);
-      await info('prep.bundled', { puzzle, chain: (lesson.chain || []).length, solution: (lesson.solution || []).length });
-    }
-    return lesson;
+  if (!st.prep || st.prep.source !== 'bundled') {
+    await savePrep(puzzle, lesson);
+    await info('prep.bundled', { puzzle, chain: (lesson.chain || []).length, solution: (lesson.solution || []).length });
   }
-  if (st.prep) return st.prep;
-  const age = Date.now() - (st.prepAt || 0);
-  if (!force && st.prepStatus === 'running' && age < 90000) return null;
-  if (!force && st.prepStatus === 'failed' && age < 60000) return null;
-  if (prepBusy.has(puzzle)) return null;
-  prepBusy.add(puzzle);
-  prepPromise = (async () => {
-    await savePrepStatus(puzzle, 'running');
-    await info('prep.start', { puzzle, board: board.length, clues: String(clues || '').length });
-    try {
-      const prep = await prepare({ puzzle, board, clues, settings });
-      if (prep) {
-        await savePrep(puzzle, prep);
-        await info('prep.done', { puzzle, chain: (prep.chain || []).length, solution: (prep.solution || []).length });
-        return prep;
-      }
-      await savePrepStatus(puzzle, 'failed');
-      await warn('prep.empty', { puzzle });
-      return null;
-    } catch (e) {
-      await savePrepStatus(puzzle, 'failed');
-      await warn('prep.failed', { puzzle, code: e.code, message: e.message });
-      return null;
-    } finally {
-      prepBusy.delete(puzzle);
-      prepPromise = null;
-    }
-  })();
-  return prepPromise;
+  return lesson;
 }
 
 async function readLiveBoard(tabId, puzzle) {
