@@ -39,7 +39,7 @@ ${formatPrepBoard(board)}
     ],
     settings: { ...settings, maxTokens: 4096 },
     expectJson: true,
-    timeoutMs: 90000,
+    timeoutMs: 60000,
     session: 'prep_' + encodeURIComponent(String(puzzle)).slice(0, 50),
     puzzle: 'prep:' + puzzle,
   });

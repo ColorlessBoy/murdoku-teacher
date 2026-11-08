@@ -4,7 +4,7 @@ function storeKey(puzzle) {
   return PREFIX + encodeURIComponent(String(puzzle || 'unknown')).slice(0, 90);
 }
 
-const emptyState = () => ({ type: 'murdoku', title: '', clues: [], board: [], facts: [], lastMarks: [], prep: null, clearedAt: 0, updatedAt: 0 });
+const emptyState = () => ({ type: 'murdoku', title: '', clues: [], board: [], facts: [], lastMarks: [], prep: null, prepStatus: 'idle', prepAt: 0, clearedAt: 0, updatedAt: 0 });
 
 export async function loadState(puzzle) {
   const key = storeKey(puzzle);
@@ -150,6 +150,17 @@ export async function saveMarks(puzzle, marks) {
 export async function savePrep(puzzle, prep) {
   const st = await loadState(puzzle);
   st.prep = prep || null;
+  st.prepStatus = prep ? 'done' : 'failed';
+  st.prepAt = Date.now();
+  await save(puzzle, st);
+  return st;
+}
+
+
+export async function savePrepStatus(puzzle, status) {
+  const st = await loadState(puzzle);
+  st.prepStatus = status;
+  st.prepAt = Date.now();
   await save(puzzle, st);
   return st;
 }

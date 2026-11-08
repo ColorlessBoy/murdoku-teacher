@@ -1,6 +1,6 @@
 import { info, warn, error, getLogs, clearLogs, stats } from './src/log.js';
 import { callLLM, normalizeSettings, extractJson } from './src/llm.js';
-import { recall, loadState, addFact, buildBrief, clearFacts, resetBoardState, saveMarks, savePrep } from './src/state.js';
+import { recall, loadState, addFact, buildBrief, clearFacts, resetBoardState, saveMarks, savePrep, savePrepStatus } from './src/state.js';
 import { prepare } from './src/prep.js';
 import { TOOL_DEFS, execTool } from './src/tools.js';
 import { buildMessages } from './src/prompt.js';
@@ -218,15 +218,23 @@ async function ensurePrep(puzzle, board, clues, settings) {
   if (!settings?.apiKey || !Array.isArray(board) || !board.length || prepBusy.has(puzzle)) return;
   const st = await loadState(puzzle);
   if (st.prep) return;
+  const age = Date.now() - (st.prepAt || 0);
+  if (st.prepStatus === 'running' && age < 120000) return;
+  if (st.prepStatus === 'failed' && age < 60000) return;
   prepBusy.add(puzzle);
+  await savePrepStatus(puzzle, 'running');
   await info('prep.start', { puzzle, board: board.length, clues: String(clues || '').length });
   try {
     const prep = await prepare({ puzzle, board, clues, settings });
     if (prep) {
       await savePrep(puzzle, prep);
       await info('prep.done', { puzzle, chain: (prep.chain || []).length, solution: (prep.solution || []).length });
+    } else {
+      await savePrepStatus(puzzle, 'failed');
+      await warn('prep.empty', { puzzle });
     }
   } catch (e) {
+    await savePrepStatus(puzzle, 'failed');
     await warn('prep.failed', { puzzle, code: e.code, message: e.message });
   } finally {
     prepBusy.delete(puzzle);
