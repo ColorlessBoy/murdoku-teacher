@@ -187,6 +187,7 @@ async function ensurePrep(puzzle, board, clues, settings) {
   const st = await loadState(puzzle);
   if (st.prep) return;
   prepBusy.add(puzzle);
+  await info('prep.start', { puzzle, board: board.length, clues: String(clues || '').length });
   try {
     const prep = await prepare({ puzzle, board, clues, settings });
     if (prep) {
@@ -218,6 +219,7 @@ async function runAgent({ tabId, puzzle, board, changes, userText, clues, ledger
   const mode = await getMode();
   const settings = await getSettings();
   const chat = await getChat(puzzle);
+  if (settings.apiKey) ensurePrep(puzzle, board, clues, settings);
   if (userText) await addChat(puzzle, 'you', userText);
   const live = await readLiveBoard(tabId, puzzle);
   const boardNow = (live && Array.isArray(live.board) && live.board.length) ? live.board : board;
