@@ -129,12 +129,17 @@ export function formatChat(chat, limit = 4) {
   return chat.slice(-limit).map((m) => `${m.role === 'you' ? '学生' : '墨墨'}：${m.text}`).join('\n');
 }
 
-export function buildMessages({ mode, brief, board, changes, chat, userText, clues, puzzle, ledger, focus, puzzleType }) {
+export function buildMessages({ mode, brief, board, changes, chat, userText, clues, puzzle, ledger, focus, puzzleType, autoStart = false }) {
   const system = mode === 'exam' ? SYSTEM_EXAM : SYSTEM_TUTOR;
+  const autoHint = autoStart
+    ? (mode === 'tutor'
+      ? '【系统】这是教学开场。请主动开场：先说“今天我们来玩迷你高尔夫”，用一两句说明目标和你的教法；然后直接开始第一步——从最机械的 B（Burma）椅子候选入手，用 board_note 把 B 笔记写到 R3C4、R10C7、R10C8，并解释为什么三格都保留。不要等学生说话，不要提问。'
+      : '【系统】考试开始。请开场并让学生先走；不要给答案。')
+    : '';
   if (brief) {
     return [
       { role: 'system', content: system },
-      { role: 'user', content: brief + '\n\n只输出 JSON。' },
+      { role: 'user', content: brief + (autoHint ? '\n\n' + autoHint : '') + '\n\n只输出 JSON。' },
     ];
   }
   const parts = [];

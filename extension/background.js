@@ -187,7 +187,7 @@ async function readLiveBoard(tabId, puzzle) {
   return null;
 }
 
-async function runAgent({ tabId, puzzle, board, changes, userText, clues, ledger }) {
+async function runAgent({ tabId, puzzle, board, changes, userText, clues, ledger, autoStart = false }) {
   const epoch = await getEpoch(puzzle);
   let tab = null; try { tab = await chrome.tabs.get(tabId); } catch (e) {}
   if (!tab) { await warn('agent.tab_gone', { tabId, puzzle }); return; }
@@ -206,7 +206,7 @@ async function runAgent({ tabId, puzzle, board, changes, userText, clues, ledger
   const st = await loadState(puzzle);
   const chatNow = await getChat(puzzle);
   const brief = buildBrief(st, { focus, ledger, userText, chat: chatNow });
-  const messages = buildMessages({ mode, brief, userText, puzzle });
+  const messages = buildMessages({ mode, brief, userText, puzzle, autoStart });
   await info('agent.run', { tabId, mode, puzzle, changes: changes?.length || 0, boardCells: boardNow.length, userText: userText || null, hasKey: !!settings.apiKey });
 
   if (!settings.apiKey) {
@@ -447,6 +447,13 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           sendResponse({ ok: true });
           break;
         }
+        case 'mm:autostart': {
+          const pz = msg.puzzle || 'unknown';
+          if (await getMode() !== 'tutor') { sendResponse({ ok: false, skipped: 'mode' }); break; }
+          await runAgent({ tabId, puzzle: pz, board: msg.board, clues: msg.clues, changes: [], userText: null, ledger: await getLedger(pz), autoStart: true });
+          sendResponse({ ok: true });
+          break;
+        }
         case 'mm:reload-extension': {
           sendResponse({ ok: true });
           setTimeout(() => { try { chrome.runtime.reload(); } catch (e) {} }, 120);
@@ -511,6 +518,9 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           await addChat(puzzle, 'me', welcome);
           const mode = await getMode();
           await sendToTab(tabId, { type: 'mm:pending', unresolved: 0 });
+          if (mode === 'tutor' && Array.isArray(msg.board) && msg.board.length) {
+            await runAgent({ tabId, puzzle, board: msg.board, clues: msg.clues, changes: [], userText: null, ledger: await getLedger(puzzle), autoStart: true });
+          }
           await info('session.new', { tabId, puzzle, clearLogs: !!msg.clearLogs });
           sendResponse({ ok: true, mode, chat: await getChat(puzzle), ledger: await getLedger(puzzle) });
           break;

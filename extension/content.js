@@ -509,6 +509,8 @@
 
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   let selfActingUntil = 0;
+  let chatEmptyOnLoad = false;
+  let autoStartSent = false;
 
   async function performBoardAction(action) {
     const name = action?.name;
@@ -523,8 +525,9 @@
     selfActingUntil = Date.now() + 5000;
     const who = String(args.who || '').toUpperCase();
     const suspects = reactCache?.suspects || [];
+    const NAMES = { A: 'Albert', B: 'Burma', C: 'Craig', D: 'Duncan', E: 'Elyana', F: 'Faith', G: 'Ginny', H: 'Hugo', I: 'Idril', V: 'Valeria' };
     const sp = suspects.find((x) => x.symbol === who || x.name === who);
-    const pname = sp?.name || who;
+    const pname = sp?.name || NAMES[who] || who;
     const personBtn = [...document.querySelectorAll('button')].find((b) => b.title === pname || (b.getAttribute('aria-label') || '') === pname || (b.innerText || '').trim() === pname);
     const toolBtn = (re) => [...document.querySelectorAll('button')].find((b) => re.test((b.title || '') + ' ' + (b.innerText || '')));
     const cur = board0.find((x) => x.r === r && x.c === c);
@@ -545,10 +548,10 @@
       const has = (cur?.notes || []).includes(who);
       const on = args.on !== false;
       if (on === has) return { ok: true, action: name, cell: cur };
-      hit(personBtn); await sleep(120); hit(cell);
+      hit(personBtn); await sleep(250); hit(cell);
     } else if (name === 'board_place') {
       if (!personBtn) return { ok: false, error: 'no_suspect' };
-      hit(personBtn); await sleep(120);
+      hit(personBtn); await sleep(250);
       cell.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true, pointerId: 1, pointerType: 'mouse', button: 0, buttons: 1, isPrimary: true }));
       cell.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true, button: 0, buttons: 1 }));
       await sleep(700);
@@ -569,6 +572,7 @@
     await sleep(350);
     const board = readBoardSafe();
     const cellNow = board.find((x) => x.r === r && x.c === c) || null;
+    clientLog('board_action', { name, who, pname, r, c, found: !!personBtn, cell: cellNow });
     sendMsg({ type: 'mm:teacher-action', puzzle: PUZZLE, action: name, who, cell: cellNow, board });
     return { ok: true, action: name, cell: cellNow, board };
   }
@@ -585,6 +589,10 @@
     if (!boardCache.length) {
       if (changesState) changesState.textContent = '等待游戏盘面…';
       return;
+    }
+    if (mode === 'tutor' && chatEmptyOnLoad && !autoStartSent) {
+      autoStartSent = true;
+      sendMsg({ type: 'mm:autostart', puzzle: PUZZLE, board: boardCache, clues: clues(), title: document.title });
     }
     if (lastCount && boardCache.length !== lastCount) {
       lastCount = boardCache.length;
@@ -867,11 +875,10 @@
         setMode(res.mode || 'exam');
         setPending(res.ledger?.counts?.unresolved || 0);
         for (const m of res.chat || []) addMsg(m.role, m.text, false, m.ts || Date.now());
+        chatEmptyOnLoad = !(res.chat || []).length;
         if (!res.chat?.length) {
           const keyed = !!res.settings?.apiKey;
-          addMsg('me', keyed
-            ? '我是墨墨。考试模式下我只提问、不给答案；你动盘面，我会圈出有疑问的格。'
-            : '我是墨墨。考试模式下我只提问、不给答案；先点 ⚙ 配置 API Key。', true);
+          if (!keyed) addMsg('me', '先点 ⚙ 配置 API Key，再开始教学。', true);
         }
       } else {
         addMsg('me', '扩展后台没有响应；打开设置页检查。', true);
