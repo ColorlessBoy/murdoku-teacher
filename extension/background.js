@@ -165,32 +165,41 @@ function focusText(q, board) {
 }
 
 const prepBusy = new Set();
+let prepPromise = null;
 
-async function ensurePrep(puzzle, board, clues, settings) {
-  if (!settings?.apiKey || !Array.isArray(board) || !board.length || prepBusy.has(puzzle)) return;
+async function ensurePrep(puzzle, board, clues, settings, force = false) {
+  if (!settings?.apiKey || !Array.isArray(board) || !board.length) return null;
+  if (prepPromise) return prepPromise;
   const st = await loadState(puzzle);
-  if (st.prep) return;
+  if (st.prep) return st.prep;
   const age = Date.now() - (st.prepAt || 0);
-  if (st.prepStatus === 'running' && age < 90000) return;
-  if (st.prepStatus === 'failed' && age < 60000) return;
+  if (!force && st.prepStatus === 'running' && age < 90000) return null;
+  if (!force && st.prepStatus === 'failed' && age < 60000) return null;
+  if (prepBusy.has(puzzle)) return null;
   prepBusy.add(puzzle);
-  await savePrepStatus(puzzle, 'running');
-  await info('prep.start', { puzzle, board: board.length, clues: String(clues || '').length });
-  try {
-    const prep = await prepare({ puzzle, board, clues, settings });
-    if (prep) {
-      await savePrep(puzzle, prep);
-      await info('prep.done', { puzzle, chain: (prep.chain || []).length, solution: (prep.solution || []).length });
-    } else {
+  prepPromise = (async () => {
+    await savePrepStatus(puzzle, 'running');
+    await info('prep.start', { puzzle, board: board.length, clues: String(clues || '').length });
+    try {
+      const prep = await prepare({ puzzle, board, clues, settings });
+      if (prep) {
+        await savePrep(puzzle, prep);
+        await info('prep.done', { puzzle, chain: (prep.chain || []).length, solution: (prep.solution || []).length });
+        return prep;
+      }
       await savePrepStatus(puzzle, 'failed');
       await warn('prep.empty', { puzzle });
+      return null;
+    } catch (e) {
+      await savePrepStatus(puzzle, 'failed');
+      await warn('prep.failed', { puzzle, code: e.code, message: e.message });
+      return null;
+    } finally {
+      prepBusy.delete(puzzle);
+      prepPromise = null;
     }
-  } catch (e) {
-    await savePrepStatus(puzzle, 'failed');
-    await warn('prep.failed', { puzzle, code: e.code, message: e.message });
-  } finally {
-    prepBusy.delete(puzzle);
-  }
+  })();
+  return prepPromise;
 }
 
 async function readLiveBoard(tabId, puzzle) {
@@ -215,6 +224,7 @@ async function runAgent({ tabId, puzzle, board, changes, userText, clues, ledger
   const live = await readLiveBoard(tabId, puzzle);
   const boardNow = (live && Array.isArray(live.board) && live.board.length) ? live.board : board;
   const cluesNow = (live && Array.isArray(live.clues)) ? live.clues : clues;
+  if (settings.apiKey) await ensurePrep(puzzle, boardNow, cluesNow, settings, true);
   const ledState = await getLedger(puzzle);
   const focusQ = (ledState.unresolved || []).slice(-1)[0];
   const focus = focusText(focusQ, boardNow);
@@ -308,7 +318,6 @@ async function runAgent({ tabId, puzzle, board, changes, userText, clues, ledger
     await saveMarks(puzzle, marks);
     await sendToTab(tabId, { type: 'mm:assistant', text, marks, verdict: assistant.verdict, replyTo: lastUser?.ts || null, ts: Date.now(), unresolved: after.counts.unresolved });
     await info('agent.reply', { tabId, mode, verdict: assistant.verdict, length: assistant.text.length, marks: assistant.marks.length, unresolved: after.counts.unresolved });
-    if (settings.apiKey) await ensurePrep(puzzle, boardNow, cluesNow, settings);
   } catch (e) {
     if (await getEpoch(puzzle) !== epoch) {
       await info('agent.stale_discarded', { tabId, puzzle, epoch, error: e.code || e.message });
@@ -357,33 +366,9 @@ async function handleBoardChanges({ tabId, puzzle, board, changes, clues, title 
   return { ok: true, ledger: state.counts };
 }
 
-const PREP_ALARM = 'mm_prep_watch';
-
-async function ensurePrepAlarm() {
-  try {
-    const a = await chrome.alarms.get(PREP_ALARM);
-    if (!a) chrome.alarms.create(PREP_ALARM, { periodInMinutes: 1 });
-  } catch (e) {}
-}
-
-chrome.alarms.onAlarm.addListener(async (alarm) => {
-  if (alarm.name !== PREP_ALARM) return;
-  try {
-    const { [LAST_PUZZLE_KEY]: puzzle } = await chrome.storage.local.get(LAST_PUZZLE_KEY);
-    if (!puzzle) return;
-    const st = await loadState(puzzle);
-    if (st.prep || !Array.isArray(st.board) || !st.board.length) return;
-    const settings = await getSettings();
-    await ensurePrep(puzzle, st.board, (st.clues || []).join('\n'), settings);
-  } catch (e) {}
-});
-
-ensurePrepAlarm();
-
 chrome.runtime.onInstalled.addListener(async (details) => {
   try {
     if (details.reason === 'update' || details.reason === 'install') {
-      ensurePrepAlarm();
       const tabs = await chrome.tabs.query({ url: 'https://murdoku.com/*' });
       for (const t of tabs) {
         try { await chrome.tabs.reload(t.id); } catch (e) {}
