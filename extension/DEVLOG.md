@@ -40,3 +40,12 @@
 - 新增 `test/queue.test.mjs`、`test/format.test.mjs`、`test/brief.test.mjs`，共 10 条测试全过。
 - 回归覆盖：重叠队列合并、考试模式防泄答案、未证明枚举压缩、迷你高尔夫规则 brief、备课 brief。
 - 测试命令：`node --test test/*.test.mjs`。
+
+## 0.7.17
+- 备课 watchdog：`chrome.alarms` 每分钟唤醒；stale running 90s 后允许重试。
+- 备课 fetch 超时 30s，避免 service worker 挂起导致永远 `running`。
+- 新增 `alarms` 权限。
+
+## 0.7.17 tests
+- 新增 `test/ledger.test.mjs`：首次开问题、同批合并、asked 被新改动 supersede、answer+VALID 关闭、关闭后新问题。
+- 共 14 条测试全过。
