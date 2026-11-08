@@ -1,0 +1,254 @@
+---
+name: live-logic-puzzle-coach
+description: Use when solving or coaching a live logic puzzle (Murdoku, Sudoku-like, murder mystery) on a web board with a chat/HUD side panel, especially when the user requires step-by-step, assumption-free deduction with visible notation and no brute force.
+metadata:
+  requires:
+    chrome-extension: "Playwriter 0.10.0 (CDP bridge at http://127.0.0.1:19988)"
+    node-package: "playwright-core (CDP client only; not the Python playwright package)"
+---
+
+# Live Logic Puzzle Coach
+
+## When to use
+
+- The puzzle runs on a live web page; placements, notes, and X marks are DOM state.
+- A side panel / chat log confirms each step before execution.
+- The user forbids brute force, enumeration, backtracking, case splits, or "suppose" reasoning.
+- The user wants to see the deduction, not just the answer.
+
+## Dependencies
+
+- **Playwriter Chrome extension** — this is the browser bridge, not the Python `playwright` package and not a bundled browser. It exposes the Chrome profile over CDP at `http://127.0.0.1:19988`. Verify with:
+  ```bash
+  curl -s http://127.0.0.1:19988/json/version
+  ```
+  Expect `{"Browser":"Playwriter/..."}`.
+- **Node `playwright-core`** — used only as a CDP client. It does not launch Chrome; it connects to the extension's bridge.
+- The puzzle tab must already be open in that Chrome profile. Only one CDP client can connect at a time.
+- `assets/attach.mjs` verifies the bridge, lists tabs, matches the puzzle URL, and can open a tab via `MURDOKU_OPEN`.
+
+## Non-negotiables
+
+1. **Never read the answer.** Sanitize the puzzle data first: remove `solution_*`, `player_hint_*`, `murderer`, and any answer fields. Work only from clues, rooms, objects, and the live board.
+2. **Board state is the source of truth.** Before every proposal, read placements, notes, and X marks. A condition not visible on the board must be marked before it is used.
+3. **One action per popup, one condition per step.** If the reason reads like a paragraph, split it. Simple steps get one sentence.
+4. **No assumptions.** Only forced elimination or capacity-forced placement. If a step starts with "suppose", it is not forced; find the capacity/single-cell version.
+5. **One notation meaning.** A letter in a cell means "this person may be here". Never use a note to mean "this cell may contain one of these people". Delete notes that mix meanings.
+
+## Workflow
+
+### 1. Data and rules
+
+- Extract rooms, blocked objects (tables, shelves, TVs, plants, barrels), occupiable cells, chairs, bed cells.
+- Pin down every predicate **before** solving:
+  - `beside` = orthogonally adjacent **and same room**.
+  - `east of` = any column to the right (same row not required unless stated).
+  - `spans` = an object may cover multiple cells (a bed may be 2 cells). Verify from data/rendering; do not assume one cell.
+  - `exactly one` / `exactly two` apply to the whole board.
+- Turn each clue into a unary filter first; then combine.
+
+### 2. Board reader
+
+- Read the DOM: placed letters, small notes, and X marks. Keep a `/board` endpoint or an equivalent snapshot.
+- **Placing a person auto-X's the entire row and column.** Never manually re-X those cells; read them instead.
+- Maintain a small state file: placements, X set, notes per person. Re-read after every action.
+- Distinguish object images from X images; if unsure, derive the X set from placements (row/column) plus manual X steps.
+
+### 3. Candidate notation
+
+- Add notes only for a person's possible cells; keep the set honest and complete.
+- When a deduction narrows a person to a set, rewrite the notes; do not stack a second meaning on the same letters.
+- If a note's meaning is ambiguous, delete it and restate the claim in the chat.
+
+### 4. Deduction discipline
+
+- Look for the **logical head**:
+  - a row/column/room with a single empty cell;
+  - a room whose only possible occupant is one person;
+  - a capacity constraint: room must be non-empty, room exactly 2, exactly two chairs, one per row/column.
+- Prefer forced moves in this order:
+  1. capacity (room cannot be empty; room exactly N);
+  2. single remaining cell in a row/column/room;
+  3. column/row intersection conflicts;
+  4. chair/object counts.
+- Each step states: condition → cells → conclusion. No hidden links.
+- If a cell is already X'd or occupied, do not propose it.
+- Split multiple exclusions into separate popups; one cell or one group per step.
+
+### 5. Execution loop
+
+- One action per popup: `place`, `xmark`, or `notes`.
+- Marks in the HUD must match the reason: green = placement, grey = exclusion, amber = candidate.
+- After approval: execute, then **read the board back** and verify auto-X/notes before the next step.
+- Persist chat history to JSON so feedback and rejected steps survive restarts; mark stale pending entries as aborted on load.
+- If a browser click hangs, free the CDP connection and click directly; do not leave queued plans running.
+
+### 6. Context hygiene
+
+- Long sessions pollute reasoning. When it happens, write a clean brief:
+  rules, rooms, objects, placements, X set, notes, derived facts, and the ban on assumptions/enumeration.
+- Give the brief to a subagent for **one next forced deduction**; the parent executes.
+- Ask the subagent to return: the deduction, the one-condition-per-line reason, the key clue, and an explicit "no forced step" if that is the case.
+
+## Architecture: one product, two layers
+
+The companion is one product with two cooperating layers. Do not present them as separate tools.
+
+**Interaction layer (main agent)**
+
+- Owns `assets/sidebar-server.mjs`: chat panel, marks, split layout, action execution, persistence.
+- Talks to the user, reads the board, runs one popup at a time.
+- Never does deep deduction in a polluted context.
+
+**Logic layer (subagent)**
+
+- Receives a clean brief: rules, rooms, objects, placements, X, notes, derived facts.
+- Returns one forced deduction at a time: conclusion, one-condition-per-line reason, key clue, or "no forced step".
+- Has no UI/execution context; this keeps the logic module pure.
+
+**Message loop**
+
+- Main → logic: board snapshot + question ("next forced step?") + user feedback/rejection.
+- Logic → main: deduction card + key clue.
+- Main may challenge: "is this forced? what about <cell>?"; logic revises.
+- Sync after every placement, after a rejection, and when stuck — not one-shot.
+
+**Why**
+
+- Context pollution is the main source of reasoning errors; separating layers keeps the logic clean.
+- The chat panel is the product surface; the subagent is the engine behind it.
+
+## Chat panel behaviour
+
+The bundled panel is a chat, not a debug console:
+
+- assistant bubble: "老师 · 第 N 步 · HH:MM", title, reason, mark legend;
+- user bubble: "你 · 确认" or "你 · 反馈", with ✓/✗ and the feedback text;
+- pending card: assistant bubble with an inline form (确定执行 / 不执行 / 反馈输入);
+- system line: "（第 N 步已作废）" for aborted entries;
+- header: status dot + "老师在讲解第 N 步 · 等你确认" or "推理记录已同步";
+- messages scroll to the bottom; the sidebar is resizable and collapses to a tab.
+
+## Failure modes
+
+| Symptom | Root cause | Fix |
+|---|---|---|
+| Bed person assumed to be in row 1 | Bed modeled as one cell; it spans two | Enumerate the object footprint; exactly one of the cells is occupied |
+| "Beside" included cross-room cells | Adjacency applied without room check | For each candidate: `room(cell) == room(object)` |
+| Used "Gino is in the bathroom" before marking it | Condition not visible on the board | Mark the condition first; then use it |
+| Re-X'd cells that were already X'd | Ignored auto row/column X after a placement | Read the board's X; never re-X |
+| A/V notes on bed cells meant two different things | Notation semantics collision | One meaning only: "this person may be here" |
+| A 4-line chain rejected | Too complex for one popup | Split into one-condition steps; one sentence each |
+| Multiple queued plans, UI chaos | Fired plans without waiting | One plan at a time; kill/stop before resending |
+| Submit click hung | Selector/action blocked | Free CDP, click directly, verify the result modal |
+| User says "you can't see the board" | Reasoning from memory, not DOM | Re-read `/board` before every claim |
+
+## Checklists
+
+Before each step:
+
+- [ ] Read the board: placements, notes, X.
+- [ ] Is the target cell already X'd or occupied?
+- [ ] Is the reason forced (no "suppose")?
+- [ ] Is it one condition and one sentence?
+- [ ] Does the notation match the claim?
+
+After each step:
+
+- [ ] Read the board back; did auto-X apply?
+- [ ] Clean up notes that are now impossible.
+- [ ] Persist history; mark stale pending entries.
+
+## Case study: The Wine Cellar (Murdoku, 9×9)
+
+Final placement:
+
+```
+R1C5 Austin   R2C1 Gino    R3C9 Herman
+R4C8 Dawn     R5C3 Fred    R6C6 Elodie
+R7C2 Vin      R8C4 Chloe   R9C7 Benton
+```
+
+Murderer: **Elodie** (alone with Vin in the Basement).
+
+Key chain that worked:
+
+1. Bed = R1C5 + R2C5, exactly one occupied; both cells are column 5, so column 5 is taken.
+2. Gino's candidates are all in rows 1–2; the bed person is in row 1 or 2 → rows 1–2 are exactly Gino + the bed person.
+3. Main Bedroom then contains only the bed person; Vin's room must contain exactly 2 → Vin cannot be the bed person → **Austin = bed person**.
+4. Living Room cannot be empty and only Fred or Vin can be there; Vin there would need a second person (breaking Fred's "alone") → **Fred = R5C3**.
+5. After Fred takes row 5, Dining has only R4C8; Vin there cannot form a 2-person room → **Dawn = R4C8**.
+6. Row 8 has only R8C4 left → column 4 is taken → **R6C4 is X**.
+7. Chairs: Fred + Gino only; G at R2C2 would kill the second chair → **Gino = R2C1**.
+8. Then rows/columns force **Austin = R1C5, Elodie = R6C6, Chloe = R8C4, Vin = R7C2**.
+
+Mistakes to remember:
+
+- The bed is two cells, not one.
+- "Beside" is same-room; R6C4 and R7C8 were wrong Chloe candidates for that reason.
+- R1C3/R2C3 were already auto-X'd by Fred's column 3; do not re-X.
+- The logical head was "row 8 has one empty cell", not a deep four-line chain.
+
+## Bundled code: the chat panel
+
+`assets/sidebar-server.mjs` is the working side-panel server used in this session. It attaches through the Playwriter extension (not the Python `playwright` package). It:
+
+- injects `MARKS` (highlight boxes that follow zoom/resize) and `CHAT` (left sidebar chat log, resizable width, split layout);
+- serves `GET /state`, `GET /board`, `POST /act`, `POST /decide`;
+- persists chat history to `chat-history.json` and marks stale pending entries `aborted`;
+- executes actions: `select`, `place`, `notes`, `xmark`, `xmarks`, `submit`.
+
+Run:
+
+```bash
+PLAYWRIGHT_CORE=/path/to/playwright-core/index.mjs \
+MURDOKU_DIR=/tmp/murdoku MURDOKU_URL_MATCH=wine-cellar \
+CDP_URL=http://127.0.0.1:19988 PORT=7791 \
+node assets/sidebar-server.mjs plan.json
+```
+
+Plan format: `{ "actions": [ ... ] }`, one action per popup. The sidebar's 确定执行/不执行 buttons call `__mdecide`, which resolves the action; a rejection stops the plan and writes `last-feedback.json`.
+
+Action shapes:
+
+```json
+{ "type": "select", "name": "Austin", "title": "...", "reason": "...", "marks": [] }
+{ "type": "place", "name": "Fred", "r": 5, "c": 3, "title": "...", "reason": "...", "marks": [] }
+{ "type": "notes", "name": "Gino", "cells": [{"r":1,"c":4}], "title": "...", "reason": "...", "marks": [] }
+{ "type": "xmark", "name": "Gino", "r": 2, "c": 2, "title": "...", "reason": "...", "marks": [] }
+{ "type": "xmarks", "cells": [{"r":3,"c":5}], "title": "...", "reason": "...", "marks": [] }
+{ "type": "submit", "title": "提交", "reason": "...", "marks": [] }
+```
+
+Notes:
+
+- Only one CDP client at a time; kill the previous server before reconnecting.
+- `submit` clicks the game's 提交 button via a DOM click (avoids Playwright actionability hangs).
+- The sidebar is injected with `addInitScript` so it survives reloads; the page is matched by `MURDOKU_URL_MATCH` (default `murdoku.com`), or the first page if none matches.
+- Keep the sidebar resizable and in normal layout (body padding + scaled game root) rather than an overlay.
+- For exam mode, reuse `/board` and the sidebar, but replace `POST /act` plans with verdict cards (see `murdoku-exam-coach`).
+
+## Launch and attach (known gap)
+
+There is no reliable programmatic launch for the Chrome extension yet; this is a product gap to close.
+
+Current flow:
+
+1. Start Chrome with the Playwriter extension.
+2. Open the puzzle tab (or set `MURDOKU_OPEN` for `attach.mjs`).
+3. Run `node assets/attach.mjs` to verify the bridge, list tabs, and match the puzzle URL.
+4. Start `assets/sidebar-server.mjs`; it attaches to the matching tab and injects the panel.
+
+Failure modes:
+
+- Bridge down → `attach.mjs` exits 1; start Chrome/extension.
+- No matching tab → exits 2; open the puzzle tab or set `MURDOKU_OPEN`.
+- Chrome closed → the server loses the page; restart the server.
+- Tab reload → `addInitScript` re-injects the panel; the server stays attached.
+
+TODO for productization:
+
+- a launcher that starts Chrome with the extension and the puzzle URL;
+- health checks and reconnect with backoff;
+- explicit tab selection when multiple puzzle tabs exist;
+- a single `npm run attach` entry point.

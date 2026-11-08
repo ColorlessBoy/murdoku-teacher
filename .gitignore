@@ -1,0 +1,8 @@
+node_modules/
+.pw-home/
+.dom/
+shots/
+*.log
+chat-history.json
+last-feedback.json
+.DS_Store
