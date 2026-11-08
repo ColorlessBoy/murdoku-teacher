@@ -211,7 +211,6 @@ async function runAgent({ tabId, puzzle, board, changes, userText, clues, ledger
   const mode = await getMode();
   const settings = await getSettings();
   const chat = await getChat(puzzle);
-  if (settings.apiKey) ensurePrep(puzzle, board, clues, settings);
   if (userText) await addChat(puzzle, 'you', userText);
   const live = await readLiveBoard(tabId, puzzle);
   const boardNow = (live && Array.isArray(live.board) && live.board.length) ? live.board : board;
@@ -309,6 +308,7 @@ async function runAgent({ tabId, puzzle, board, changes, userText, clues, ledger
     await saveMarks(puzzle, marks);
     await sendToTab(tabId, { type: 'mm:assistant', text, marks, verdict: assistant.verdict, replyTo: lastUser?.ts || null, ts: Date.now(), unresolved: after.counts.unresolved });
     await info('agent.reply', { tabId, mode, verdict: assistant.verdict, length: assistant.text.length, marks: assistant.marks.length, unresolved: after.counts.unresolved });
+    if (settings.apiKey) await ensurePrep(puzzle, boardNow, cluesNow, settings);
   } catch (e) {
     if (await getEpoch(puzzle) !== epoch) {
       await info('agent.stale_discarded', { tabId, puzzle, epoch, error: e.code || e.message });
@@ -331,7 +331,6 @@ async function handleBoardChanges({ tabId, puzzle, board, changes, clues, title 
   const mode = await getMode();
   if (puzzle) chrome.storage.local.set({ [LAST_PUZZLE_KEY]: puzzle });
   await recall(puzzle, { title, clues, board });
-  getSettings().then((settings) => ensurePrep(puzzle, board, clues, settings));
   const remaining = Array.isArray(board) ? board.filter((c) => c.big || (c.notes || []).length || c.x).length : -1;
   const allEmpty = Array.isArray(changes) && changes.length > 0 &&
     changes.every((c) => c.after && !c.after.big && !(c.after.notes || []).length && !c.after.x);
@@ -375,7 +374,7 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
     const st = await loadState(puzzle);
     if (st.prep || !Array.isArray(st.board) || !st.board.length) return;
     const settings = await getSettings();
-    ensurePrep(puzzle, st.board, (st.clues || []).join('\n'), settings);
+    await ensurePrep(puzzle, st.board, (st.clues || []).join('\n'), settings);
   } catch (e) {}
 });
 
@@ -402,7 +401,6 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           const [settings, mode, chat, ledgerState] = await Promise.all([getSettings(), getMode(), getChat(msg.puzzle), getLedger(msg.puzzle)]);
           if (msg.puzzle) chrome.storage.local.set({ [LAST_PUZZLE_KEY]: msg.puzzle });
           await recall(msg.puzzle, { title: msg.title, clues: msg.clues, board: msg.board });
-          ensurePrep(msg.puzzle, msg.board, msg.clues, settings);
           sendResponse({ ok: true, settings: { ...settings, apiKey: settings.apiKey ? '«saved»' : '' }, mode, chat, ledger: ledgerState });
           await info('content.hello', { tabId, puzzle: msg.puzzle, hasKey: !!settings.apiKey, mode });
           break;
@@ -480,7 +478,6 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         case 'mm:board-sync': {
           const puzzle = msg.puzzle || 'unknown';
           await recall(puzzle, { title: msg.title, clues: msg.clues, board: msg.board });
-          getSettings().then((settings) => ensurePrep(puzzle, msg.board, msg.clues, settings));
           sendResponse({ ok: true });
           break;
         }
@@ -523,7 +520,6 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           await clearFacts(puzzle);
           await resetBoardState(puzzle);
           await recall(puzzle, { title: msg.title, clues: msg.clues, board: msg.board });
-          getSettings().then((settings) => ensurePrep(puzzle, msg.board, msg.clues, settings));
           if (msg.clearLogs) await clearLogs();
           const welcome = '新会话已开始：聊天记录、账本和旧上下文已清空；盘面保留。' + (msg.clearLogs ? ' 日志已清空。' : '');
           await addChat(puzzle, 'me', welcome);
