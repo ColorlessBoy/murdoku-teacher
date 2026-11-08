@@ -1,6 +1,7 @@
 export function tighten(text, mode = 'exam') {
   const src = String(text || '').trim();
   const lines = src.split('\n').map((x) => x.trim()).filter(Boolean);
+  if (mode !== 'exam') return src;
   const vm = src.match(/结论[:：]\s*(VALID BUT INCOMPLETE|VALID|GAP|INVALID|UNPROVEN)/i);
   const q = [...lines].reverse().find((l) => /[？?]/.test(l)) || '';
   if (mode === 'exam' && /应标|应放|正确的是|下一步是|排除它/.test(src)) {
