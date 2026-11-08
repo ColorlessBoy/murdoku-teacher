@@ -508,7 +508,58 @@
   }
 
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  let selfActingUntil = 0;
 
+  async function performBoardAction(action) {
+    const name = action?.name;
+    const args = action?.args || {};
+    const r = Number(args.r), c = Number(args.c);
+    if (!r || !c) return { ok: false, error: 'bad_cell' };
+    const board0 = readBoardSafe();
+    const cols = Math.round(Math.sqrt(board0.length || 100)) || 10;
+    const idx = (r - 1) * cols + (c - 1);
+    const cell = [...document.querySelectorAll(`[data-cell-index="${idx}"]`)].pop();
+    if (!cell) return { ok: false, error: 'no_cell' };
+    selfActingUntil = Date.now() + 5000;
+    const who = String(args.who || '').toUpperCase();
+    const suspects = reactCache?.suspects || [];
+    const sp = suspects.find((x) => x.symbol === who || x.name === who);
+    const pname = sp?.name || who;
+    const personBtn = [...document.querySelectorAll('button')].find((b) => b.title === pname || (b.getAttribute('aria-label') || '') === pname || (b.innerText || '').trim() === pname);
+    const toolBtn = (re) => [...document.querySelectorAll('button')].find((b) => re.test((b.title || '') + ' ' + (b.innerText || '')));
+    const cur = board0.find((x) => x.r === r && x.c === c);
+    const hit = (el) => { if (!el) return false; el.click(); return true; };
+
+    if (name === 'board_note') {
+      if (!personBtn) return { ok: false, error: 'no_suspect' };
+      const has = (cur?.notes || []).includes(who);
+      const on = args.on !== false;
+      if (on === has) return { ok: true, action: name, cell: cur };
+      hit(personBtn); await sleep(120); hit(cell);
+    } else if (name === 'board_place') {
+      if (!personBtn) return { ok: false, error: 'no_suspect' };
+      hit(personBtn); await sleep(120);
+      cell.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true, pointerId: 1, pointerType: 'mouse', button: 0, buttons: 1, isPrimary: true }));
+      cell.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true, button: 0, buttons: 1 }));
+      await sleep(700);
+      cell.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, cancelable: true, pointerId: 1, pointerType: 'mouse', button: 0, buttons: 0, isPrimary: true }));
+      cell.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true, button: 0, buttons: 0 }));
+    } else if (name === 'board_x') {
+      if (cur?.x) return { ok: true, action: name, cell: cur };
+      const xb = toolBtn(/X 标记|^X$|排除/);
+      if (!xb) return { ok: false, error: 'no_x_tool' };
+      hit(xb); await sleep(120); hit(cell);
+    } else if (name === 'board_erase') {
+      const eb = toolBtn(/清除所有格子|橡皮/);
+      if (!eb) return { ok: false, error: 'no_eraser' };
+      hit(eb); await sleep(120); hit(cell);
+    } else {
+      return { ok: false, error: 'unknown_action' };
+    }
+    await sleep(350);
+    const board = readBoardSafe();
+    return { ok: true, action: name, cell: board.find((x) => x.r === r && x.c === c) || null, board };
+  }
 
   function check() {
     if (!enabled) return;
@@ -535,6 +586,7 @@
     if (now === lastSnap) return;
     const changed = diff();
     lastSnap = now;
+    if (Date.now() < selfActingUntil) return;
     if (!changed.length || warmup) return;
 
     // 短窗口合并：同一格保留最初 before + 最后 after；空净改动丢弃
@@ -759,6 +811,10 @@
   };
 
   chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+    if (msg?.type === 'mm:board-action') {
+      performBoardAction(msg.action).then((r) => sendResponse(r)).catch((e) => sendResponse({ ok: false, error: e.message }));
+      return true;
+    }
     if (msg?.type === 'mm:read-board') {
       const b = readBoardSafe();
       sendResponse({ ok: true, board: b, clues: clues(), title: document.title });

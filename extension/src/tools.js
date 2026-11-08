@@ -1,4 +1,4 @@
-import { loadState } from './state.js';
+import { loadState, recall } from './state.js';
 
 export const TOOL_DEFS = [
   {
@@ -31,6 +31,45 @@ export const TOOL_DEFS = [
   },
 ];
 
+export const BOARD_TOOL_DEFS = [
+  {
+    type: 'function',
+    function: {
+      name: 'board_note',
+      description: '教学演示：在盘面上写/取消某人的笔记候选（需要先在侧栏选中，本工具会自动选人并点格）。',
+      parameters: { type: 'object', properties: { r: { type: 'integer' }, c: { type: 'integer' }, who: { type: 'string', description: '人物字母，如 B' }, on: { type: 'boolean' } }, required: ['r', 'c', 'who'] },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'board_place',
+      description: '教学演示：在盘面上放置某人（长按格）。只在已确定时使用。',
+      parameters: { type: 'object', properties: { r: { type: 'integer' }, c: { type: 'integer' }, who: { type: 'string' } }, required: ['r', 'c', 'who'] },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'board_x',
+      description: '教学演示：把某格标为 X（排除）。',
+      parameters: { type: 'object', properties: { r: { type: 'integer' }, c: { type: 'integer' } }, required: ['r', 'c'] },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'board_erase',
+      description: '教学演示：清除某格的放置/笔记/X。',
+      parameters: { type: 'object', properties: { r: { type: 'integer' }, c: { type: 'integer' } }, required: ['r', 'c'] },
+    },
+  },
+];
+
+export function toolsForMode(mode) {
+  return mode === 'tutor' ? [...TOOL_DEFS, ...BOARD_TOOL_DEFS] : TOOL_DEFS;
+}
+
 function stateText(c) {
   if (!c) return '未读取';
   if (c.big) return `放置 ${c.big}`;
@@ -40,10 +79,21 @@ function stateText(c) {
   return '空';
 }
 
-export async function execTool(puzzle, name, args = {}) {
+export async function execTool(puzzle, name, args = {}, tabId = null) {
   const st = await loadState(puzzle);
   const board = st.board || [];
   const at = (r, c) => board.find((x) => x.r === r && x.c === c);
+
+  if (name.startsWith('board_')) {
+    if (!tabId) return { error: 'no_tab' };
+    try {
+      const res = await chrome.tabs.sendMessage(tabId, { type: 'mm:board-action', action: { name, args } });
+      if (res?.board) await recall(puzzle, { board: res.board, clues: st.clues, title: st.title });
+      return { ok: !!res?.ok, action: name, cell: res?.cell || null, error: res?.error || null };
+    } catch (e) {
+      return { error: 'board_action_failed', message: e.message };
+    }
+  }
 
   if (name === 'get_board') {
     const placements = [], notes = [], xs = [], objs = [], areas = {}, objTypes = {};

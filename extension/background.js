@@ -4,7 +4,7 @@ import { recall, loadState, addFact, buildBrief, clearFacts, resetBoardState, sa
 import { getBundledLesson } from './src/lessons.js';
 import { mergeBatches } from './src/queue.js';
 import { tighten, condense } from './src/format.js';
-import { TOOL_DEFS, execTool } from './src/tools.js';
+import { toolsForMode, execTool } from './src/tools.js';
 import { buildMessages } from './src/prompt.js';
 import { recordChanges, answerQuestion, closeQuestion, getLedger, ledgerText, closeAllUnresolved, clearLedger, markAsked } from './src/ledger.js';
 
@@ -227,7 +227,7 @@ async function runAgent({ tabId, puzzle, board, changes, userText, clues, ledger
         payload = await callLLM({
           messages, settings, expectJson: false,
           session: 'ses_' + encodeURIComponent(puzzle).slice(0, 60), puzzle,
-          tools: useTools ? TOOL_DEFS : null,
+          tools: useTools ? toolsForMode(mode) : null,
         });
       } catch (e) {
         if (useTools) {
@@ -243,7 +243,7 @@ async function runAgent({ tabId, puzzle, board, changes, userText, clues, ledger
         for (const tc of payload.toolCalls) {
           let args = {};
           try { args = JSON.parse(tc.function?.arguments || '{}'); } catch (e) {}
-          const out = await execTool(puzzle, tc.function?.name, args);
+          const out = await execTool(puzzle, tc.function?.name, args, tabId);
           messages.push({ role: 'tool', tool_call_id: tc.id, content: JSON.stringify(out) });
         }
         continue;
