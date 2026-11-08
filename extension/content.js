@@ -70,6 +70,11 @@
       const queue = all['mm_queue_' + safe] || [];
       const qs = led ? (led.questions || []) : [];
       const unresolved = qs.filter((q) => q.status !== 'closed').length;
+      const prepEl = root.querySelector('#mm-prep');
+      if (prepEl && st) {
+        prepEl.textContent = st.prepStatus === 'running' ? '备课中' : st.prepStatus === 'done' ? '备课✓' : st.prepStatus === 'failed' ? '备课×' : '备课—';
+        prepEl.title = st.prep && st.prep.chain ? `备课 ${st.prep.chain.length} 步` : '';
+      }
       dbgEl.textContent = JSON.stringify({
         ts: new Date().toISOString(), puzzle: PUZZLE, mode,
         cells: boardCache.length,
@@ -189,7 +194,7 @@
         <div class="mm-zzz"><span>z</span><span>z</span><span>z</span></div>
       </div>
       <div class="mm-changes open">
-        <button class="mm-changes-hd"><span>盘面检测</span><b class="mm-changes-n">0</b><span class="mm-changes-ver" id="mm-ver">v0.7.12</span><span class="mm-changes-state">待机</span></button>
+        <button class="mm-changes-hd"><span>盘面检测</span><b class="mm-changes-n">0</b><span class="mm-changes-ver" id="mm-ver">v0.7.12</span><span class="mm-prep" id="mm-prep">备课—</span><span class="mm-changes-state">待机</span></button>
         <div class="mm-changes-body"></div>
       </div>
       <div class="mm-log"></div>

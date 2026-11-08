@@ -336,3 +336,7 @@
 
 #mm-sidebar .mm-change.reset .mm-change-hd i { color: #6f6580; }
 #mm-sidebar .mm-change.reset { opacity: .7; }
+
+
+#mm-sidebar .mm-prep { color: #8a7f9a; font-size: 9px; }
+#mm-sidebar .mm-prep:contains("备课中") { color: #c9a84c; }
