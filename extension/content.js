@@ -65,6 +65,9 @@
       const logs = (all.mm_logs || []).slice(-140).map((l) => ({ ts: l.ts, level: l.level, event: l.event, data: l.data }));
       const lk = Object.keys(all).filter((k) => k.startsWith('mm_ledger_'));
       const led = lk.length ? all[lk[lk.length - 1]] : null;
+      const safe = encodeURIComponent(PUZZLE).slice(0, 90);
+      const st = all['mm_state_' + safe] || null;
+      const queue = all['mm_queue_' + safe] || [];
       const qs = led ? (led.questions || []) : [];
       const unresolved = qs.filter((q) => q.status !== 'closed').length;
       dbgEl.textContent = JSON.stringify({
@@ -78,6 +81,9 @@
         unresolved,
         questions: qs.slice(-4).map((q) => ({ id: q.id, status: q.status, cells: q.cells?.length, answer: q.answer || null })),
         ledgerSeq: led ? led.seq : null,
+        prepStatus: st ? st.prepStatus : null,
+        prepChain: st && st.prep ? (st.prep.chain || []).length : 0,
+        queue: Array.isArray(queue) ? queue.length : 0,
         logs,
       });
     } catch (e) {
@@ -183,7 +189,7 @@
         <div class="mm-zzz"><span>z</span><span>z</span><span>z</span></div>
       </div>
       <div class="mm-changes open">
-        <button class="mm-changes-hd"><span>盘面检测</span><b class="mm-changes-n">0</b><span class="mm-changes-ver" id="mm-ver">v…</span><span class="mm-changes-state">待机</span></button>
+        <button class="mm-changes-hd"><span>盘面检测</span><b class="mm-changes-n">0</b><span class="mm-changes-ver" id="mm-ver">v0.7.12</span><span class="mm-changes-state">待机</span></button>
         <div class="mm-changes-body"></div>
       </div>
       <div class="mm-log"></div>
