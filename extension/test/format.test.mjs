@@ -30,3 +30,8 @@ test('condense leaves short text unchanged', () => {
   const text = '结论：VALID\n可以。';
   assert.equal(condense(text), text);
 });
+
+test('tutor keeps full long explanation (no tightening)', () => {
+  const long = '今天我们来玩迷你高尔夫。\n' + '这是很长的逻辑解释，'.repeat(40) + '请审查这一步；你接受后我再走下一步。';
+  assert.equal(tighten(long, 'tutor'), long);
+});
