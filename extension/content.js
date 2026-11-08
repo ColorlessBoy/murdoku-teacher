@@ -528,7 +528,17 @@
     const personBtn = [...document.querySelectorAll('button')].find((b) => b.title === pname || (b.getAttribute('aria-label') || '') === pname || (b.innerText || '').trim() === pname);
     const toolBtn = (re) => [...document.querySelectorAll('button')].find((b) => re.test((b.title || '') + ' ' + (b.innerText || '')));
     const cur = board0.find((x) => x.r === r && x.c === c);
-    const hit = (el) => { if (!el) return false; el.click(); return true; };
+    const hit = (el) => {
+      if (!el) return false;
+      const pe = { bubbles: true, cancelable: true, button: 0, pointerId: 1, pointerType: 'mouse', isPrimary: true };
+      const me = { bubbles: true, cancelable: true, button: 0 };
+      try { el.dispatchEvent(new PointerEvent('pointerdown', { ...pe, buttons: 1 })); } catch (e) {}
+      el.dispatchEvent(new MouseEvent('mousedown', { ...me, buttons: 1 }));
+      try { el.dispatchEvent(new PointerEvent('pointerup', { ...pe, buttons: 0 })); } catch (e) {}
+      el.dispatchEvent(new MouseEvent('mouseup', { ...me, buttons: 0 }));
+      el.dispatchEvent(new MouseEvent('click', me));
+      return true;
+    };
 
     if (name === 'board_note') {
       if (!personBtn) return { ok: false, error: 'no_suspect' };

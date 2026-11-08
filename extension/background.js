@@ -12,6 +12,7 @@ const SETTINGS_KEY = 'mm_settings';
 const CHAT_PREFIX = 'mm_chat_';
 const MODE_KEY = 'mm_mode';
 const LAST_PUZZLE_KEY = 'mm_last_puzzle';
+const teacherPending = new Map();
 const EPOCH_PREFIX = 'mm_epoch_';
 
 async function getEpoch(puzzle) {
@@ -219,13 +220,16 @@ async function runAgent({ tabId, puzzle, board, changes, userText, clues, ledger
   try {
     const baseMessages = messages;
     let rawText = '';
+    const llmSettings = mode === 'tutor'
+      ? { ...settings, maxTokens: Math.max(Number(settings.maxTokens) || 0, 1600) }
+      : settings;
     let toolsUsed = 0;
     let useTools = true;
     for (let round = 0; round < 3; round++) {
       let payload;
       try {
         payload = await callLLM({
-          messages, settings, expectJson: false,
+          messages, settings: llmSettings, expectJson: false,
           session: 'ses_' + encodeURIComponent(puzzle).slice(0, 60), puzzle,
           tools: useTools ? toolsForMode(mode) : null,
         });
@@ -252,7 +256,7 @@ async function runAgent({ tabId, puzzle, board, changes, userText, clues, ledger
       break;
     }
     if (!rawText) {
-      const payload = await callLLM({ messages: baseMessages, settings, expectJson: false, session: 'ses_' + encodeURIComponent(puzzle).slice(0, 60), puzzle });
+      const payload = await callLLM({ messages: baseMessages, settings: llmSettings, expectJson: false, session: 'ses_' + encodeURIComponent(puzzle).slice(0, 60), puzzle });
       rawText = payload.text;
     }
     await info('agent.tools', { tabId, puzzle, toolsUsed, epoch });
