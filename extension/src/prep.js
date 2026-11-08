@@ -37,7 +37,7 @@ ${formatPrepBoard(board)}
       { role: 'system', content: system },
       { role: 'user', content: user },
     ],
-    settings: { ...settings, maxTokens: 2048 },
+    settings: { ...settings, maxTokens: 8192 },
     expectJson: true,
     timeoutMs: 60000,
     session: 'ses_prep_' + encodeURIComponent(String(puzzle)).slice(0, 50),

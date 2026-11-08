@@ -83,13 +83,14 @@ export async function callLLM({ messages, settings, expectJson = true, timeoutMs
   }
   const message = data?.choices?.[0]?.message || {};
   const text = message?.content ?? data?.choices?.[0]?.text ?? '';
+  const reasoning = message?.reasoning_content || message?.reasoning || '';
   const toolCalls = message?.tool_calls || null;
   const usage = data?.usage || null;
-  await info('llm.response', { text, toolCalls: toolCalls ? toolCalls.length : 0, usage, model: data?.model, puzzle });
+  await info('llm.response', { text, reasoning: reasoning ? reasoning.slice(0, 4000) : '', toolCalls: toolCalls ? toolCalls.length : 0, usage, model: data?.model, puzzle });
   let json = null;
   if (expectJson) {
-    json = extractJson(text);
-    if (!json) await warn('llm.no_json', { text });
+    json = extractJson(text) || extractJson(reasoning);
+    if (!json) await warn('llm.no_json', { text: text.slice(0, 500), reasoning: reasoning.slice(0, 500) });
   }
-  return { text, json, usage, raw: data, message, toolCalls };
+  return { text, reasoning, json, usage, raw: data, message, toolCalls };
 }
