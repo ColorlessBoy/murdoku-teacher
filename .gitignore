@@ -8,3 +8,5 @@ last-feedback.json
 .DS_Store
 
 extension/.env.precommit
+
+extension/.env.model

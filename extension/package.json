@@ -5,6 +5,7 @@
   "scripts": {
     "test": "node --test test/*.test.mjs test/core/*.test.mjs",
     "test:e2e": "node scripts/e2e-precommit.mjs",
+    "test:real": "node scripts/e2e-real-models.mjs",
     "precommit": "npm test && npm run test:e2e",
     "hooks:install": "git -C .. config core.hooksPath .githooks"
   }

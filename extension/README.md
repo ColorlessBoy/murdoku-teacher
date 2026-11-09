@@ -94,3 +94,13 @@ npm run hooks:install
 2. 本地 fixture E2E（mock LLM，不需要真实 Key / murdoku.com）。
 
 详见 [docs/pre-commit-e2e.md](docs/pre-commit-e2e.md)。
+
+## 真实双模型交互
+
+```bash
+cd extension
+cp .env.model.example .env.model   # 填真实教师/学生模型
+node scripts/e2e-real-models.mjs
+```
+
+不使用官方解脚本或 mock；详见 [docs/real-model-interaction.md](docs/real-model-interaction.md)。
