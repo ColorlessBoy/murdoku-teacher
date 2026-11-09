@@ -577,6 +577,8 @@ async function runAgent({ tabId, puzzle, board, changes, userText, clues, ledger
         return;
       }
       if (payload.toolCalls && payload.toolCalls.length) {
+        const textWithTools = String(payload.text || '').trim();
+        let toolFailed = false;
         toolsUsed += payload.toolCalls.length;
         messages.push(payload.message);
         for (const tc of payload.toolCalls) {
@@ -602,6 +604,7 @@ async function runAgent({ tabId, puzzle, board, changes, userText, clues, ledger
             return;
           }
           const out = toolRes.ok ? toolRes.result : { error: toolRes.error };
+          if (out?.stale || out?.error) toolFailed = true;
           shadowEvent(puzzle, E.toolResult, { name: tc.function?.name, ok: !!out?.ok, cell: out?.cell || null, error: out?.error || null, action: tc.function?.name, content: out?.ok ? 'ok' : (out?.error || 'error') }, { toolId: tc.id, requestId: shadowReq });
           if (out?.ok && /^board_(note|place|x|erase)$/.test(String(tc.function?.name))) {
             const rr = Number(args.r), cc = Number(args.c);
@@ -613,6 +616,7 @@ async function runAgent({ tabId, puzzle, board, changes, userText, clues, ledger
           }
           messages.push({ role: 'tool', tool_call_id: tc.id, content: JSON.stringify(out) });
         }
+        if (textWithTools && !toolFailed) { rawText = textWithTools; break; }
         continue;
       }
       const accepting = /接受|继续|对|同意|开始教学|开始上课/.test(String(userText || ''));

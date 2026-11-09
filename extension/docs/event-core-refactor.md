@@ -553,3 +553,9 @@ test/core/*.test.mjs
 - ledger write backend 默认开启（`mm_core_ledger_write !== false` 才关）；
 - 均有旧 storage fallback 和 `/corequeue off`、`/coreledgerwrite off` 回退。
 - 0.8.67 E2E 已分别验证 queue（第二批排队，模型只调一次）和 ledger write flag。
+
+### 0.8.69 延迟优化：tool text fast path
+
+- prompt 要求模型在 board_* tool_call 的同一条消息里给出 2-4 句解释；
+- agent 若 `payload.text` 非空且工具无 error/stale，直接使用该文本，跳过下一轮 LLM；
+- mock E2E 调用次数 11 → 8；主流程不变。

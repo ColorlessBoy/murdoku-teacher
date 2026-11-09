@@ -34,6 +34,9 @@ const server = http.createServer((req, res) => {
       turns++;
       const cell = turns === 1 ? { r: 3, c: 4, who: 'B' } : { r: 2, c: 2, who: 'E' };
       tool = { id: `call_mock_${turns}`, type: 'function', function: { name: 'board_note', arguments: JSON.stringify(cell) } };
+      text = turns <= 1
+        ? 'B 坐在一把椅子上。三把椅子 R3C4、R10C7、R10C8 都能坐人，没有线索排除任何一把，所以先把 B 写在 R3C4 作为候选。请审查；接受后我走下一步。'
+        : 'E 的线索是在沙地砖上。沙地六格都能坐人，先把 E 写在 R2C2 作为候选，不排除其他沙地格。请审查；接受后我走下一步。';
     } else {
       text = turns <= 1
         ? 'B 坐在一把椅子上。三把椅子 R3C4、R10C7、R10C8 都能坐人，没有线索排除任何一把，所以先把 B 写在 R3C4 作为候选。请审查；接受后我走下一步。'

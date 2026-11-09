@@ -271,3 +271,7 @@
 
 ## 0.8.68 release notes
 - 新增 docs/release-0.8.68.md；升级步骤、能力、测试证据、限制、回退。
+
+## 0.8.69
+- tool_call 同消息 text fast path；mock E2E calls 11→8。
+- prompt 要求同一条回复给解释。

@@ -56,3 +56,16 @@ options: title 设置 / baseUrl 127.0.0.1 / model mock / hasDownload true
 download: murdoku-logs-*.json logs 129
 E2E3 OK calls 11 turns 3
 ```
+
+## 0.8.69 fast path
+
+mock 在 tool_call 消息里同时返回 text；agent 直接使用，不再二次请求：
+
+```
+0.8.68: 11 mock calls
+0.8.69: 8 mock calls
+step1/step2/new 各少一次 LLM 调用
+E2E3 OK
+```
+
+真实模型是否配合取决于 prompt；不配合时回退原路径。
