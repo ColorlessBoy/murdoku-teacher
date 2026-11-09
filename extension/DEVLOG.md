@@ -155,3 +155,7 @@
 ## 0.8.51
 - board brief 走 BoardProjection：runAgent 前同步 live board；默认开启。
 - live：core 100/old 100/context 100，无 divergence；34 notes。
+
+## 0.8.52
+- core board 初始默认 true，避免 worker 重启后 flag=false。
+- 待复测 accept 无回复问题。

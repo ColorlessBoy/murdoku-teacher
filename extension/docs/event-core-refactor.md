@@ -344,3 +344,9 @@ test/core/*.test.mjs
   - `core.board.context {cells:100}`
   - 无 `core.board.divergence`
   - 盘面 34 notes。
+
+### 0.8.52 bootstrap
+
+- worker 重启后只有 hello 会加载 flag；content 不重复 hello，导致 `coreBoardEnabled` 回到初始 false。
+- 初始值改为 true；runAgent 前 `shadowSyncBoard` 会重建 shadow/session。
+- 最新一次 accept 未能触发 agent run，未复测。
