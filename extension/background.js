@@ -416,12 +416,15 @@ async function runAgent({ tabId, puzzle, board, changes, userText, clues, ledger
   if (coreBoardEnabled) {
     const bsh = shadows.get(puzzle);
     const coreBoard = bsh && bsh.board ? bsh.board.snapshot() : [];
+    await info('core.board.check', { puzzle, enabled: true, core: coreBoard.length, old: (st.board || []).length });
     if (coreBoard.length) {
       const sig = (list) => list.map((c) => `${c.r},${c.c}:${c.big || ''}|${(c.notes || []).join('')}|${c.x ? 1 : 0}`).sort().join(';');
       if (sig(coreBoard) !== sig(st.board || [])) await info('core.board.divergence', { puzzle, old: sig(st.board || []).slice(0, 1200), core: sig(coreBoard).slice(0, 1200) });
       st.board = coreBoard;
       await info('core.board.context', { puzzle, cells: coreBoard.length });
     }
+  } else {
+    await info('core.board.check', { puzzle, enabled: false, core: 0, old: (st.board || []).length });
   }
   const chatNow = await getChat(puzzle);
   const brief = buildBrief(st, { focus, ledger, userText, chat: chatNow });
