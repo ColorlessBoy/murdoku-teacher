@@ -226,6 +226,7 @@ async function runAgent({ tabId, puzzle, board, changes, userText, clues, ledger
     let toolsUsed = 0;
     let boardActions = 0;
     let nudged = false;
+    const actionMarks = new Map();
     let useTools = true;
     for (let round = 0; round < 3; round++) {
       if (await getEpoch(puzzle) !== runEpoch) {
@@ -267,6 +268,10 @@ async function runAgent({ tabId, puzzle, board, changes, userText, clues, ledger
           try { args = JSON.parse(tc.function?.arguments || '{}'); } catch (e) {}
           if (String(tc.function?.name || '').startsWith('board_')) boardActions++;
           const out = await execTool(puzzle, tc.function?.name, args, tabId, runEpoch);
+          if (out?.ok && /^board_(note|place|x|erase)$/.test(String(tc.function?.name))) {
+            const rr = Number(args.r), cc = Number(args.c);
+            if (rr && cc) actionMarks.set(`${rr},${cc}`, { r: rr, c: cc, label: `R${rr}C${cc}`, kind: tc.function.name === 'board_x' ? 'excl' : tc.function.name === 'board_erase' ? 'ask' : 'cand' });
+          }
           if (out && out.stale) {
             await info('agent.stale_discarded', { tabId, puzzle, epoch: runEpoch, stage: 'tool_epoch' });
             return;
@@ -304,19 +309,15 @@ async function runAgent({ tabId, puzzle, board, changes, userText, clues, ledger
       assistant.verdict = 'GAP';
       text = text.replace(/结论[:：]\s*(INVALID|VALID)/i, '结论：GAP');
     }
-    let marks = Array.isArray(assistant.marks) ? assistant.marks : [];
-    if (mode === 'tutor') {
-      marks = [];
-    } else if (!marks.length) {
-      const found = [...new Set(text.match(/R\d+C\d+/g) || [])].slice(0, 5).map((s) => {
-        const m = s.match(/R(\d+)C(\d+)/);
-        return { r: Number(m[1]), c: Number(m[2]), label: s, kind: 'ask' };
-      });
-      marks = found;
-      if (!marks.length && focusQ) marks = (focusQ.cells || []).slice(-3).map((c) => ({ r: c.r, c: c.c, label: `R${c.r}C${c.c}`, kind: 'ask' }));
+    let marks = [...actionMarks.values()];
+    let markSource = actionMarks.size ? 'tools' : 'none';
+    if (!marks.length && Array.isArray(assistant.marks) && assistant.marks.length) {
+      marks = assistant.marks;
+      markSource = 'model';
     }
+    await info('agent.marks', { tabId, puzzle, mode, source: markSource, marks });
     if (/不要标注|别标|取消标注|不用标/.test(userText || '')) marks = [];
-    if (marks.length && !/R\d+C\d+/.test(text)) {
+    if (mode !== 'tutor' && marks.length && !/R\d+C\d+/.test(text)) {
       text += `\n（圈出：${marks.map((m) => `R${m.r}C${m.c}`).join('、')}）`;
     }
     if (await getEpoch(puzzle) !== runEpoch) {
