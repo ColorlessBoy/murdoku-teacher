@@ -12,7 +12,6 @@ const SETTINGS_KEY = 'mm_settings';
 const CHAT_PREFIX = 'mm_chat_';
 const MODE_KEY = 'mm_mode';
 const LAST_PUZZLE_KEY = 'mm_last_puzzle';
-const teacherPending = new Map();
 const EPOCH_PREFIX = 'mm_epoch_';
 
 async function getEpoch(puzzle) {
@@ -429,29 +428,6 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           break;
         }
         case 'mm:teacher-action': {
-          const tid = sender.tab?.id;
-          if (!tid) { sendResponse({ ok: false, error: 'no_tab' }); break; }
-          const key = tid;
-          const entry = teacherPending.get(key) || { items: [], timer: 0 };
-          entry.items.push({ name: msg.action, who: msg.who || '', label: msg.cell ? `R${msg.cell.r}C${msg.cell.c}` : '' });
-          clearTimeout(entry.timer);
-          entry.timer = setTimeout(() => {
-            const items = entry.items.splice(0);
-            teacherPending.delete(key);
-            if (!items.length) return;
-            const fmt = (n) => n === 'board_note' ? '笔记' : n === 'board_place' ? '落子' : n === 'board_x' ? 'X' : n === 'board_erase' ? '清除' : n;
-            const text = '老师动作：' + items.map((x) => `${fmt(x.name)} ${x.who ? x.who + ' ' : ''}@${x.label}`).join('；') + '。请审查这条推理（接受 / 质疑）。';
-            addChat(msg.puzzle, 'me', text).catch(() => {});
-            sendToTab(tid, { type: 'mm:assistant', text, marks: [], verdict: null, system: true });
-          }, 800);
-          teacherPending.set(key, entry);
-          sendResponse({ ok: true });
-          break;
-        }
-        case 'mm:autostart': {
-          const pz = msg.puzzle || 'unknown';
-          if (await getMode() !== 'tutor') { sendResponse({ ok: false, skipped: 'mode' }); break; }
-          await runAgent({ tabId, puzzle: pz, board: msg.board, clues: msg.clues, changes: [], userText: null, ledger: await getLedger(pz), autoStart: true });
           sendResponse({ ok: true });
           break;
         }
