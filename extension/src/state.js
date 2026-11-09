@@ -104,6 +104,13 @@ export function buildBrief(st, { focus = '', ledger = '', userText = '', chat = 
       '\n备课可能有误，仍以线索与盘面可检验的强制链为准。');
   }
 
+  if (st.prep && st.prep.teaching) {
+    const t = st.prep.teaching;
+    const steps = (t.steps || []).slice(0, 12).map((x) => `${x.id}. ${x.title}：${x.explain}`).join('\n');
+    const qas = (t.studentChallenges || []).slice(0, 6).map((x) => `Q: ${x.q}\nA: ${x.a}`).join('\n');
+    lines.push('【教学脚本（已记录；按学生问题引用对应步骤，不现场重推整盘）】\n' + steps + (qas ? '\n【学生追问记录】\n' + qas : ''));
+  }
+
   if (st.lastMarks && st.lastMarks.length) {
     lines.push('【我上次圈出】' + st.lastMarks.map((m) => `R${m.r}C${m.c}`).join('、'));
   }
