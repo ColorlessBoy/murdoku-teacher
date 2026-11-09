@@ -151,3 +151,7 @@
 ## 0.8.47
 - 修复 /new 后 stale clearedAt 导致老师反复“盘面刚被清空”。
 - live：/new logs → 继续 → G 步 15 notes，无清空提示。
+
+## 0.8.51
+- board brief 走 BoardProjection：runAgent 前同步 live board；默认开启。
+- live：core 100/old 100/context 100，无 divergence；34 notes。

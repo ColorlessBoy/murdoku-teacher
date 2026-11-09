@@ -334,3 +334,13 @@ test/core/*.test.mjs
   - `recall({clearedAt:0})` 显式清理；
   - `recall` 遇到实际 big/notes/x 自动清 `clearedAt`。
 - live 0.8.47：`/new logs` 保留盘面后继续，老师直接走 G 步（15 notes），不再说“盘面刚被清空”。
+
+### Board 上下文 cutover live
+
+- 修 `runAgent`：组 brief 前先用当前 live board `shadowSyncBoard`，解决 worker 重启后 core board 为 0 的时序。
+- `/coreboard on` 显式开启；默认开启（`!== false` 才关）。
+- live 0.8.51：
+  - `core.board.check {enabled:true, core:100, old:100}`
+  - `core.board.context {cells:100}`
+  - 无 `core.board.divergence`
+  - 盘面 34 notes。
