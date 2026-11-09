@@ -224,6 +224,8 @@ async function runAgent({ tabId, puzzle, board, changes, userText, clues, ledger
       ? { ...settings, maxTokens: Math.max(Number(settings.maxTokens) || 0, 8192) }
       : settings;
     let toolsUsed = 0;
+    let boardActions = 0;
+    let nudged = false;
     let useTools = true;
     for (let round = 0; round < 3; round++) {
       if (await getEpoch(puzzle) !== runEpoch) {
@@ -263,9 +265,18 @@ async function runAgent({ tabId, puzzle, board, changes, userText, clues, ledger
           }
           let args = {};
           try { args = JSON.parse(tc.function?.arguments || '{}'); } catch (e) {}
+          if (String(tc.function?.name || '').startsWith('board_')) boardActions++;
           const out = await execTool(puzzle, tc.function?.name, args, tabId);
           messages.push({ role: 'tool', tool_call_id: tc.id, content: JSON.stringify(out) });
         }
+        continue;
+      }
+      const accepting = /接受|继续|对|同意|开始教学|开始上课/.test(String(userText || ''));
+      if (mode === 'tutor' && (autoStart || accepting) && boardActions === 0 && !nudged) {
+        nudged = true;
+        messages.push({ role: 'assistant', content: payload.text || '（本轮还没有操作盘面）' });
+        messages.push({ role: 'user', content: '你刚才只说了，没有真的写盘。请先调用 board_note / board_place / board_x 把这一步操作到盘面上，再回复；marks 只是圈选，不算板书。' });
+        await info('agent.tool_nudge', { tabId, puzzle, mode, autoStart: !!autoStart, accepting });
         continue;
       }
       rawText = payload.text;

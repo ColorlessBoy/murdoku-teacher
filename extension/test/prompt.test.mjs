@@ -22,3 +22,8 @@ test('auto-start adds a tutor opening instruction', () => {
   assert.match(m[1].content, /今天我们来玩迷你高尔夫/);
   assert.match(m[1].content, /停下等接受/);
 });
+
+test('tutor prompt forbids claiming actions without board tools', () => {
+  assert.match(SYSTEM_TUTOR, /没有调用 board_\*/);
+  assert.match(SYSTEM_TUTOR, /不算板书/);
+});
