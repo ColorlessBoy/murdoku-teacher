@@ -207,3 +207,10 @@ test/core/*.test.mjs
 - agent 工具执行已切到 `ToolPipeline`：pre 校验 epoch，execute 调 `execTool`，post 拒绝 stale。
 - live：gate 序列 `clear/request → clear/boardDone → new/request → new/started → auto/started`，无 rejected。
 - shadow 假阳性：board diff 不带 area/objName，比较改为只比 big/notes/x；已修并加测试。
+
+### Phase 4 队列投影
+
+- `src/core/projections/queue.js`：queue/enqueue/dequeue/expire、重叠合并、session end 清空。
+- 测试 `test/core/queue-projection.test.mjs` 3 条全过；shadow queue 匹配/divergence。
+- background `enqueueBoard` / `processQueue` / `clearQueue` 写入 shadow queue 事件并对比。
+- 未接管真实队列；仅 shadow。

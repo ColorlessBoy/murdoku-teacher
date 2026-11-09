@@ -88,3 +88,7 @@
 ## 0.8.28
 - Phase 4：ToolPipeline core + 5 条测试；agent 工具执行接入。
 - live gate 通过；shadow board 假阳性修复（只比动态字段）。
+
+## 0.8.29
+- Phase 4 queue projection + shadow integration；3 条测试。
+- 真实队列未接管。
