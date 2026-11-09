@@ -280,3 +280,7 @@
 - 新增 `scripts/e2e-full.mjs`：真扩展 + 真迷你高尔夫盘面 + mock LLM，按教案 solution 连落 10 人、逐步接受、点 `SUBMIT`，游戏判定 `CASE SOLVED`（Elyana → Valeria）。
 - 结果：`FULL E2E OK calls 20 turns 10`；补上此前 mock E2E 只跑两步的教学缺口。
 - 首次进入的 `Welcome, detective` 教学弹窗用真实 `Skip` 关闭，不绕过点击屏障。
+
+## 0.8.70
+- popup/options 增加「重新加载扩展」按钮，直接 chrome.runtime.reload()。
+- 0.8.70 为发布候选；真实 Key 的最终 live 回归等待用户手动重载。
