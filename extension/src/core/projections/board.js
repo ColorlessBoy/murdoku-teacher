@@ -17,7 +17,15 @@ export class BoardProjection {
       for (const ch of event.payload?.changes || []) {
         const key = BoardProjection.key(ch.r, ch.c);
         if (!ch.after) this.cells.delete(key);
-        else this.cells.set(key, { ...ch.after, r: ch.r, c: ch.c });
+        else {
+          const prev = this.cells.get(key) || {};
+          this.cells.set(key, {
+            ...prev, ...ch.after, r: ch.r, c: ch.c,
+            area: ch.after.area ?? prev.area,
+            obj: ch.after.obj ?? prev.obj,
+            objName: ch.after.objName ?? prev.objName,
+          });
+        }
       }
     }
   }

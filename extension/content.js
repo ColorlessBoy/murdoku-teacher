@@ -749,6 +749,12 @@
     const t = ta.value.trim();
     if (!t) return;
     ta.value = '';
+    if (t === '/coreboard') {
+      addMsg('you', '/coreboard');
+      const r = await sendMsg({ type: 'mm:core-board', toggle: true });
+      addMsg('me', 'core board ' + (r?.on ? '已开启' : '已关闭'), true);
+      return;
+    }
     if (t === '/eventlog') {
       addMsg('you', '/eventlog');
       const r = await sendMsg({ type: 'mm:event-log', puzzle: PUZZLE });

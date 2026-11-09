@@ -63,3 +63,13 @@ test('replay drives projections deterministically', () => {
   assert.deepEqual(chat.snapshot().map((m) => m.text), ['hi', 'hello']);
   assert.deepEqual(marks.snapshot().map((m) => [m.r, m.c]), [[3, 4]]);
 });
+
+test('board diff preserves static area/object fields', () => {
+  const b = new BoardProjection();
+  b.apply({ type: E.boardSnapshot, status: COMMITTED, payload: { cells: [{ r: 3, c: 4, area: '沙地', objName: '椅子', notes: ['B'] }] } });
+  b.apply({ type: E.boardDiff, status: COMMITTED, payload: { changes: [{ r: 3, c: 4, after: { notes: ['E'] } }] } });
+  const c = b.get(3, 4);
+  assert.equal(c.area, '沙地');
+  assert.equal(c.objName, '椅子');
+  assert.deepEqual(c.notes, ['E']);
+});

@@ -155,6 +155,7 @@ const shadows = new Map();
 let shadowEnabled = true;
 let coreChatEnabled = true;
 let coreQueueEnabled = false;
+let coreBoardEnabled = false;
 
 function shadowFor(puzzle) {
   let sh = shadows.get(puzzle);
@@ -412,6 +413,16 @@ async function runAgent({ tabId, puzzle, board, changes, userText, clues, ledger
   const focus = focusText(focusQ, boardNow);
   const puzzleType = /minigolf|高尔夫/i.test(String(puzzle)) ? 'minigolf' : 'murdoku';
   const st = await loadState(puzzle);
+  if (coreBoardEnabled) {
+    const bsh = shadows.get(puzzle);
+    const coreBoard = bsh && bsh.board ? bsh.board.snapshot() : [];
+    if (coreBoard.length) {
+      const sig = (list) => list.map((c) => `${c.r},${c.c}:${c.big || ''}|${(c.notes || []).join('')}|${c.x ? 1 : 0}`).sort().join(';');
+      if (sig(coreBoard) !== sig(st.board || [])) await info('core.board.divergence', { puzzle, old: sig(st.board || []).slice(0, 1200), core: sig(coreBoard).slice(0, 1200) });
+      st.board = coreBoard;
+      await info('core.board.context', { puzzle, cells: coreBoard.length });
+    }
+  }
   const chatNow = await getChat(puzzle);
   const brief = buildBrief(st, { focus, ledger, userText, chat: chatNow });
   const messages = buildMessages({ mode, brief, userText, puzzle, autoStart });
@@ -677,10 +688,11 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       switch (msg?.type) {
         case 'mm:hello': {
           try {
-            const flags = await chrome.storage.local.get(['mm_core_shadow', 'mm_core_chat', 'mm_core_queue']);
+            const flags = await chrome.storage.local.get(['mm_core_shadow', 'mm_core_chat', 'mm_core_queue', 'mm_core_board']);
             shadowEnabled = flags.mm_core_shadow !== false;
             coreChatEnabled = flags.mm_core_chat !== false;
             coreQueueEnabled = flags.mm_core_queue === true;
+            coreBoardEnabled = flags.mm_core_board === true;
           } catch (e) {}
           const [settings, mode, ledgerState] = await Promise.all([getSettings(), getMode(), getLedger(msg.puzzle)]);
           let chat = await getChat(msg.puzzle);
@@ -759,6 +771,15 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           await addChat(puzzle, 'me', msg.remaining === 0 ? '已清空盘面：放置 / 笔记 / X 全部清除。清空前的推理不再追问。' : `清空未完成：盘面还剩 ${msg.remaining ?? '?'} 格。`);
           await info('board.clear', { tabId, puzzle, remaining: msg.remaining, reset: true });
           sendResponse({ ok: true });
+          break;
+        }
+        case 'mm:core-board': {
+          const cur = await chrome.storage.local.get('mm_core_board');
+          const on = msg.on == null ? !cur.mm_core_board : !!msg.on;
+          await chrome.storage.local.set({ mm_core_board: on });
+          coreBoardEnabled = on;
+          await info('core.board.toggle', { tabId, on });
+          sendResponse({ ok: true, on });
           break;
         }
         case 'mm:event-log': {
