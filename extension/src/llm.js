@@ -51,38 +51,51 @@ export async function callLLM({ messages, settings, expectJson = true, timeoutMs
     throw e;
   }
   const url = `${s.baseUrl}/chat/completions`;
-  const body = {
+  const baseBody = {
     model: s.model,
     messages,
     temperature: s.temperature,
-    max_tokens: s.maxTokens,
     ...(tools && tools.length ? { tools, tool_choice: 'auto' } : {}),
   };
-  await info('llm.request', { url, model: s.model, session, puzzle, tools: tools ? tools.length : 0, messages });
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), timeoutMs);
-  let res;
-  try {
-    res = await fetch(url, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json', authorization: `Bearer ${s.apiKey}`, 'x-opencode-session': session },
-      body: JSON.stringify(body),
-      signal: ctrl.signal,
-    });
-  } catch (e) {
+  let res = null;
+  let raw = '';
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const body = { ...baseBody, ...(attempt === 0 ? { max_tokens: s.maxTokens } : {}) };
+    await info('llm.request', { url, model: s.model, session, puzzle, tools: tools ? tools.length : 0, attempt, maxTokens: body.max_tokens ?? null, messages });
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+    try {
+      res = await fetch(url, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', authorization: `Bearer ${s.apiKey}`, 'x-opencode-session': session },
+        body: JSON.stringify(body),
+        signal: ctrl.signal,
+      });
+    } catch (e) {
+      clearTimeout(timer);
+      await error('llm.network', { message: e.message, url, attempt });
+      const err = new Error('NETWORK');
+      err.code = 'NETWORK';
+      throw err;
+    }
     clearTimeout(timer);
-    await error('llm.network', { message: e.message, url });
-    const err = new Error('NETWORK');
-    err.code = 'NETWORK';
-    throw err;
-  }
-  clearTimeout(timer);
-  const raw = await res.text();
-  if (!res.ok) {
-    await error('llm.http', { status: res.status, body: raw.slice(0, 800), url });
+    raw = await res.text();
+    if (res.ok) break;
+    if (res.status === 400 && /max_tokens/i.test(raw) && attempt === 0) {
+      await warn('llm.max_tokens_retry', { status: 400, detail: raw.slice(0, 400), url });
+      continue;
+    }
+    await error('llm.http', { status: res.status, body: raw.slice(0, 800), url, attempt });
     const err = new Error(`HTTP ${res.status}`);
     err.code = 'HTTP';
     err.status = res.status;
+    err.detail = raw.slice(0, 800);
+    throw err;
+  }
+  if (!res || !res.ok) {
+    const err = new Error(`HTTP ${res ? res.status : 'UNKNOWN'}`);
+    err.code = 'HTTP';
+    err.status = res ? res.status : 0;
     err.detail = raw.slice(0, 800);
     throw err;
   }

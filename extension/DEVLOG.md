@@ -297,3 +297,6 @@
 ## 0.8.73
 - 兼容 OpenCode/DeepSeek 返回的 <tool_call>name{...}</tool_call> 文本工具调用；
 - 转换为 OpenAI tool_calls，教师可继续真实落子；新增 llm-xml 单测。
+
+## 0.8.74
+- 上游 HTTP 400 max_tokens 时自动去掉 max_tokens 重试一次。
