@@ -47,6 +47,7 @@ metadata:
   - `spans` = an object may cover multiple cells (a bed may be 2 cells). Verify from data/rendering; do not assume one cell.
   - `exactly one` / `exactly two` apply to the whole board.
 - Turn each clue into a unary filter first; then combine.
+- **Disjunctive-row/column intersection:** when a clue says "someone is on a flag/type of cell" and the candidate cells for that person are limited to a few, the intersections of their rows and columns can be unconditionally empty. Example: flag person is on R2C5 or R9C1; R2C1 is on R2 and C1, R9C5 is on R9 and C5; whichever flag holds the person, both cells are occupied by that row/column, so both are empty without knowing which flag. Do not over-generalize to the whole row/column: only the intersections are unconditional.
 - **Read all clue sources:** `suspects[].analyzedKeywords` AND `puzzle.generalClues`. Global clues are not bound to a character; they are **counting constraints on the final arrangement** (e.g. "exactly one person beside a table/barrel") and must not be rewritten as a role's candidate notes. Object cells come from `puzzle.objectNameByIndex`.
 
 ### 2. Board reader
