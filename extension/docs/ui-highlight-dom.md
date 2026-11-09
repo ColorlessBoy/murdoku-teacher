@@ -195,3 +195,11 @@ E=57(R6C8) D=65(R7C6)  C=76(R8C7)  F=80(R9C1)  A=99(R10C10)
 ```
 
 关键推理捷径：C8 列只剩 E 的 57、C9 列只剩 V 的 38（列唯一候选）；C7–C9 三列 = E + 桌旁人 + 桶旁人。
+
+## 13. 会话台账（【通用】state/action/state'）
+
+- 读取：`node scripts/murdoku-state.mjs`（CDP 读 `mrd_progress_<puzzle>` + 可见 DOM 笔记，输出 placed/notes/xMarks）；
+- 台账：`progress/ledger/<puzzle>.jsonl`，每行 `{state_before, action, user, state_after}`；
+- 命令：`node scripts/murdoku-ledger.mjs init|state|append|verify|rollback --puzzle <id>`；
+- 压缩/恢复：先 `verify`；`ok:true` 从最后 state_after 继续；不一致以 DOM 为准并写 resync；
+- 会话复盘见 `docs/session-2026-11-10-minigolf.md`，完整台账见 `extension/lessons/puzzle-minigolf-hard-ledger.json`。
