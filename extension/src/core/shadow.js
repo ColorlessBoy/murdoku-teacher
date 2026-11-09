@@ -4,6 +4,7 @@ import { SessionProjections } from './projections/host.js';
 import { BoardProjection } from './projections/board.js';
 import { ChatProjection } from './projections/chat.js';
 import { MarksProjection } from './projections/marks.js';
+import { QueueProjection } from './projections/queue.js';
 
 function normBoard(board = []) {
   return board
@@ -34,6 +35,7 @@ export class ShadowCore {
     this.board = null;
     this.chat = null;
     this.marks = null;
+    this.queue = null;
   }
 
   _append(type, payload = {}, meta = {}) {
@@ -55,6 +57,7 @@ export class ShadowCore {
     this.board = this.host.register('board', new BoardProjection());
     this.chat = this.host.register('chat', new ChatProjection());
     this.marks = this.host.register('marks', new MarksProjection());
+    this.queue = this.host.register('queue', new QueueProjection());
     this._append(E.sessionStart, { title, puzzle: this.puzzle });
     this._append(E.boardSnapshot, { cells: board });
     for (const m of chat || []) {
@@ -107,6 +110,35 @@ export class ShadowCore {
 
   end(reason = 'ended') {
     if (this.session) { const e = this.session.end(reason); if (e) this.host.apply(e); }
+  }
+
+  queueEnqueue(batch) {
+    this.ensure();
+    return this._append(E.queueEnqueue, { batch });
+  }
+
+  queueDequeue(id = null) {
+    this.ensure();
+    return this._append(E.queueDequeue, { id });
+  }
+
+  queueExpire({ all = false, ids = [] } = {}) {
+    this.ensure();
+    return this._append(E.queueExpire, { all, ids });
+  }
+
+  observeQueue(batches = []) {
+    this.ensure();
+    return this.compareQueue(batches);
+  }
+
+  compareQueue(batches = []) {
+    const norm = (q) => (q || []).map((b) => (b.changes || []).map((c) => `${c.r},${c.c}:${c.after?.big || ''}|${(c.after?.notes || []).join('')}|${c.after?.x ? 1 : 0}`).sort().join(',')).sort().join('\n');
+    const expected = norm(batches);
+    const actual = norm(this.queue ? this.queue.snapshot() : []);
+    if (expected === actual) return true;
+    this.onDivergence?.({ kind: 'queue', puzzle: this.puzzle, expected: expected.slice(0, 2000), actual: actual.slice(0, 2000) });
+    return false;
   }
 
   appendChat(role, text) {

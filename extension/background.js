@@ -63,11 +63,16 @@ async function enqueueBoard(puzzle, batch) {
     q.push({ ...batch, ts: Date.now() });
   }
   await saveQueue(puzzle, q);
+  const target = hit || q[q.length - 1];
+  if (target) shadowQueueEvent(puzzle, E.queueEnqueue, { batch: target });
+  shadowObserveQueue(puzzle, q);
   return q.length;
 }
 
 async function clearQueue(puzzle) {
   await chrome.storage.local.remove(queueKey(puzzle));
+  shadowQueueEvent(puzzle, E.queueExpire, { all: true });
+  shadowObserveQueue(puzzle, []);
 }
 
 async function processQueue(puzzle) {
@@ -78,6 +83,8 @@ async function processQueue(puzzle) {
   if (led.unresolved.length) return;
   const next = q.shift();
   await saveQueue(puzzle, q);
+  shadowQueueEvent(puzzle, E.queueDequeue, { id: next?.id || null });
+  shadowObserveQueue(puzzle, q);
   await info('board.dequeue', { puzzle, remaining: q.length });
   await handleBoardChanges(next);
 }
@@ -122,6 +129,17 @@ function shadowAppendChat(puzzle, role, text) {
   const sh = shadows.get(puzzle);
   if (!sh || !sh.session) return;
   try { sh.appendChat(role, text); } catch (e) { warn('core.shadow.chat_failed', { puzzle, message: e.message }); }
+}
+
+function shadowQueueEvent(puzzle, type, payload = {}) {
+  shadowEvent(puzzle, type, payload);
+}
+
+function shadowObserveQueue(puzzle, queue) {
+  if (!shadowEnabled) return;
+  const sh = shadows.get(puzzle);
+  if (!sh || !sh.session) return;
+  try { sh.observeQueue(queue || []); } catch (e) { warn('core.shadow.queue_failed', { puzzle, message: e.message }); }
 }
 
 function shadowSummary(puzzle) {
