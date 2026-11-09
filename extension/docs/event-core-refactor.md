@@ -318,3 +318,10 @@ test/core/*.test.mjs
   - restore events:10 / chat:8 / board:0
   - 随后 sync board:100 mode=restore-snapshot
   - 同一 session，无 divergence。
+
+### Phase 5 board 上下文 cutover（flag）
+
+- BoardProjection diff 现在保留 area/obj/objName（之前 diff 会丢静态字段）。
+- `mm_core_board`：runAgent 组 brief 时优先用 BoardProjection 盘面，旧 state 盘面 fallback。
+- 不一致记 `core.board.divergence`，用 core 盘面记 `core.board.context`。
+- live 0.8.46：`/coreboard` 开关成功；本轮 accept 未触发新的 agent run，`core.board.context` 尚未拿到样本。

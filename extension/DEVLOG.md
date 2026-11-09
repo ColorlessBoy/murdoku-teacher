@@ -143,3 +143,7 @@
 ## 0.8.45
 - 恢复 session 的 board 投影：board-sync 用 syncBoard 追加 snapshot，不新开 session。
 - live：restore chat 8/board 0 → sync board 100，同 session，无 divergence。
+
+## 0.8.46
+- BoardProjection diff 保留静态 area/obj；board brief 可走 core（mm_core_board flag）。
+- live 仅验证开关；context 样本待补。
