@@ -325,3 +325,12 @@ test/core/*.test.mjs
 - `mm_core_board`：runAgent 组 brief 时优先用 BoardProjection 盘面，旧 state 盘面 fallback。
 - 不一致记 `core.board.divergence`，用 core 盘面记 `core.board.context`。
 - live 0.8.46：`/coreboard` 开关成功；本轮 accept 未触发新的 agent run，`core.board.context` 尚未拿到样本。
+
+### 上下文污染修复：stale clearedAt
+
+- `/new` 调 `clearFacts` 会把 `clearedAt=now`，但盘面保留；之后老师一直说“盘面刚被清空”。
+- 修：
+  - `clearFacts(puzzle,{markCleared})`；`/new` 传 false；
+  - `recall({clearedAt:0})` 显式清理；
+  - `recall` 遇到实际 big/notes/x 自动清 `clearedAt`。
+- live 0.8.47：`/new logs` 保留盘面后继续，老师直接走 G 步（15 notes），不再说“盘面刚被清空”。

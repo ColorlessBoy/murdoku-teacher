@@ -147,3 +147,7 @@
 ## 0.8.46
 - BoardProjection diff 保留静态 area/obj；board brief 可走 core（mm_core_board flag）。
 - live 仅验证开关；context 样本待补。
+
+## 0.8.47
+- 修复 /new 后 stale clearedAt 导致老师反复“盘面刚被清空”。
+- live：/new logs → 继续 → G 步 15 notes，无清空提示。
