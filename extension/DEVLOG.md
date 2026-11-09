@@ -114,3 +114,7 @@
 - Phase 5：chat 读取切到 SessionEvent ChatProjection（mm_core_chat flag）。
 - 旧 storage 双写；/corechat 可切。
 - live：开启后用户/老师消息正常，无 divergence。
+
+## 0.8.38
+- LLM binding core + 5 条测试（未接入 agent）。
+- core chat 默认开启；storage 仍双写。

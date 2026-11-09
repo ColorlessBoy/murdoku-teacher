@@ -255,3 +255,15 @@ test/core/*.test.mjs
 - `mm:hello` 先读 flag 再 getChat，避免 reload 后回退。
 - live 0.8.37：`/corechat` 开启 → 用户消息 → 老师回复 B 候选；ChatProjection 正常，`core.divergence` 为空。
 - 未默认开启；先 dogfood。
+
+### Phase 5 LLM binding + chat 默认
+
+- `src/core/llm-binding.js`：`requestBound({session, requestId, stepId, messages, call, isCurrent})`
+  - session 非 active 拒绝；
+  - 缺 id/call 拒绝；
+  - 调用前 stale 检查；
+  - 调用后 stale 不写 response；
+  - LLM 异常写 `llm/response status:error` 并返回。
+- 测试 5 条全过。
+- `mm_core_chat` 默认开启（`!== false` 才关）；旧 storage 仍双写。
+- live：0.8.37 `/corechat` 开启后用户/老师消息正常，无 divergence；0.8.38 默认走同一路径。
