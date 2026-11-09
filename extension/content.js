@@ -579,11 +579,11 @@
       cell.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true, button: 0, buttons: 0 }));
     } else if (name === 'board_x') {
       if (cur?.x) return { ok: true, action: name, cell: cur };
-      const xb = toolBtn(/X 标记|^X$|排除/);
+      const xb = toolBtn(/X 标记|^X$|排除|mark x|exclude|\bX\b/i);
       if (!xb) return { ok: false, error: 'no_x_tool' };
       hit(xb); await sleep(120); hit(cell);
     } else if (name === 'board_erase') {
-      const eb = toolBtn(/清除所有格子|橡皮/);
+      const eb = toolBtn(/清除所有格子|橡皮|clear all squares|clear all cells|eraser|clear cell/i);
       if (!eb) return { ok: false, error: 'no_eraser' };
       hit(eb); await sleep(120); hit(cell);
     } else {
@@ -744,7 +744,7 @@
   }
 
   async function clearBoard() {
-    const btn = [...document.querySelectorAll('button')].find((b) => (b.title || '').includes('清除所有格子'));
+    const btn = [...document.querySelectorAll('button')].find((b) => /清除所有格子|clear all squares|clear all cells/i.test((b.title || '') + ' ' + (b.innerText || '')));
     if (!btn) return { ok: false, reason: 'button_not_found' };
     const opts = { bubbles: true, cancelable: true, pointerType: 'mouse', button: 0, buttons: 1 };
     btn.dispatchEvent(new PointerEvent('pointerdown', opts));

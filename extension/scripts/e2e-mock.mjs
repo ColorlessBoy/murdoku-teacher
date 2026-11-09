@@ -22,10 +22,14 @@ const server = http.createServer((req, res) => {
     const lastUser = msgs.map((m) => m.role).lastIndexOf('user');
     const lastTool = msgs.map((m) => m.role).lastIndexOf('tool');
     const newTurn = lastUser > lastTool;
+    const lastUserText = String(msgs[lastUser]?.content || '');
+    const isChallenge = !isExam && /质疑|为什么|解释/.test(lastUserText);
     let text = '';
     let tool = null;
     if (isExam) {
       text = '结论：INVALID\nR3C4 只是 B 的候选之一；三把椅子都能坐人，没有任何线索能排除 R10C7/R10C8。';
+    } else if (isChallenge) {
+      text = 'E 写在 R2C2 只是候选，不是唯一。沙地六格都能坐人，线索只说“在沙地砖上”，没有排除其他沙地格；先保留候选。请审查；接受后我走下一步。';
     } else if (newTurn) {
       turns++;
       const cell = turns === 1 ? { r: 3, c: 4, who: 'B' } : { r: 2, c: 2, who: 'E' };
@@ -102,6 +106,12 @@ console.log('step2', JSON.stringify(step2));
 assert.ok(step2.notes >= 2, 'step2 note');
 assert.ok(step2.msgs.some((m) => m.includes('请审查')), 'step2 reply');
 
+await ta.fill('我质疑：E 为什么只写 R2C2？'); await ta.press('Enter'); await page.waitForTimeout(25000);
+const challenge = await snapshot();
+console.log('challenge', JSON.stringify(challenge));
+assert.equal(challenge.notes, step2.notes, 'challenge did not change board');
+assert.ok(challenge.msgs.some((m) => /候选|沙地|R2C2/.test(m)), 'challenge explanation');
+
 await page.locator('#mm-sidebar .mm-tab.e').click(); await page.waitForTimeout(800);
 await ta.fill('我的结论：B 应该在 R3C4。'); await ta.press('Enter'); await page.waitForTimeout(25000);
 const exam = await snapshot();
@@ -109,11 +119,23 @@ console.log('exam', JSON.stringify(exam));
 assert.equal(exam.notes, step2.notes, 'exam did not change board');
 assert.ok(exam.msgs.some((m) => /INVALID|结论/.test(m)), 'exam audit reply');
 
+await page.locator('#mm-sidebar .mm-tab.t').click(); await page.waitForTimeout(800);
+await ta.fill('/clear'); await ta.press('Enter'); await page.waitForTimeout(9000);
+const cleared = await snapshot();
+console.log('cleared', JSON.stringify(cleared));
+assert.equal(cleared.notes, 0, 'clear notes');
+
+await ta.fill('/new'); await ta.press('Enter'); await page.waitForTimeout(30000);
+const fresh = await snapshot();
+console.log('fresh', JSON.stringify(fresh));
+assert.ok(fresh.notes >= 1, 'new session teacher note');
+assert.ok(fresh.msgs.some((m) => m.includes('请审查')), 'new session reply');
+
 await ta.fill('/eventlog'); await ta.press('Enter'); await page.waitForTimeout(1000);
 const ev = await snapshot();
 console.log('eventlog', JSON.stringify(ev.msgs.slice(-2)));
 assert.ok(ev.msgs.some((m) => /事件日志：\d+ 条/.test(m)), 'eventlog');
 
 await ctx.close(); server.close();
-console.log('E2E2 OK calls', calls, 'turns', turns);
+console.log('E2E3 OK calls', calls, 'turns', turns);
 process.exit(0);
