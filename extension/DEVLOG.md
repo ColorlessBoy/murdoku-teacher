@@ -219,3 +219,6 @@
 ## 0.8.61
 - ledger 写入 backend cutover 实现（flag）。
 - 测试通过；live reload 后扩展未就绪，未拿到 live 样本。
+
+## 0.8.61 live blockers
+- sidebar 曾 mm_enabled=false；CDP 开启后 /coreledgerwrite 未识别；reload 后 fill 超时。

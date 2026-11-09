@@ -469,3 +469,9 @@ test/core/*.test.mjs
 - `mm_core_ledger_write` 默认关闭；`/coreledgerwrite on|off`。
 - 全量测试通过。
 - live 0.8.61 复测失败：reload 后页面/扩展未就绪，`locator.fill` 30s 超时；不能宣称 live 通过。
+
+### 0.8.61 ledger write live 阻塞细节
+
+- 页面侧栏曾被 `mm_enabled=false` 隐藏；通过 CDP isolated world 设置 `mm_enabled=true` 后恢复。
+- 但 `/coreledgerwrite on` 仍被当成普通消息（无 `core.ledger.write.toggle`），随后强制 reload 后 `locator.fill` 30s 超时。
+- 未拿到 ledger write 的 live 样本；代码/单测通过。
