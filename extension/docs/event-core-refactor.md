@@ -513,3 +513,16 @@ test/core/*.test.mjs
 - `/eventlog` → 4 条：board/snapshot、ledger/snapshot、board/snapshot
 
 独立 profile 没有 API Key，所以没有跑老师推理；主 Chrome 仍是 0.8.61，需要手动 reload 到 0.8.65。
+
+### Mock LLM 端到端冒烟
+
+- `scripts/e2e-mock.mjs`：真实扩展 + 真实盘面 + 本地 mock LLM。
+- 0.8.65 通过：
+  - sidebar flex / 359
+  - cells 200
+  - 用户“开始教学，第一步”
+  - mock 第一轮 tool_call board_note
+  - ToolPipeline 实际写盘：R3C4 B，notes 1
+  - mock 第二轮文本
+  - 老师回复含“请审查”
+- 这验证了 content/background/session/LLM binding/tool pipeline/board/chat 的完整链路。

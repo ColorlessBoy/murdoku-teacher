@@ -24,6 +24,7 @@ const PORT = Number(process.env.MOCK_PORT || 18080);
 const EXT_TMP = '/tmp/mm-e2e-ext';
 const PROFILE = '/tmp/mm-e2e-profile';
 const URL = 'https://murdoku.com/play/puzzle-minigolf-hard';
+const EXPECT_VER = 'v' + JSON.parse(fs.readFileSync(path.join(EXT_SRC, 'manifest.json'), 'utf8')).version;
 
 let calls = 0;
 const server = http.createServer((req, res) => {
@@ -102,7 +103,7 @@ console.log('pre', JSON.stringify(pre));
 assert.equal(pre.display, 'flex', 'sidebar visible');
 assert.ok(pre.w > 0, 'sidebar width');
 assert.equal(pre.cells, 200, 'board cells');
-assert.equal(pre.ver, 'v0.8.65', 'version');
+assert.equal(pre.ver, EXPECT_VER, 'version');
 
 if (!pre.msgs.length) {
   const ta = page.locator('#mm-sidebar .mm-composer textarea');

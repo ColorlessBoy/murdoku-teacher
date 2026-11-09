@@ -237,3 +237,6 @@
 - 修 background TDZ（coreBoardWriteEnabled）与 hello const reassign。
 - 独立 Chromium live：sidebar/hello/coreledgerwrite/eventlog 通过。
 - 主 Chrome 仍 0.8.61，需手动 reload。
+
+## 0.8.65 e2e
+- 新增 scripts/e2e-mock.mjs；真实扩展+真实盘面+mock LLM 通过：tool→board note→text。
