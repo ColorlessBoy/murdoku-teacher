@@ -350,3 +350,9 @@ test/core/*.test.mjs
 - worker 重启后只有 hello 会加载 flag；content 不重复 hello，导致 `coreBoardEnabled` 回到初始 false。
 - 初始值改为 true；runAgent 前 `shadowSyncBoard` 会重建 shadow/session。
 - 最新一次 accept 未能触发 agent run，未复测。
+
+### 0.8.53 live board timeout
+
+- `readLiveBoard` 对 content `sendMessage` 加 2.5s 超时；超时记 `agent.live_board_timeout` 并回退到已有 board，避免 agent 永久等待。
+- live：accept 后 agent 正常进入；`core.board.context {cells:100}`；无 timeout/divergence。
+- 但模型返回空内容，产品显示“（模型没有返回内容）”；这是 LLM 输出问题，下一步排查。

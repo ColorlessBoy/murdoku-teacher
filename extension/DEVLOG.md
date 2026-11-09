@@ -159,3 +159,7 @@
 ## 0.8.52
 - core board 初始默认 true，避免 worker 重启后 flag=false。
 - 待复测 accept 无回复问题。
+
+## 0.8.53
+- readLiveBoard 2.5s 超时，避免 content 卡住导致老师静默。
+- live：agent 进入，board context 100；模型返回空内容，显示 fallback。
