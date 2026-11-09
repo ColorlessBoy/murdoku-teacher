@@ -2,7 +2,7 @@
 
 在 Murdoku 页面右侧注入墨墨侧栏，支持**教学模式**与**考试模式**，并带事件溯源内核。
 
-当前版本：**0.8.67**
+当前版本：**0.8.68**
 
 ## 安装
 
@@ -25,8 +25,8 @@
 - `/coreboard`：board 上下文切到 BoardProjection（默认已开）；
 - `/coreboardwrite`：board 写入切 core（默认已开，可 `off` 回退）；
 - `/coreledger`：ledger 读取切 core（默认已开）；
-- `/coreledgerwrite`：ledger 写入 backend（默认关）；
-- `/corequeue`：queue 写入 projection（默认关）；
+- `/coreledgerwrite`：ledger 写入 backend（默认开，`off` 回退）；
+- `/corequeue`：queue 写入 projection（默认开，`off` 回退）；
 - `/reload`：开发用，重载扩展并刷新页面。
 
 ## 事件内核
