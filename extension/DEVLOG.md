@@ -179,3 +179,6 @@
 ## 0.8.56
 - 思考中 placeholder + 65s 超时兜底；sendMessage reject 提示。
 - 未 live 复测。
+
+## 0.8.56 live
+- thinking placeholder 正常显示/恢复；accept 约 50s 后回复 A 步，57 notes。

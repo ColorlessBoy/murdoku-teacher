@@ -386,3 +386,12 @@ test/core/*.test.mjs
 - 收到 assistant 清除；65 秒兜底显示“响应超时…可以再发一次或 /reload”。
 - sendMessage reject 也立即提示后台未响应。
 - 未 live 复测。
+
+### 0.8.56 等待反馈 live
+
+- accept 后立即：
+  - placeholder = “墨墨正在思考…（通常 10-40 秒，最长 60 秒）”
+  - 状态栏 = “墨墨正在思考…”
+- 约 50 秒后老师回复 A 步，57 notes，placeholder 恢复。
+- 本轮未触发 65s 超时。
+- 延迟接近超时阈值，发布前仍需优化首轮工具/文本轮次。
