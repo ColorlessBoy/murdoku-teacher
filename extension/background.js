@@ -332,6 +332,7 @@ async function runAgent({ tabId, puzzle, board, changes, userText, clues, ledger
     await addChat(puzzle, 'me', text);
     await sendToTab(tabId, { type: 'mm:assistant', text, marks: [], verdict: null, system: true });
     await warn('agent.no_key', { tabId });
+    await shadowSummary(puzzle);
     return;
   }
 
@@ -726,6 +727,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
             sessionDispatch(puzzle, 'auto/started', {});
             await runAgent({ tabId, puzzle, board: msg.board, clues: msg.clues, changes: [], userText: null, ledger: await getLedger(puzzle), autoStart: true });
           }
+          await shadowSummary(puzzle);
           await info('session.new', { tabId, puzzle, clearLogs: !!msg.clearLogs });
           sendResponse({ ok: true, mode, epoch: newEpoch, chat: await getChat(puzzle), ledger: await getLedger(puzzle) });
           break;
