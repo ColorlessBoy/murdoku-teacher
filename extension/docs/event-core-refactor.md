@@ -283,3 +283,11 @@ test/core/*.test.mjs
 - agent 回复的 marks 改为优先读 `MarksProjection`（tool result 来源）；旧 actionMarks 作为 fallback。
 - 旧/新不一致记 `core.marks.divergence`，不阻断回复。
 - live 0.8.40：E 步 9 notes、6 个高亮；无 agent.failed/stale/divergence。
+
+### Phase 4 队列写入 cutover（flag）
+
+- `mm_core_queue`：开启后 `enqueueBoard` / `processQueue` 由 `QueueProjection` 决定合并/出队；
+- 旧 `mm_queue_` storage 仍持久化，用于 reload 后 seed；
+- `mm:hello` 和开启开关时从 storage seed，避免丢队列；
+- `/corequeue` 可切换；默认关闭。
+- 未 live 验证完整队列消费（需要考试模式产生排队）。

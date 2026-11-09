@@ -125,3 +125,7 @@
 
 ## 0.8.40
 - marks 读取切到 MarksProjection（tool result）；live E 步 9 notes/6 高亮，无错误。
+
+## 0.8.42
+- 队列 enqueue/process 决策切到 QueueProjection（mm_core_queue flag）。
+- reload/开启时从 storage seed；旧 storage 持久化。
