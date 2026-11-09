@@ -175,11 +175,11 @@ function persistShadowEvent(puzzle, event) {
 const shadows = new Map();
 let shadowEnabled = true;
 let coreChatEnabled = true;
-let coreQueueEnabled = false;
+let coreQueueEnabled = true;
 let coreBoardEnabled = true;
 let coreLedgerEnabled = true;
 let coreBoardWriteEnabled = true;
-let coreLedgerWriteEnabled = false;
+let coreLedgerWriteEnabled = true;
 setBoardWriteEnabled(!coreBoardWriteEnabled);
 
 function shadowFor(puzzle) {
@@ -767,11 +767,11 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
             const flags = await chrome.storage.local.get(['mm_core_shadow', 'mm_core_chat', 'mm_core_queue', 'mm_core_board', 'mm_core_ledger', 'mm_core_board_write', 'mm_core_ledger_write']);
             shadowEnabled = flags.mm_core_shadow !== false;
             coreChatEnabled = flags.mm_core_chat !== false;
-            coreQueueEnabled = flags.mm_core_queue === true;
+            coreQueueEnabled = flags.mm_core_queue !== false;
             coreBoardEnabled = flags.mm_core_board !== false;
             coreLedgerEnabled = flags.mm_core_ledger !== false;
             coreBoardWriteEnabled = flags.mm_core_board_write !== false;
-            coreLedgerWriteEnabled = flags.mm_core_ledger_write === true;
+            coreLedgerWriteEnabled = flags.mm_core_ledger_write !== false;
             setBoardWriteEnabled(!coreBoardWriteEnabled);
           } catch (e) {}
           const [settings, mode] = await Promise.all([getSettings(), getMode()]);

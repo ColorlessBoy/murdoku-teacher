@@ -48,3 +48,11 @@ node scripts/e2e-mock.mjs
   - baseUrl/model 正确
   - 下载按钮生成 JSON
 - 日志下载是**数组**，不是 `{logs}`；E2E 断言已修正。
+
+## 0.8.67 options 复跑
+
+```
+options: title 设置 / baseUrl 127.0.0.1 / model mock / hasDownload true
+download: murdoku-logs-*.json logs 129
+E2E3 OK calls 11 turns 3
+```

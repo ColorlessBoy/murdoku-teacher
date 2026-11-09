@@ -1,6 +1,6 @@
 # Murdoku 陪练发布清单
 
-版本：0.8.66  
+版本：0.8.68  
 目标：事件线重构 + 教学/考试闭环 + live 回归
 
 ## 自动测试
@@ -46,7 +46,7 @@
 ## 发布前必须完成
 
 - [x] ledger 读 cutover（core，mm_core_ledger，live challenge 通过）
-- [ ] ledger 写入 cutover（旧 storage 仍权威，core 已镜像）
+- [x] ledger 写入 cutover（默认 backend，off 回退）
 - [x] board 写入 cutover（默认关闭旧写入，工具读 core；flag 可回退）
 - [ ] 删除旧 epoch/延迟补丁
 - [ ] 考试模式 core queue 完整消费

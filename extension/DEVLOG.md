@@ -258,3 +258,7 @@
 
 ## 0.8.67 queue e2e
 - 考试第一批 audit INVALID，第二批排队，模型只调用一次；core queue 通过。
+
+## 0.8.68
+- core queue / ledger write 默认开启；保留 off 回退。
+- 0.8.67 options 下载 129 条日志，E2E3 OK。

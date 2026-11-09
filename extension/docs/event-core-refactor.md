@@ -546,3 +546,10 @@ test/core/*.test.mjs
 - `/eventlog` 65 条；`E2E3 OK calls 11 turns 3`。
 - 覆盖 session gate、clearDone、auto-start、tool pipeline、LLM binding、chat、marks、ledger 事件、event log。
 - 仍为 mock 模型；真实模型和 exam queue 未覆盖。
+
+### 0.8.68 最后两个域的默认 cutover
+
+- core queue 默认开启（`mm_core_queue !== false` 才关）；
+- ledger write backend 默认开启（`mm_core_ledger_write !== false` 才关）；
+- 均有旧 storage fallback 和 `/corequeue off`、`/coreledgerwrite off` 回退。
+- 0.8.67 E2E 已分别验证 queue（第二批排队，模型只调一次）和 ledger write flag。
