@@ -255,3 +255,6 @@
 ## 0.8.67
 - options 用 tabs.create 兜底；E2E 打开设置页、下载 JSON。
 - 修正日志下载 JSON 数组断言。
+
+## 0.8.67 queue e2e
+- 考试第一批 audit INVALID，第二批排队，模型只调用一次；core queue 通过。
