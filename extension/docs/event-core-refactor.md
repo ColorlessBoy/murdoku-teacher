@@ -300,3 +300,12 @@ test/core/*.test.mjs
 - `/eventlog` 查询条数与最近事件类型。
 - live 0.8.43：21 条事件，最近 assistant/user/assistant。
 - 目前是 append-only 审计；尚未在 hello 时 replay/restore 投影。
+
+### Phase 5 replay/restore
+
+- `Session.fromEvents` 从持久化事件恢复，不重复写 session/start。
+- `ShadowCore.restore` 重建 board/chat/marks/queue/ledger/turn 投影。
+- `ShadowCore.start` 重启时先 `end('restart')`，session/end 现在会持久化（之前漏）。
+- `mm:hello` 先查最后一段未结束 session：能恢复则恢复并重算 chat，否则新建。
+- live 0.8.44：reload 后 `core.shadow.restore events:10 chat:8 board:0`，无 divergence；
+  board 为 0 是因为 hello 时盘面还没加载，随后 board-sync 填充。
