@@ -118,3 +118,7 @@
 ## 0.8.38
 - LLM binding core + 5 条测试（未接入 agent）。
 - core chat 默认开启；storage 仍双写。
+
+## 0.8.39
+- LLM request/response 绑定 shadow Session（requestBound），stale 前后校验。
+- live：E 步 9 notes，无 agent.failed/stale/divergence。

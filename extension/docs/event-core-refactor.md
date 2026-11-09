@@ -267,3 +267,13 @@ test/core/*.test.mjs
 - 测试 5 条全过。
 - `mm_core_chat` 默认开启（`!== false` 才关）；旧 storage 仍双写。
 - live：0.8.37 `/corechat` 开启后用户/老师消息正常，无 divergence；0.8.38 默认走同一路径。
+
+### Phase 5 LLM binding 接入 agent
+
+- agent 每次 LLM 请求通过 `requestBound` 绑定到 shadow Session：
+  - requestId/stepId；
+  - 调用前后 epoch 校验；
+  - stale 不写 response；
+  - LLM 异常写 error event 并保留原始错误。
+- 无 shadow session 时回退旧 callLLM，保持可用。
+- live 0.8.39：接受后 E 步，9 个笔记；`agent.failed/stale`、`core.divergence` 均为空。
