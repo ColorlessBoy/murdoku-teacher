@@ -750,8 +750,10 @@
     if (!t) return;
     ta.value = '';
     if (t === '/coreboard') {
-      addMsg('you', '/coreboard');
-      const r = await sendMsg({ type: 'mm:core-board', toggle: true });
+      addMsg('you', t);
+      const arg = String(t).split(/\s+/)[1];
+      const on = arg === 'on' ? true : arg === 'off' ? false : undefined;
+      const r = await sendMsg({ type: 'mm:core-board', on });
       addMsg('me', 'core board ' + (r?.on ? '已开启' : '已关闭'), true);
       return;
     }

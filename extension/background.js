@@ -695,7 +695,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
             shadowEnabled = flags.mm_core_shadow !== false;
             coreChatEnabled = flags.mm_core_chat !== false;
             coreQueueEnabled = flags.mm_core_queue === true;
-            coreBoardEnabled = flags.mm_core_board === true;
+            coreBoardEnabled = flags.mm_core_board !== false;
           } catch (e) {}
           const [settings, mode, ledgerState] = await Promise.all([getSettings(), getMode(), getLedger(msg.puzzle)]);
           let chat = await getChat(msg.puzzle);
