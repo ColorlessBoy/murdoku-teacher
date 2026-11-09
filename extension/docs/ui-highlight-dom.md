@@ -127,3 +127,26 @@ B 3, E 6, D 13, G 4, H 4, A 23, I 4, C 45, F 0, V 0
 - 之前写的“桌旁候选 A/C 在 67/68/76”不是推导，已撤回；全局线索目前没有推出具体的人/格。
 
 **【错误经验】**：把全局计数约束写成角色候选，会让学生无法理解；先说明“这是最终盘面计数”，再谈和其他约束的组合。
+
+## 8. 读取笔记（【通用】）
+
+笔记在 DOM 的 `.grid-note-letter` 里，但有两个坑：
+
+1. 200 个 `[data-cell-index]` 是两层、100 个唯一格，必须只读**可见层**（`el.offsetWidth`）；
+2. 同格可能重复，要 **dedupe**。
+
+```js
+function readNotes() {
+  const out = {};
+  for (const el of document.querySelectorAll('[data-cell-index]')) {
+    if (!el.offsetWidth) continue;           // 只读可见层
+    const i = +el.dataset.cellIndex;
+    const notes = [...el.querySelectorAll('.grid-note-letter')]
+      .map(x => x.textContent.trim()).filter(Boolean);
+    if (notes.length) out[i] = [...new Set(notes)];  // dedupe
+  }
+  return out;
+}
+```
+
+不要用 `document.querySelectorAll('.grid-note-letter').length` 直接当“笔记数”：两层会重复。

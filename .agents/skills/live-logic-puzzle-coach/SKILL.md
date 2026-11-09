@@ -142,6 +142,7 @@ The bundled panel is a chat, not a debug console:
 
 - 200 `[data-cell-index]` elements, 100 unique indices, two layers at identical rects. Compute columns from **unique** indices (10), not `Math.sqrt(200)` (14).
 - Placement: single-letter text or portrait; notes: `.grid-note-letter`; X: `img` with `src` containing `87.7`.
+- Read notes per **visible** cell: `[...el.querySelectorAll('.grid-note-letter')]` with `el.offsetWidth`, then dedupe. Raw `.grid-note-letter` count double-counts the two cell layers.
 - `clearBoard` long-presses the clear button; never use reload as clear.
 - The game may persist some pieces but not all in-progress notation; localStorage `mg_hist` is the recovery source.
 
