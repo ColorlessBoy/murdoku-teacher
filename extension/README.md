@@ -29,6 +29,10 @@
 - `/corequeue`：queue 写入 projection（默认开，`off` 回退）；
 - `/reload`：开发用，重载扩展并刷新页面。
 
+## 发布说明
+
+[0.8.68 发布说明](docs/release-0.8.68.md)
+
 ## 事件内核
 
 事件线重构见 [docs/event-core-refactor.md](docs/event-core-refactor.md)。

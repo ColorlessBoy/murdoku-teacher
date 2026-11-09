@@ -268,3 +268,6 @@
 
 ## 0.8.68 defaults e2e
 - E2E_DEFAULT_FLAGS=1：queue/ledger write 默认路径通过，第二批排队，模型一次。
+
+## 0.8.68 release notes
+- 新增 docs/release-0.8.68.md；升级步骤、能力、测试证据、限制、回退。
