@@ -106,6 +106,7 @@ function sessionDispatch(puzzle, type, payload = {}) {
 
 const shadows = new Map();
 let shadowEnabled = true;
+let coreChatEnabled = false;
 
 function shadowFor(puzzle) {
   let sh = shadows.get(puzzle);
@@ -224,6 +225,12 @@ function chatKey(puzzle) {
 }
 
 async function getChat(puzzle) {
+  if (coreChatEnabled) {
+    const sh = shadows.get(puzzle);
+    if (sh && sh.session && sh.chat) {
+      return sh.chat.snapshot().map((m) => ({ role: m.role === 'user' ? 'you' : 'me', text: m.text, ts: m.ts }));
+    }
+  }
   const key = chatKey(puzzle);
   const { [key]: chat = [] } = await chrome.storage.local.get(key);
   return Array.isArray(chat) ? chat : [];
@@ -551,8 +558,12 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     try {
       switch (msg?.type) {
         case 'mm:hello': {
+          try {
+            const flags = await chrome.storage.local.get(['mm_core_shadow', 'mm_core_chat']);
+            shadowEnabled = flags.mm_core_shadow !== false;
+            coreChatEnabled = flags.mm_core_chat === true;
+          } catch (e) {}
           const [settings, mode, chat, ledgerState] = await Promise.all([getSettings(), getMode(), getChat(msg.puzzle), getLedger(msg.puzzle)]);
-          try { const sh = await chrome.storage.local.get('mm_core_shadow'); shadowEnabled = sh.mm_core_shadow !== false; } catch (e) {}
           if (msg.puzzle) chrome.storage.local.set({ [LAST_PUZZLE_KEY]: msg.puzzle });
           await recall(msg.puzzle, { title: msg.title, clues: msg.clues, board: msg.board });
           await ensurePrep(msg.puzzle, msg.board, msg.clues, settings);
@@ -622,6 +633,15 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           await addChat(puzzle, 'me', msg.remaining === 0 ? '已清空盘面：放置 / 笔记 / X 全部清除。清空前的推理不再追问。' : `清空未完成：盘面还剩 ${msg.remaining ?? '?'} 格。`);
           await info('board.clear', { tabId, puzzle, remaining: msg.remaining, reset: true });
           sendResponse({ ok: true });
+          break;
+        }
+        case 'mm:core-chat': {
+          const cur = await chrome.storage.local.get('mm_core_chat');
+          const on = msg.on == null ? !cur.mm_core_chat : !!msg.on;
+          await chrome.storage.local.set({ mm_core_chat: on });
+          coreChatEnabled = on;
+          await info('core.chat.toggle', { tabId, on });
+          sendResponse({ ok: true, on });
           break;
         }
         case 'mm:teacher-action': {

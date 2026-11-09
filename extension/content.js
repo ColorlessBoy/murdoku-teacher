@@ -749,6 +749,12 @@
     const t = ta.value.trim();
     if (!t) return;
     ta.value = '';
+    if (t === '/corechat') {
+      addMsg('you', '/corechat');
+      const r = await sendMsg({ type: 'mm:core-chat', toggle: true });
+      addMsg('me', 'core chat ' + (r?.on ? '已开启' : '已关闭'), true);
+      return;
+    }
     if (t === '/reload') {
       addMsg('you', '/reload');
       sendMsg({ type: 'mm:reload-extension' });
