@@ -488,6 +488,16 @@ async function runAgent({ tabId, puzzle, board, changes, userText, clues, ledger
       marks = assistant.marks;
       markSource = 'model';
     }
+    const markSh = shadows.get(puzzle);
+    if (markSh && markSh.marks) {
+      const coreMarks = markSh.marks.snapshot();
+      if (coreMarks.length) {
+        const sig = (list) => list.map((m) => `${m.r},${m.c}:${m.kind || ''}`).sort().join('|');
+        if (sig(coreMarks) !== sig(marks)) await info('core.marks.divergence', { puzzle, old: sig(marks), core: sig(coreMarks) });
+        marks = coreMarks;
+        markSource = 'core';
+      }
+    }
     await info('agent.marks', { tabId, puzzle, mode, source: markSource, marks });
     if (/不要标注|别标|取消标注|不用标/.test(userText || '')) marks = [];
     if (mode !== 'tutor' && marks.length && !/R\d+C\d+/.test(text)) {
