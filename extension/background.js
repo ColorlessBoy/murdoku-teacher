@@ -407,6 +407,7 @@ async function runAgent({ tabId, puzzle, board, changes, userText, clues, ledger
   const live = await readLiveBoard(tabId, puzzle);
   const boardNow = (live && Array.isArray(live.board) && live.board.length) ? live.board : board;
   const cluesNow = (live && Array.isArray(live.clues)) ? live.clues : clues;
+  if (boardNow && boardNow.length) await shadowSyncBoard(puzzle, boardNow, await getChat(puzzle));
   if (settings.apiKey) await ensurePrep(puzzle, boardNow, cluesNow, settings, true);
   const ledState = await getLedger(puzzle);
   const focusQ = (ledState.unresolved || []).slice(-1)[0];
