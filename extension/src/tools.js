@@ -1,5 +1,8 @@
 import { loadState, recall } from './state.js';
 
+let boardProvider = null;
+export function setBoardProvider(fn) { boardProvider = typeof fn === 'function' ? fn : null; }
+
 export const TOOL_DEFS = [
   {
     type: 'function',
@@ -81,7 +84,13 @@ function stateText(c) {
 
 export async function execTool(puzzle, name, args = {}, tabId = null, epoch = null) {
   const st = await loadState(puzzle);
-  const board = st.board || [];
+  let board = st.board || [];
+  if (boardProvider) {
+    try {
+      const b = await boardProvider(puzzle);
+      if (Array.isArray(b) && b.length) board = b;
+    } catch (e) {}
+  }
   const at = (r, c) => board.find((x) => x.r === r && x.c === c);
 
   if (name.startsWith('board_')) {

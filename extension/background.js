@@ -1,10 +1,10 @@
 import { info, warn, error, getLogs, clearLogs, stats } from './src/log.js';
 import { callLLM, normalizeSettings, extractJson } from './src/llm.js';
-import { recall, loadState, addFact, buildBrief, clearFacts, resetBoardState, saveMarks, savePrep, savePrepStatus } from './src/state.js';
+import { recall, loadState, addFact, buildBrief, clearFacts, resetBoardState, saveMarks, savePrep, savePrepStatus, setBoardWriteEnabled } from './src/state.js';
 import { getBundledLesson } from './src/lessons.js';
 import { mergeBatches } from './src/queue.js';
 import { tighten, condense } from './src/format.js';
-import { toolsForMode, execTool } from './src/tools.js';
+import { toolsForMode, execTool, setBoardProvider } from './src/tools.js';
 import { buildMessages } from './src/prompt.js';
 import { ShadowCore } from './src/core/shadow.js';
 import { E } from './src/core/events.js';
@@ -15,6 +15,7 @@ import { appendCapped } from './src/core/event-log.js';
 import { recordChanges, answerQuestion, closeQuestion, getLedger, ledgerText, closeAllUnresolved, clearLedger, markAsked, setLedgerEventSink } from './src/ledger.js';
 
 setLedgerEventSink((e) => shadowEvent(e.puzzle, e.type, e.payload));
+setBoardProvider((puzzle) => { const sh = shadows.get(puzzle); return sh && sh.board ? sh.board.snapshot() : null; });
 
 const SETTINGS_KEY = 'mm_settings';
 const CHAT_PREFIX = 'mm_chat_';
@@ -159,6 +160,7 @@ let coreChatEnabled = true;
 let coreQueueEnabled = false;
 let coreBoardEnabled = true;
 let coreLedgerEnabled = true;
+let coreBoardWriteEnabled = false;
 
 function shadowFor(puzzle) {
   let sh = shadows.get(puzzle);
@@ -733,12 +735,14 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       switch (msg?.type) {
         case 'mm:hello': {
           try {
-            const flags = await chrome.storage.local.get(['mm_core_shadow', 'mm_core_chat', 'mm_core_queue', 'mm_core_board', 'mm_core_ledger']);
+            const flags = await chrome.storage.local.get(['mm_core_shadow', 'mm_core_chat', 'mm_core_queue', 'mm_core_board', 'mm_core_ledger', 'mm_core_board_write']);
             shadowEnabled = flags.mm_core_shadow !== false;
             coreChatEnabled = flags.mm_core_chat !== false;
             coreQueueEnabled = flags.mm_core_queue === true;
             coreBoardEnabled = flags.mm_core_board !== false;
             coreLedgerEnabled = flags.mm_core_ledger !== false;
+            coreBoardWriteEnabled = flags.mm_core_board_write === true;
+            setBoardWriteEnabled(!coreBoardWriteEnabled);
           } catch (e) {}
           const [settings, mode, ledgerState] = await Promise.all([getSettings(), getMode(), getLedger(msg.puzzle)]);
           let chat = await getChat(msg.puzzle);
@@ -819,6 +823,16 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           await addChat(puzzle, 'me', msg.remaining === 0 ? '已清空盘面：放置 / 笔记 / X 全部清除。清空前的推理不再追问。' : `清空未完成：盘面还剩 ${msg.remaining ?? '?'} 格。`);
           await info('board.clear', { tabId, puzzle, remaining: msg.remaining, reset: true });
           sendResponse({ ok: true });
+          break;
+        }
+        case 'mm:core-board-write': {
+          const cur = await chrome.storage.local.get('mm_core_board_write');
+          const on = msg.on == null ? !cur.mm_core_board_write : !!msg.on;
+          await chrome.storage.local.set({ mm_core_board_write: on });
+          coreBoardWriteEnabled = on;
+          setBoardWriteEnabled(!on);
+          await info('core.board.write.toggle', { tabId, on });
+          sendResponse({ ok: true, on });
           break;
         }
         case 'mm:core-ledger': {

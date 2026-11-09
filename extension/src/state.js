@@ -1,3 +1,6 @@
+let boardWritesEnabled = true;
+export function setBoardWriteEnabled(on) { boardWritesEnabled = !!on; }
+
 const PREFIX = 'mm_state_';
 
 function storeKey(puzzle) {
@@ -32,7 +35,7 @@ export async function recall(puzzle, patch = {}) {
   }
   if (patch.clearedAt !== undefined) st.clearedAt = patch.clearedAt;
   if (Array.isArray(patch.board) && patch.board.length) {
-    st.board = patch.board;
+    if (boardWritesEnabled) st.board = patch.board;
     if (patch.board.some((c) => c && (c.big || (c.notes || []).length || c.x))) st.clearedAt = 0;
   }
   st.type = inferType(st.title, puzzle);

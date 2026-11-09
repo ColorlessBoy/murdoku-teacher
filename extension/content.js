@@ -768,6 +768,14 @@
     const t = ta.value.trim();
     if (!t) return;
     ta.value = '';
+    if (t === '/coreboardwrite' || String(t).startsWith('/coreboardwrite ')) {
+      addMsg('you', t);
+      const arg = String(t).split(/\s+/)[1];
+      const on = arg === 'on' ? true : arg === 'off' ? false : undefined;
+      const r = await sendMsg({ type: 'mm:core-board-write', on });
+      addMsg('me', 'core board write ' + (r?.on ? '已开启（旧 board 写入关闭）' : '已关闭（旧 board 写入恢复）'), true);
+      return;
+    }
     if (t === '/coreledger' || String(t).startsWith('/coreledger ')) {
       addMsg('you', t);
       const arg = String(t).split(/\s+/)[1];
