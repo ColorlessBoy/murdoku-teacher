@@ -155,7 +155,7 @@ const shadows = new Map();
 let shadowEnabled = true;
 let coreChatEnabled = true;
 let coreQueueEnabled = false;
-let coreBoardEnabled = false;
+let coreBoardEnabled = true;
 
 function shadowFor(puzzle) {
   let sh = shadows.get(puzzle);
