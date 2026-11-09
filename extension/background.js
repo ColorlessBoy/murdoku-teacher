@@ -12,7 +12,9 @@ import { initSession, reduceSession, PHASE } from './src/core/session-machine.js
 import { ToolPipeline } from './src/core/tool-pipeline.js';
 import { requestBound } from './src/core/llm-binding.js';
 import { appendCapped } from './src/core/event-log.js';
-import { recordChanges, answerQuestion, closeQuestion, getLedger, ledgerText, closeAllUnresolved, clearLedger, markAsked } from './src/ledger.js';
+import { recordChanges, answerQuestion, closeQuestion, getLedger, ledgerText, closeAllUnresolved, clearLedger, markAsked, setLedgerEventSink } from './src/ledger.js';
+
+setLedgerEventSink((e) => shadowEvent(e.puzzle, e.type, e.payload));
 
 const SETTINGS_KEY = 'mm_settings';
 const CHAT_PREFIX = 'mm_chat_';
@@ -229,6 +231,13 @@ async function shadowRestoreFromStore(puzzle, board, chat) {
     await warn('core.shadow.restore_failed', { puzzle, message: e.message });
     return false;
   }
+}
+
+async function shadowSeedLedger(puzzle, ledger) {
+  if (!shadowEnabled) return;
+  const sh = shadows.get(puzzle);
+  if (!sh || !sh.session) return;
+  try { sh.appendEvent(E.ledgerSnapshot, { questions: ledger?.unresolved || [] }); } catch (e) { warn('core.shadow.ledger_seed_failed', { puzzle, message: e.message }); }
 }
 
 async function shadowSummary(puzzle) {
@@ -726,6 +735,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
             shadowStart(msg.puzzle, { board: msg.board, chat, title: msg.title });
             shadowSeedQueue(msg.puzzle, await loadQueue(msg.puzzle));
           }
+          shadowSeedLedger(msg.puzzle, await getLedger(msg.puzzle));
           sessionMachines.set(msg.puzzle, initSession({ phase: PHASE.active, sessionId: msg.puzzle + ':hello' }));
           sendResponse({ ok: true, epoch: helloEpoch, settings: { ...settings, apiKey: settings.apiKey ? '«saved»' : '' }, mode, chat, ledger: ledgerState });
           await info('content.hello', { tabId, puzzle: msg.puzzle, hasKey: !!settings.apiKey, mode });

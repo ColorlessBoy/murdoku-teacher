@@ -36,3 +36,14 @@ test('shadow ledger compares unresolved counts', () => {
   assert.equal(ds.length, 1);
   assert.equal(ds[0].kind, 'ledger');
 });
+
+test('ledger events replace approximations and update status', () => {
+  const p = new LedgerProjection();
+  p.apply({ type: E.ledgerSnapshot, status: COMMITTED, payload: { questions: [{ id: 'q1', status: 'open', cells: [] }] } });
+  p.apply(diff([cell(9, 9)]));
+  assert.equal(p.snapshot().length, 1);
+  p.apply({ type: E.ledgerQuestion, status: COMMITTED, payload: { question: { id: 'q1', status: 'open', cells: [cell(3, 4)] } } });
+  assert.equal(p.snapshot()[0].cells.length, 1);
+  p.apply({ type: E.ledgerClosed, status: COMMITTED, ts: 2000, payload: { id: 'q1', verdict: 'VALID' } });
+  assert.equal(p.unresolved().length, 0);
+});

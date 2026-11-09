@@ -1,3 +1,7 @@
+let eventSink = null;
+export function setLedgerEventSink(fn) { eventSink = typeof fn === 'function' ? fn : null; }
+function emit(puzzle, type, payload = {}) { try { eventSink?.({ puzzle, type, payload }); } catch (e) {} }
+
 const PREFIX = 'mm_ledger_';
 const MAX_BATCHES = 600;
 const MAX_CELL_HISTORY = 30;
@@ -94,6 +98,8 @@ export async function recordChanges({ puzzle, changes, source = 'observed' }) {
     st.questions.push(question);
   }
   await save(puzzle, st);
+  emit(puzzle, 'ledger/batch', { batch });
+  emit(puzzle, 'ledger/question', { question });
   return { question, batch, created, unresolved: unresolvedQuestions(st) };
 }
 
@@ -105,6 +111,7 @@ export async function answerQuestion(puzzle, text) {
   q.answeredAt = Date.now();
   q.status = 'answered';
   await save(puzzle, st);
+  emit(puzzle, 'ledger/answered', { id: q.id, answer: q.answer });
   return q;
 }
 
@@ -116,6 +123,7 @@ export async function closeQuestion(puzzle, verdict) {
   q.closedAt = Date.now();
   q.status = 'closed';
   await save(puzzle, st);
+  emit(puzzle, 'ledger/closed', { id: q.id, verdict: q.verdict });
   return q;
 }
 
@@ -168,11 +176,13 @@ export async function closeAllUnresolved(puzzle, reason = 'closed_by_user') {
     }
   }
   await save(puzzle, st);
+  for (const q of st.questions) if (q.status === 'closed') emit(puzzle, 'ledger/closed', { id: q.id, verdict: q.verdict });
   return n;
 }
 
 export async function clearLedger(puzzle) {
   await chrome.storage.local.remove(storeKey(puzzle));
+  emit(puzzle, 'ledger/cleared', {});
 }
 
 
@@ -183,5 +193,6 @@ export async function markAsked(puzzle) {
   q.status = 'asked';
   q.askedAt = Date.now();
   await save(puzzle, st);
+  emit(puzzle, 'ledger/asked', { id: q.id });
   return q;
 }
