@@ -74,3 +74,8 @@
 - Phase 2 shadow 扩展：turn/step、llm request/response、tool call/result、summary。
 - `core.shadow.summary` 输出 session/board/chat/marks/audit。
 - core 单元测试全过；live board sync 无 divergence。
+
+## 0.8.25
+- Phase 3 session 状态机纯核心 + 7 条测试。
+- background shadow 记 `core.session.transition`，不接管 clear/new。
+- live transition 样本受 CDP 页面关闭影响，待重试。

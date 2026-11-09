@@ -175,3 +175,13 @@ test/core/*.test.mjs
 - background 在 `runAgent` 每个 turn/step、每次 LLM 请求/响应、每个 tool call/result 写入 shadow；turn 结束记 `core.shadow.summary`（session/board/chat/marks/audit）。
 - 单元测试覆盖事件序列 + audit 成对。
 - live：`core.shadow.sync board:100`，无 `core.divergence`；LLM/tool summary 待下一轮在真实 agent run 中确认。
+
+## 12. Phase 3 进度（session 状态机）
+
+- 新增 `src/core/session-machine.js`：`idle → clearing → cleared → starting → active`；
+  - `clear/request / clear/boardDone / new/request / new/started / auto/started`；
+  - 重复 clear、clear 中 new、stale token、重复 new/started 都被 reject；
+  - 只产出 effects 描述符，不执行副作用。
+- `test/core/session-machine.test.mjs` 7 条全过。
+- background shadow：`core.session.transition` 日志（phase/effects/rejected），不接管行为。
+- live：attempted `/clear`→`/new`，CDP/page 在刷新后关闭，未拿到本轮 transition 样本；下一轮重试。
