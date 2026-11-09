@@ -494,3 +494,22 @@ test/core/*.test.mjs
 - 修：先读 `mm_enabled` 并 `applyEnabled`，再 timebox `loadChanges`/`loadReactBridge`（2s/2.5s）。
 - 单测 85 pass。
 - live 未验证：通过 `chrome.runtime.reload()` 尝试重载扩展，页面 badge 仍 0.8.61，未加载 0.8.62。
+
+### 0.8.65 后台崩溃修复 + 独立 Chromium live
+
+发现并修复两个让 background service worker 直接崩溃的 bug：
+
+1. **TDZ**：模块顶层 `setBoardWriteEnabled(!coreBoardWriteEnabled)` 在 `let coreBoardWriteEnabled` 声明之前执行。
+2. **const reassign**：0.8.58 ledger 读 cutover 后，hello 里 `const ledgerState` 又被重新赋值。
+
+结果：background worker 不启动/hello 返回 error，content 只显示“扩展后台没有响应”，侧栏隐藏。
+
+修复后在独立 Chromium（0.8.65、全新 profile）live：
+
+- badge v0.8.65
+- sidebar `display:flex`，width 359
+- hello 成功：显示“先点 ⚙ 配置 API Key”
+- `/coreledgerwrite on` → “core ledger write 已开启”
+- `/eventlog` → 4 条：board/snapshot、ledger/snapshot、board/snapshot
+
+独立 profile 没有 API Key，所以没有跑老师推理；主 Chrome 仍是 0.8.61，需要手动 reload 到 0.8.65。

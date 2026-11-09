@@ -232,3 +232,8 @@
 
 ## live test guide
 - 新增 docs/live-test-guide.md；当前浏览器扩展 0.8.61，需手动 reload 到 0.8.62。
+
+## 0.8.65
+- 修 background TDZ（coreBoardWriteEnabled）与 hello const reassign。
+- 独立 Chromium live：sidebar/hello/coreledgerwrite/eventlog 通过。
+- 主 Chrome 仍 0.8.61，需手动 reload。
