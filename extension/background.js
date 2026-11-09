@@ -149,13 +149,13 @@ function shadowObserveLedger(puzzle, ledger) {
   try { sh.observeLedger(ledger); } catch (e) { warn('core.shadow.ledger_failed', { puzzle, message: e.message }); }
 }
 
-function shadowSummary(puzzle) {
+async function shadowSummary(puzzle) {
   if (!shadowEnabled) return;
   const sh = shadows.get(puzzle);
   if (!sh || !sh.session) return;
   try {
     const snap = sh.snapshot();
-    info('core.shadow.summary', { puzzle, session: snap.session?.status, board: snap.board, chat: snap.chat, marks: snap.marks, audit: snap.audit });
+    await info('core.shadow.summary', { puzzle, session: snap.session?.status, board: snap.board, chat: snap.chat, marks: snap.marks, turnSteps: snap.turnSteps, audit: snap.audit });
   } catch (e) { warn('core.shadow.summary_failed', { puzzle, message: e.message }); }
 }
 
@@ -497,7 +497,7 @@ async function runAgent({ tabId, puzzle, board, changes, userText, clues, ledger
   } finally {
     shadowEvent(puzzle, E.stepEnd, { reason: 'done' });
     shadowEvent(puzzle, E.turnEnd, { reason: 'done' });
-    shadowSummary(puzzle);
+    await shadowSummary(puzzle);
   }
 }
 
