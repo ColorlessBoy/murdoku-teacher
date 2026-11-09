@@ -69,3 +69,16 @@ test('replay reconstructs messages', () => {
   const r = Session.replay('r', s.events, { now: fixedNow });
   assert.deepEqual(r.deriveMessages(), s.deriveMessages());
 });
+
+test('Session.fromEvents restores events and ended status', () => {
+  const s0 = new Session('s1', { now: () => 1000 });
+  s0.append(E.userMessage, { text: 'hi' });
+  s0.append(E.assistantMessage, { text: 'yo' });
+  s0.end('done');
+  const s1 = Session.fromEvents(s0.events, { now: () => 2000 });
+  assert.equal(s1.id, 's1');
+  assert.equal(s1.status, 'ended');
+  assert.equal(s1.events.length, s0.events.length);
+  assert.equal(s1.deriveMessages().length, 2);
+  assert.equal(s1.append(E.userMessage, { text: 'late' }).status, 'rejected');
+});

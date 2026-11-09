@@ -207,6 +207,29 @@ async function shadowSeedQueue(puzzle, queue) {
   sh.observeQueue(queue || []);
 }
 
+async function shadowRestoreFromStore(puzzle, board, chat) {
+  if (!shadowEnabled) return false;
+  try {
+    const key = shadowEventKey(puzzle);
+    const { [key]: events = [] } = await chrome.storage.local.get(key);
+    if (!Array.isArray(events) || !events.length) return false;
+    let lastStart = -1;
+    for (let i = events.length - 1; i >= 0; i--) if (events[i].type === E.sessionStart) { lastStart = i; break; }
+    if (lastStart < 0) return false;
+    const sessionEvents = events.slice(lastStart);
+    if (sessionEvents.some((e) => e.type === E.sessionEnd)) return false;
+    const sh = shadowFor(puzzle);
+    sh.restore(sessionEvents);
+    sh.compareBoard(board, 'restore');
+    sh.compareChat(chat, 'restore');
+    await info('core.shadow.restore', { puzzle, events: sessionEvents.length, board: sh.board.snapshot().length, chat: sh.chat.snapshot().length });
+    return true;
+  } catch (e) {
+    await warn('core.shadow.restore_failed', { puzzle, message: e.message });
+    return false;
+  }
+}
+
 async function shadowSummary(puzzle) {
   if (!shadowEnabled) return;
   const sh = shadows.get(puzzle);
@@ -654,14 +677,20 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
             coreChatEnabled = flags.mm_core_chat !== false;
             coreQueueEnabled = flags.mm_core_queue === true;
           } catch (e) {}
-          const [settings, mode, chat, ledgerState] = await Promise.all([getSettings(), getMode(), getChat(msg.puzzle), getLedger(msg.puzzle)]);
+          const [settings, mode, ledgerState] = await Promise.all([getSettings(), getMode(), getLedger(msg.puzzle)]);
+          let chat = await getChat(msg.puzzle);
           if (msg.puzzle) chrome.storage.local.set({ [LAST_PUZZLE_KEY]: msg.puzzle });
           await recall(msg.puzzle, { title: msg.title, clues: msg.clues, board: msg.board });
           await ensurePrep(msg.puzzle, msg.board, msg.clues, settings);
           const helloEpoch = await getEpoch(msg.puzzle);
           await sendToTab(tabId, { type: 'mm:epoch', epoch: helloEpoch });
-          shadowStart(msg.puzzle, { board: msg.board, chat, title: msg.title });
-          shadowSeedQueue(msg.puzzle, await loadQueue(msg.puzzle));
+          const restored = await shadowRestoreFromStore(msg.puzzle, msg.board, chat);
+          if (restored) {
+            chat = await getChat(msg.puzzle);
+          } else {
+            shadowStart(msg.puzzle, { board: msg.board, chat, title: msg.title });
+            shadowSeedQueue(msg.puzzle, await loadQueue(msg.puzzle));
+          }
           sessionMachines.set(msg.puzzle, initSession({ phase: PHASE.active, sessionId: msg.puzzle + ':hello' }));
           sendResponse({ ok: true, epoch: helloEpoch, settings: { ...settings, apiKey: settings.apiKey ? '«saved»' : '' }, mode, chat, ledger: ledgerState });
           await info('content.hello', { tabId, puzzle: msg.puzzle, hasKey: !!settings.apiKey, mode });

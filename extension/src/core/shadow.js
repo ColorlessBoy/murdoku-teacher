@@ -58,7 +58,7 @@ export class ShadowCore {
   }
 
   start({ board = [], chat = [], title = '' } = {}) {
-    if (this.session && this.session.status === 'active') this.session.end('restart');
+    if (this.session && this.session.status === 'active') this.end('restart');
     this.queueSeeded = false;
     this.session = new Session(`shadow:${this.puzzle}:${this.now()}`, { now: this.now });
     this.host = new SessionProjections();
@@ -119,7 +119,27 @@ export class ShadowCore {
   }
 
   end(reason = 'ended') {
-    if (this.session) { const e = this.session.end(reason); if (e) this.host.apply(e); }
+    if (this.session) {
+      const e = this.session.end(reason);
+      if (e) {
+        this.host?.apply(e);
+        try { this.onEvent?.(e); } catch (err) {}
+      }
+    }
+  }
+
+  restore(events = []) {
+    this.session = Session.fromEvents(events, { now: this.now });
+    this.queueSeeded = true;
+    this.host = new SessionProjections();
+    this.board = this.host.register('board', new BoardProjection());
+    this.chat = this.host.register('chat', new ChatProjection());
+    this.marks = this.host.register('marks', new MarksProjection());
+    this.queue = this.host.register('queue', new QueueProjection());
+    this.ledger = this.host.register('ledger', new LedgerProjection());
+    this.turn = this.host.register('turn', new TurnProjection());
+    for (const e of this.session.events) this.host.apply(e);
+    return this;
   }
 
   queueEnqueue(batch) {

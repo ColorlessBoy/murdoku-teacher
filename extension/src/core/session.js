@@ -15,6 +15,17 @@ export class Session {
     this.now = now;
   }
 
+  static fromEvents(events = [], { now = () => Date.now() } = {}) {
+    const first = events.find((e) => e.type === E.sessionStart) || events[0] || null;
+    const s = new Session(first?.sessionId || `restored_${now()}`, { now });
+    s.events = events.map((e) => ({ ...e }));
+    s.seq = events.reduce((m, e) => Math.max(m, Number(e.seq) || 0), 0);
+    s.createdAt = first?.ts || now();
+    const end = events.find((e) => e.type === E.sessionEnd);
+    if (end) { s.status = 'ended'; s.endedAt = end.ts || now(); }
+    return s;
+  }
+
   append(type, payload = {}, meta = {}) {
     if (this.status !== 'active') {
       return this.reject(type, 'session_ended', payload, meta);

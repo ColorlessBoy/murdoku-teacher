@@ -79,3 +79,18 @@ test('summary turnSteps uses the last ended turn', () => {
   s.turnEnd();
   assert.equal(s.snapshot().turnSteps, 1);
 });
+
+test('restart persists session end and restore rebuilds projections', () => {
+  const seen = [];
+  const s = new ShadowCore('p1', { now: () => 1000, onEvent: (e) => seen.push(e) });
+  s.start({ board: [{ r: 3, c: 4, notes: ['B'] }], chat: [{ role: 'you', text: 'hi' }] });
+  s.start({ board: [], chat: [] });
+  assert.ok(seen.some((e) => e.type === 'session/end'));
+  const endIdx = seen.findIndex((e) => e.type === 'session/end');
+  const firstSession = seen.slice(0, endIdx);
+  const r = new ShadowCore('p1', { now: () => 1000 });
+  r.restore(firstSession);
+  assert.equal(r.chat.snapshot().length, 1);
+  assert.equal(r.board.snapshot().length, 1);
+  assert.equal(r.queueSeeded, true);
+});
