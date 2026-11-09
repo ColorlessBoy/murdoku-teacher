@@ -225,7 +225,7 @@
         addMsg('me', '响应超时（超过 65 秒）。可以再发一次，或 /reload 重载扩展。', true);
         if (changesState) changesState.textContent = '响应超时';
         clientLog('assistant_timeout', {});
-      }, 65000);
+      }, 125000);
     } else {
       if (thinkingTimer) { clearTimeout(thinkingTimer); thinkingTimer = null; }
       ta.placeholder = taPlaceholder;

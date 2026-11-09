@@ -289,3 +289,7 @@
 - board_place 改为 background MAIN world：React onClick 选中人物 + 1600ms pointer 长按落子。
 - 全解 E2E：tutor 10 步 CASE SOLVED；exam 新 profile 完整解 VALID + CASE SOLVED。
 - FULL E2E OK calls 12 tutorMsgs 10 examMsgs 2。
+
+## 0.8.72
+- 真实教师模型在长上下文下超过 60 秒，扩展 abort；LLM timeout 60s→120s，content thinking 65s→125s。
+- 真实交互已验证到 B/E/G/D/H 五步及 H 质疑/修正；端点恢复后继续。

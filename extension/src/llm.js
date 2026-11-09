@@ -30,7 +30,7 @@ export function extractJson(text) {
   return null;
 }
 
-export async function callLLM({ messages, settings, expectJson = true, timeoutMs = 60000, session, puzzle, tools }) {
+export async function callLLM({ messages, settings, expectJson = true, timeoutMs = 120000, session, puzzle, tools }) {
   session = session || 'ses_' + Date.now().toString(36);
   const s = normalizeSettings(settings);
   if (!s.apiKey) {
