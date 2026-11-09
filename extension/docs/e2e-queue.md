@@ -23,3 +23,17 @@ PLAYWRIGHT_CORE=/path/to/playwright-core/index.mjs \
 CHROME_PATH="/path/to/Google Chrome for Testing" \
 node scripts/e2e-queue.mjs
 ```
+
+## 默认值验证（0.8.68）
+
+不注入 `mm_core_queue` / `mm_core_ledger_write`，只靠代码默认：
+
+```
+E2E_DEFAULT_FLAGS=1 node scripts/e2e-queue.mjs
+notes 1 → 2
+state 墨墨已回复 → 排队中（等上一问解决）
+calls 1
+QUEUE E2E OK
+```
+
+说明 core queue / ledger write 默认开启路径可用。

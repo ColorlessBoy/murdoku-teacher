@@ -34,7 +34,8 @@ const mf = JSON.parse(fs.readFileSync(`${dst}/manifest.json`, 'utf8'));
 mf.host_permissions = [...(mf.host_permissions || []), 'http://127.0.0.1/*'];
 fs.writeFileSync(`${dst}/manifest.json`, JSON.stringify(mf, null, 2));
 let bg = fs.readFileSync(`${dst}/background.js`, 'utf8');
-bg = `chrome.storage.local.set({ mm_settings: { apiKey: "test", baseUrl: "http://127.0.0.1:${PORT}/v1", model: "mock", maxTokens: 2048 }, mm_mode: "exam", mm_enabled: true, mm_core_queue: true, mm_core_ledger_write: true });\n` + bg;
+const flagOverrides = process.env.E2E_DEFAULT_FLAGS === '1' ? '' : ', mm_core_queue: true, mm_core_ledger_write: true';
+bg = `chrome.storage.local.set({ mm_settings: { apiKey: "test", baseUrl: "http://127.0.0.1:${PORT}/v1", model: "mock", maxTokens: 2048 }, mm_mode: "exam", mm_enabled: true${flagOverrides} });\n` + bg;
 fs.writeFileSync(`${dst}/background.js`, bg);
 
 const exe = process.env.CHROME_PATH || '/Users/penglingwei/Library/Caches/ms-playwright/chromium-1217/chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing';

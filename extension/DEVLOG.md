@@ -265,3 +265,6 @@
 
 ## 0.8.68 release docs
 - README 0.8.68：queue/ledger write 默认开，保留 off。
+
+## 0.8.68 defaults e2e
+- E2E_DEFAULT_FLAGS=1：queue/ledger write 默认路径通过，第二批排队，模型一次。
