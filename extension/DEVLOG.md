@@ -203,3 +203,7 @@
 ## 0.8.58
 - ledger 读切 core（mm_core_ledger 默认开；fallback）。
 - live challenge：老师正确解释“最多一真”，3 notes，无 divergence/错误。
+
+## 0.8.58 release checklist update
+- ledger 读 cutover 标记完成（live challenge）。
+- 剩余：board/ledger 写入仍双写。
