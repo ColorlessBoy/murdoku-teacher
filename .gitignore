@@ -6,3 +6,5 @@ shots/
 chat-history.json
 last-feedback.json
 .DS_Store
+
+extension/.env.precommit

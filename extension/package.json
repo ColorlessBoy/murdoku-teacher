@@ -1,0 +1,11 @@
+{
+  "name": "momo-murdoku-extension",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test test/*.test.mjs test/core/*.test.mjs",
+    "test:e2e": "node scripts/e2e-precommit.mjs",
+    "precommit": "npm test && npm run test:e2e",
+    "hooks:install": "git -C .. config core.hooksPath .githooks"
+  }
+}

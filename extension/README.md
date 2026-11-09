@@ -80,3 +80,17 @@ options 页/日志下载；考试 core queue。
 ## 隐私
 
 API Key 只存 `chrome.storage.local`；日志里对 Key/Authorization 脱敏；除所配置模型端点外不发送盘面/对话。
+
+## Pre-commit 本地 E2E
+
+```bash
+cd extension
+npm run hooks:install
+```
+
+之后每次 `git commit` 会自动跑：
+
+1. 85 个单元测试；
+2. 本地 fixture E2E（mock LLM，不需要真实 Key / murdoku.com）。
+
+详见 [docs/pre-commit-e2e.md](docs/pre-commit-e2e.md)。

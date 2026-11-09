@@ -1,0 +1,23 @@
+#!/bin/sh
+set -eu
+
+ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+cd "$ROOT"
+
+if [ -f extension/.env.precommit ]; then
+  set -a
+  . extension/.env.precommit
+  set +a
+fi
+
+cd extension
+echo "[pre-commit] unit tests"
+node --test test/*.test.mjs test/core/*.test.mjs
+
+if [ "${SKIP_E2E:-0}" = "1" ]; then
+  echo "[pre-commit] e2e skipped (SKIP_E2E=1)"
+  exit 0
+fi
+
+echo "[pre-commit] local fixture e2e"
+node scripts/e2e-precommit.mjs

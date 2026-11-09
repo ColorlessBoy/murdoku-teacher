@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Murdoku Fixture</title>
+<style>
+  body { margin: 0; font: 14px/1.5 -apple-system, BlinkMacSystemFont, sans-serif; background: #f4ecdd; color: #2a2116; }
+  #app { padding: 20px; }
+  #suspects { display: flex; gap: 8px; margin-bottom: 12px; }
+  #suspects button { padding: 6px 12px; border: 1px solid #9c7a3c; background: #fff8e8; border-radius: 6px; cursor: pointer; }
+  #board { display: grid; grid-template-columns: repeat(10, 40px); grid-template-rows: repeat(10, 40px); gap: 2px; width: max-content; }
+  .cell { width: 40px; height: 40px; background: #e6d6b8; border: 1px solid #c9b48b; box-sizing: border-box; display: flex; align-items: center; justify-content: center; position: relative; cursor: pointer; }
+  .grid-note-letter { font-size: 18px; font-weight: 700; color: #4b3a1a; }
+  #clear { margin-top: 12px; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="suspects">
+    <button title="Burma" data-symbol="B">Burma</button>
+    <button title="Elyana" data-symbol="E">Elyana</button>
+  </div>
+  <div id="board"></div>
+  <button id="clear" title="clear all squares">clear all squares</button>
+</div>
+<script>
+  (() => {
+    const board = document.getElementById('board');
+    let selected = '';
+    for (let i = 0; i < 100; i++) {
+      const d = document.createElement('div');
+      d.className = 'cell';
+      d.dataset.cellIndex = String(i);
+      d.addEventListener('click', () => {
+        if (!selected) return;
+        const had = d.querySelector('.grid-note-letter');
+        if (had && had.textContent === selected) { had.remove(); return; }
+        d.innerHTML = '';
+        const s = document.createElement('span');
+        s.className = 'grid-note-letter';
+        s.textContent = selected;
+        d.appendChild(s);
+      });
+      board.appendChild(d);
+    }
+    for (const b of document.querySelectorAll('#suspects button')) {
+      b.addEventListener('click', () => { selected = b.dataset.symbol; });
+    }
+    const clearBtn = document.getElementById('clear');
+    const doClear = () => { for (const c of board.querySelectorAll('.grid-note-letter')) c.remove(); };
+    clearBtn.addEventListener('click', doClear);
+    clearBtn.addEventListener('pointerup', doClear);
+    clearBtn.addEventListener('mouseup', doClear);
+  })();
+</script>
+</body>
+</html>
