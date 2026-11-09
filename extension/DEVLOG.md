@@ -109,3 +109,8 @@
 ## 0.8.36
 - live `core.shadow.summary`：board 100/chat 2/audit []/divergence 0。
 - turnSteps 统计改为最后一个 turn；加测试。
+
+## 0.8.37
+- Phase 5：chat 读取切到 SessionEvent ChatProjection（mm_core_chat flag）。
+- 旧 storage 双写；/corechat 可切。
+- live：开启后用户/老师消息正常，无 divergence。

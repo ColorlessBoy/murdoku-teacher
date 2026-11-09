@@ -246,3 +246,12 @@ test/core/*.test.mjs
   - board: 100, chat: 2, marks: 0, audit: [], divergence: 0。
 - turnSteps 统计 bug：turn 结束后 current=null；改为取最后一个 turn 的 steps。
 - 0.8.36 修复并加测试。
+
+## 14. Phase 5 聊天读取 cutover（flag）
+
+- `mm_core_chat` 开关：`getChat` 优先从 `ShadowCore.chat`（SessionEvent 投影）读；
+- 旧 `mm_chat_` storage 继续双写，可随时回退；
+- `/corechat` 开发命令切换，`mm:core-chat` 持久化；
+- `mm:hello` 先读 flag 再 getChat，避免 reload 后回退。
+- live 0.8.37：`/corechat` 开启 → 用户消息 → 老师回复 B 候选；ChatProjection 正常，`core.divergence` 为空。
+- 未默认开启；先 dogfood。
