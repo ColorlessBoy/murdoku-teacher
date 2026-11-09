@@ -774,7 +774,8 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
             coreLedgerWriteEnabled = flags.mm_core_ledger_write === true;
             setBoardWriteEnabled(!coreBoardWriteEnabled);
           } catch (e) {}
-          const [settings, mode, ledgerState] = await Promise.all([getSettings(), getMode(), getLedger(msg.puzzle)]);
+          const [settings, mode] = await Promise.all([getSettings(), getMode()]);
+          let ledgerState = await getLedgerNow(msg.puzzle);
           let chat = await getChat(msg.puzzle);
           if (msg.puzzle) chrome.storage.local.set({ [LAST_PUZZLE_KEY]: msg.puzzle });
           await recall(msg.puzzle, { title: msg.title, clues: msg.clues, board: msg.board });
