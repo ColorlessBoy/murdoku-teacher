@@ -34,6 +34,7 @@ metadata:
 3. **One action per popup, one condition per step.** If the reason reads like a paragraph, split it. Simple steps get one sentence.
 4. **No assumptions.** Only forced elimination or capacity-forced placement. If a step starts with "suppose", it is not forced; find the capacity/single-cell version.
 5. **One notation meaning.** A letter in a cell means "this person may be here". Never use a note to mean "this cell may contain one of these people". Delete notes that mix meanings.
+6. **The ledger is the board.** Every board operation (note / X / place / undo / rollback) is a `(state, action, state')` record appended to `progress/ledger/<puzzle>.jsonl` by `scripts/murdoku-ledger.mjs`. The chat context may be compacted; the ledger is not. On any resume, read/verify the ledger before touching the board.
 
 ## Workflow
 
@@ -94,6 +95,25 @@ metadata:
   rules, rooms, objects, placements, X set, notes, derived facts, and the ban on assumptions/enumeration.
 - Give the brief to a subagent for **one next forced deduction**; the parent executes.
 - Ask the subagent to return: the deduction, the one-condition-per-line reason, the key clue, and an explicit "no forced step" if that is the case.
+
+### 7. Durable (state, action, state') ledger — compaction-proof
+
+The conversation gets compacted (this project had 9 compaction summaries in one session); the board does not. Keep the process on disk:
+
+- **State reader:** `node scripts/murdoku-state.mjs` prints the canonical state `{placed, notes, xMarks, notesTotal}` read from the game's own `mrd_progress_<puzzle>` plus the visible DOM notes. Add `--out <file>` to save.
+- **Ledger:** `progress/ledger/<puzzle>.jsonl`, one JSON per line:
+  - header: `{"type":"header","version":1,"puzzle":...}`
+  - step: `{"type":"step","step":n,"state_before":...,"action":{kind,who,cells,reason},"user":"accept|reject|none|rollback","note":"...","state_after":...}`
+- **Commands:** `node scripts/murdoku-ledger.mjs init|state|append|verify|rollback --puzzle <id>`
+  - `state` prints the last `state_after` (pure file, no CDP);
+  - `append --action '<json>' --user accept --note '...'` snapshots the live board and appends the step;
+  - `verify` compares the last state with the live board (`ok:true` = in sync; the diff shows what changed);
+  - `rollback --to <step>` records the rollback and prints the state to restore.
+- **Protocol per step:** (1) `verify`; (2) one operation; (3) read the board; (4) `append` with the reason + user feedback. Never batch several deductions into one record.
+- **Resume after compaction:** run `murdoku-ledger.mjs state` / `verify`. If `ok` is true, continue from the last `state_after`. If not, the DOM is the truth: append a `resync` record (the live state) and continue. Never reconstruct the board from the chat.
+- **Rejected steps stay in the ledger** (`user:"reject"`), and a `rollback` record references the target step; the restore is manual (the game's Undo does not restore consumed notes).
+- **Teaching loop:** execute one step first, then explain, then ask "能理解吗？"; if rejected, roll back to the last accepted state before proposing anything else. Prefer one-line forced arguments (e.g. "column 8 has only one position left") over long enumeration; the student rejects over-complicated reasoning even when the conclusion is right.
+- **Never answer-driven:** do not use the official `solution_*`/`murderer` to reverse-engineer a "reason". A step that starts from the known answer and invents a column/row rationale is a hard error (it was rejected as "胡说八道" in this project).
 
 ## Architecture: one product, two layers
 
