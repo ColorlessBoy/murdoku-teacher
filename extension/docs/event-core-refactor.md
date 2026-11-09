@@ -425,3 +425,11 @@ test/core/*.test.mjs
   - `结论：INVALID`
   - “同行只说明最多一真；你凭什么把这两把都排除、只留 R3C4？”
 - notes 仍 3；没有代解；随后切回教学。
+
+### Phase 4 ledger 写入镜像
+
+- `src/ledger.js` 增加 `setLedgerEventSink`；record/answer/close/ask/clear 都发 `ledger/*` 事件。
+- `LedgerProjection` 支持 `ledger/snapshot|batch|question|answered|asked|closed|cleared`。
+- shadow 启动时用旧账本 unresolved 做 `ledger/snapshot` seed；之后 board/diff 近似不再覆盖（hasLedger）。
+- 旧的 `mm_ledger_` 仍是权威写入；core 现在有精确镜像，为读 cutover 做准备。
+- 全量测试 84+ 通过。

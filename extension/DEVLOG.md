@@ -195,3 +195,7 @@
 ## 0.8.56 release checklist
 - 全量测试 84 pass。
 - 新增 docs/release-checklist.md；明确 board/ledger 写入、双写、延迟为发布阻塞。
+
+## 0.8.57
+- ledger 写入镜像：旧账本每次变更发 ledger/* 事件；shadow 启动 seed snapshot。
+- 旧 ledger storage 仍权威；core 精确镜像，待读 cutover。
