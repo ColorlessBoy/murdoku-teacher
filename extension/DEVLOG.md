@@ -167,3 +167,7 @@
 ## 0.8.54
 - tutor 工具轮 5；空文本 fallback 带 tool 结果和明确提示。
 - live accept 未回复，待查 LLM/worker。
+
+## 0.8.55
+- 修复 mm:user-message 提前 sendResponse 导致 worker 回收、老师静默。
+- live：accept → H 步 36 notes，无 fallback/错误/divergence。

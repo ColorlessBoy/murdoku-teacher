@@ -363,3 +363,13 @@ test/core/*.test.mjs
 - tutor 工具轮上限 3 → 5。
 - fallback 改用带 tool 结果的 messages，并追加“用 2-4 句解释、不要再调工具”的提示。
 - live 0.8.54：accept 后 24s 内没有老师回复，也没有 fallback 日志；不能宣称修复。
+
+### 0.8.55 MV3 keepalive 修复
+
+- `mm:user-message` 之前先 `sendResponse` 再 `runAgent`；消息事件结束，service worker 可能在 LLM fetch 期间被回收，造成永久静默。
+- 现在 `sendResponse` 移到 agent/queue 完成之后，消息通道保持到 agent 结束。
+- live 0.8.55：
+  - accept 后老师正常回复 H 步；
+  - 36 notes；
+  - 无 fallback/agent.failed/stale/divergence。
+- 这解决了连续多轮“accept 无回复”的主要根因。
