@@ -11,6 +11,7 @@ import { E } from './src/core/events.js';
 import { initSession, reduceSession, PHASE } from './src/core/session-machine.js';
 import { ToolPipeline } from './src/core/tool-pipeline.js';
 import { requestBound } from './src/core/llm-binding.js';
+import { appendCapped } from './src/core/event-log.js';
 import { recordChanges, answerQuestion, closeQuestion, getLedger, ledgerText, closeAllUnresolved, clearLedger, markAsked } from './src/ledger.js';
 
 const SETTINGS_KEY = 'mm_settings';
@@ -132,6 +133,24 @@ function sessionDispatch(puzzle, type, payload = {}) {
   return r;
 }
 
+const SHADOW_EVENT_PREFIX = 'mm_events_';
+const eventLogChains = new Map();
+
+function shadowEventKey(puzzle) {
+  return SHADOW_EVENT_PREFIX + encodeURIComponent(String(puzzle || 'unknown')).slice(0, 80);
+}
+
+function persistShadowEvent(puzzle, event) {
+  const key = shadowEventKey(puzzle);
+  const prev = eventLogChains.get(puzzle) || Promise.resolve();
+  const next = prev.then(async () => {
+    const { [key]: events = [] } = await chrome.storage.local.get(key);
+    await chrome.storage.local.set({ [key]: appendCapped(events, event) });
+  }).catch((e) => warn('core.event_log.failed', { puzzle, message: e.message }));
+  eventLogChains.set(puzzle, next);
+  return next;
+}
+
 const shadows = new Map();
 let shadowEnabled = true;
 let coreChatEnabled = true;
@@ -140,7 +159,7 @@ let coreQueueEnabled = false;
 function shadowFor(puzzle) {
   let sh = shadows.get(puzzle);
   if (!sh) {
-    sh = new ShadowCore(puzzle, { onDivergence: (d) => warn('core.divergence', d) });
+    sh = new ShadowCore(puzzle, { onDivergence: (d) => warn('core.divergence', d), onEvent: (e) => persistShadowEvent(puzzle, e) });
     shadows.set(puzzle, sh);
   }
   return sh;
@@ -706,6 +725,12 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           await addChat(puzzle, 'me', msg.remaining === 0 ? '已清空盘面：放置 / 笔记 / X 全部清除。清空前的推理不再追问。' : `清空未完成：盘面还剩 ${msg.remaining ?? '?'} 格。`);
           await info('board.clear', { tabId, puzzle, remaining: msg.remaining, reset: true });
           sendResponse({ ok: true });
+          break;
+        }
+        case 'mm:event-log': {
+          const key = shadowEventKey(msg.puzzle || 'unknown');
+          const { [key]: events = [] } = await chrome.storage.local.get(key);
+          sendResponse({ ok: true, count: events.length, last: events.slice(-3).map((e) => ({ type: e.type, ts: e.ts, seq: e.seq })) });
           break;
         }
         case 'mm:core-queue': {

@@ -749,6 +749,12 @@
     const t = ta.value.trim();
     if (!t) return;
     ta.value = '';
+    if (t === '/eventlog') {
+      addMsg('you', '/eventlog');
+      const r = await sendMsg({ type: 'mm:event-log', puzzle: PUZZLE });
+      addMsg('me', `事件日志：${r?.count ?? 0} 条` + (r?.last?.length ? '（最近：' + r.last.map((x) => x.type).join(' / ') + '）' : ''), true);
+      return;
+    }
     if (t === '/corequeue') {
       addMsg('you', '/corequeue');
       const r = await sendMsg({ type: 'mm:core-queue', toggle: true, puzzle: PUZZLE });

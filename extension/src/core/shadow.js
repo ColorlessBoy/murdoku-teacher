@@ -28,10 +28,11 @@ function normChat(chat = []) {
  * Phase 2 shadow：把旧链路的事实镜像进新 core，只对比/记日志，不影响产品。
  */
 export class ShadowCore {
-  constructor(puzzle, { now = () => Date.now(), onDivergence = null } = {}) {
+  constructor(puzzle, { now = () => Date.now(), onDivergence = null, onEvent = null } = {}) {
     this.puzzle = puzzle;
     this.now = now;
     this.onDivergence = onDivergence;
+    this.onEvent = onEvent;
     this.session = null;
     this.queueSeeded = false;
     this.host = null;
@@ -46,6 +47,7 @@ export class ShadowCore {
   _append(type, payload = {}, meta = {}) {
     const e = this.session.append(type, payload, meta);
     this.host.apply(e);
+    try { this.onEvent?.(e); } catch (err) {}
     return e;
   }
 
