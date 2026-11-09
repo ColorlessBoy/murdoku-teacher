@@ -35,6 +35,7 @@ metadata:
 4. **No assumptions.** Only forced elimination or capacity-forced placement. If a step starts with "suppose", it is not forced; find the capacity/single-cell version.
 5. **One notation meaning.** A letter in a cell means "this person may be here". Never use a note to mean "this cell may contain one of these people". Delete notes that mix meanings.
 6. **The ledger is the board.** Every board operation (note / X / place / undo / rollback) is a `(state, action, state')` record appended to `progress/ledger/<puzzle>.jsonl` by `scripts/murdoku-ledger.mjs`. The chat context may be compacted; the ledger is not. On any resume, read/verify the ledger before touching the board.
+7. **One operation per turn; then stop and ask.** A turn executes at most ONE logical board operation, explains it in one condition, ends with a question, and waits for the user. Never finish several steps in one turn and then report a summary — the student must see each logic step. The ledger's `append` refuses to run while the previous step is still awaiting the user's verdict (see §8).
 
 ## Workflow
 
@@ -104,16 +105,49 @@ The conversation gets compacted (this project had 9 compaction summaries in one 
 - **Ledger:** `progress/ledger/<puzzle>.jsonl`, one JSON per line:
   - header: `{"type":"header","version":1,"puzzle":...}`
   - step: `{"type":"step","step":n,"state_before":...,"action":{kind,who,cells,reason},"user":"accept|reject|none|rollback","note":"...","state_after":...}`
-- **Commands:** `node scripts/murdoku-ledger.mjs init|state|append|verify|rollback --puzzle <id>`
+- **Commands:** `node scripts/murdoku-ledger.mjs init|status|state|append|verify|feedback|rollback --puzzle <id>`
+  - `status` prints `{steps, lastStep, lastUser, awaitingUser, state}` — the one-step gate check;
   - `state` prints the last `state_after` (pure file, no CDP);
-  - `append --action '<json>' --user accept --note '...'` snapshots the live board and appends the step;
+  - `append --action '<json>' --note '...'` snapshots the live board and appends the step; it **refuses (exit 3)** while the previous step is awaiting the user (`lastUser:"none"`);
+  - `feedback --verdict accept|reject --note '...'` records the user's verdict on the last step and opens the gate for the next one;
   - `verify` compares the last state with the live board (`ok:true` = in sync; the diff shows what changed);
   - `rollback --to <step>` records the rollback and prints the state to restore.
-- **Protocol per step:** (1) `verify`; (2) one operation; (3) read the board; (4) `append` with the reason + user feedback. Never batch several deductions into one record.
+- **Protocol per step:** (1) `status` gate check; (2) one operation; (3) read the board; (4) `append`; (5) ask the user; (6) `feedback` after the reply. Never batch several deductions into one record.
 - **Resume after compaction:** run `murdoku-ledger.mjs state` / `verify`. If `ok` is true, continue from the last `state_after`. If not, the DOM is the truth: append a `resync` record (the live state) and continue. Never reconstruct the board from the chat.
 - **Rejected steps stay in the ledger** (`user:"reject"`), and a `rollback` record references the target step; the restore is manual (the game's Undo does not restore consumed notes).
-- **Teaching loop:** execute one step first, then explain, then ask "能理解吗？"; if rejected, roll back to the last accepted state before proposing anything else. Prefer one-line forced arguments (e.g. "column 8 has only one position left") over long enumeration; the student rejects over-complicated reasoning even when the conclusion is right.
+- **Teaching loop:** governed by the one-step gate (§8): one operation, one explanation, one question, then wait. If rejected, roll back to the last accepted state before proposing anything else. Prefer one-line forced arguments (e.g. "column 8 has only one position left") over long enumeration; the student rejects over-complicated reasoning even when the conclusion is right.
 - **Never answer-driven:** do not use the official `solution_*`/`murderer` to reverse-engineer a "reason". A step that starts from the known answer and invents a column/row rationale is a hard error (it was rejected as "胡说八道" in this project).
+
+### 8. One-step gate (hard rule; anti-race)
+
+Failure this prevents: after a few accepted steps the teacher "just finishes" — several notes / X groups / placements in one turn — and the student cannot see the logic. In this project that produced: "你只能做一步", "你是在尝试是吗", "我都看不到逻辑", "胡说八道", and a batch of unconfirmed placements (A→D→H→E done without waiting).
+
+**Rule:** one turn = at most ONE logical board operation, then STOP and wait. The response must end with a question ("能理解吗？"); no tool call may follow the explanation in the same turn.
+
+**One logical operation (the only allowed batches):**
+- one role's candidate-set write (the whole set is one step — "一步笔记，不是一个笔记");
+- one row/column X group from one deduction;
+- one remove group from one deduction;
+- one placement;
+- one undo / rollback / resync.
+NOT one step: two placements; two roles; "the remaining forced cells"; "finish the puzzle"; a mixed note+place.
+
+**Procedure (every turn):**
+1. Gate check: `node scripts/murdoku-ledger.mjs status --puzzle <id>`; the previous step's `lastUser` must be `accept|reject|rollback`. If it is `none`, ask first — do not touch the board.
+2. Write the ONE operation as one sentence: condition → cells → conclusion. If it needs two sentences, it is two steps → do only the first.
+3. Execute; read the board back; `append` the ledger with the reason (user feedback recorded after the reply, via `feedback`).
+4. Reply with: the operation + the one-condition explanation + the question. STOP. No more tool calls this turn.
+
+**Race hazards (where it always happens):**
+- after 2–3 accepted steps ("the rest is obvious");
+- the last few forced placements (the last 2–3 are still separate turns);
+- the user says "继续/你继续" — it means "the next ONE step", never "finish";
+- the hint/answer-driven temptation — one step, forced logic only;
+- the endgame rush once the murderer is obvious.
+
+**Explicit batch exception:** only when the user explicitly authorizes a batch ("剩下的一起填完"), the batch becomes ONE operation; record it as one step with the authorization in the note.
+
+**If you already raced:** stop, list the steps done since the last confirmed one, ask for retroactive accept/reject, and do not continue until answered.
 
 ## Architecture: one product, two layers
 
@@ -211,11 +245,15 @@ The bundled panel is a chat, not a debug console:
 | Chair/bed candidate excluded as object | `objId` prefilter also removes occupiable objects | Click all clue-valid cells; let the game reject blocked cells |
 | Said a clue was "satisfied" because no candidate notes remained | Notes are candidates; the clue constrains final placements | Say "other roles excluded from this area", not "clue satisfied"; the clue is only satisfied after final placement |
 | F forced into island / V forced into barrels | "alone"/"victim" are area-composition constraints, not fixed areas | Do not write area-only candidates until the area is proven; prove room composition first |
+| A→D→H→E placed in one burst, user: "我都看不到逻辑" | Ran ahead after a few accepted steps; summary instead of step-by-step | One-step gate (§8): one operation, one explanation, one question per turn; `ledger status` gate; `append` refuses while `lastUser:"none"` |
+| A batch of notes/placements executed then explained | Thought "the rest is forced, so it's one step" | Only the listed one-logical-operation groups are one step; finishing/remaining is never a step |
 
 ## Checklists
 
 Before each step:
 
+- [ ] **Gate:** `ledger status` shows `lastUser` accept/reject/rollback (not `none`).
+- [ ] **One step:** the planned call is exactly ONE logical operation (one role set / one X group / one remove group / one placement / one undo).
 - [ ] Read the board: placements, notes, X.
 - [ ] Is the target cell already X'd or occupied?
 - [ ] Is the reason forced (no "suppose")?
@@ -225,6 +263,8 @@ Before each step:
 After each step:
 
 - [ ] Read the board back; did auto-X apply?
+- [ ] `append` the ledger record; reply with the one-condition explanation + a question; STOP.
+- [ ] After the user replies, `feedback --verdict accept|reject` so the next step's gate opens.
 - [ ] Clean up notes that are now impossible.
 - [ ] Persist history; mark stale pending entries.
 

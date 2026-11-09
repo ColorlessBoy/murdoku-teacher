@@ -42,7 +42,9 @@ function parseArgs(argv) {
     else if (a === '--user') args.user = argv[++i];
     else if (a === '--note') args.note = argv[++i];
     else if (a === '--to') args.to = argv[++i];
+    else if (a === '--verdict') args.verdict = argv[++i];
     else if (a === '--ledger') args.ledger = argv[++i];
+    else if (a === '--force') args.force = true;
     else args._.push(a);
   }
   return args;
@@ -123,6 +125,35 @@ async function main() {
     return;
   }
 
+  if (args.cmd === 'status') {
+    const lastRec = steps[steps.length - 1];
+    console.log(JSON.stringify({
+      puzzle,
+      steps: steps.length,
+      lastStep: lastRec ? lastRec.step : 0,
+      lastUser: lastRec ? lastRec.user : 'none',
+      awaitingUser: !lastRec || lastRec.user === 'none',
+      state: lastRec ? lastRec.state_after : { placed: {}, notes: {}, xMarks: [], notesTotal: 0 },
+    }, null, 1));
+    return;
+  }
+
+  if (args.cmd === 'feedback') {
+    const verdict = args.verdict;
+    if (!['accept', 'reject', 'rollback'].includes(verdict)) { console.error('--verdict accept|reject|rollback required'); process.exit(2); }
+    const lastRec = steps[steps.length - 1];
+    if (!lastRec) { console.error('empty ledger'); process.exit(1); }
+    if (lastRec.user !== 'none') { console.log('last step already has user: ' + lastRec.user); return; }
+    const lines = fs.readFileSync(file, 'utf8').split('\n').filter(Boolean);
+    const obj = JSON.parse(lines[lines.length - 1]);
+    obj.user = verdict;
+    if (args.note) obj.note = args.note;
+    lines[lines.length - 1] = JSON.stringify(obj);
+    fs.writeFileSync(file, lines.join('\n') + '\n');
+    console.log(JSON.stringify({ updated: obj.step, user: verdict }, null, 1));
+    return;
+  }
+
   if (args.cmd === 'verify') {
     const d = diffStates(last, live);
     const changed = Object.keys(d.placed).length || Object.keys(d.notes).length || d.xMarks.added.length || d.xMarks.removed.length;
@@ -133,6 +164,14 @@ async function main() {
   if (args.cmd === 'append') {
     let action;
     try { action = JSON.parse(args.action || '{}'); } catch { console.error('--action must be JSON'); process.exit(2); }
+    // ONE-STEP GATE: block a new operation while the previous step awaits the user's verdict.
+    const lastRec = steps[steps.length - 1];
+    const gateExempt = ['rollback', 'resync', 'init'].includes(action.kind) || args.force;
+    if (lastRec && lastRec.user === 'none' && !gateExempt) {
+      console.error('WAIT: step ' + lastRec.step + ' is awaiting the user verdict (user:"none").');
+      console.error('Ask the user (能理解吗？接受吗？), then run: node scripts/murdoku-ledger.mjs feedback --puzzle ' + puzzle + ' --verdict accept|reject');
+      process.exit(3);
+    }
     const step = (steps.length ? steps[steps.length - 1].step : 0) + 1;
     const rec = { type: 'step', step, ts: Date.now(), state_before: last, action, user: args.user || 'none', note: args.note || '', state_after: live };
     appendRecord(file, rec);
