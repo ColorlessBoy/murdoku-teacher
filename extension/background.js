@@ -106,7 +106,7 @@ function sessionDispatch(puzzle, type, payload = {}) {
 
 const shadows = new Map();
 let shadowEnabled = true;
-let coreChatEnabled = false;
+let coreChatEnabled = true;
 
 function shadowFor(puzzle) {
   let sh = shadows.get(puzzle);
@@ -561,7 +561,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           try {
             const flags = await chrome.storage.local.get(['mm_core_shadow', 'mm_core_chat']);
             shadowEnabled = flags.mm_core_shadow !== false;
-            coreChatEnabled = flags.mm_core_chat === true;
+            coreChatEnabled = flags.mm_core_chat !== false;
           } catch (e) {}
           const [settings, mode, chat, ledgerState] = await Promise.all([getSettings(), getMode(), getChat(msg.puzzle), getLedger(msg.puzzle)]);
           if (msg.puzzle) chrome.storage.local.set({ [LAST_PUZZLE_KEY]: msg.puzzle });
