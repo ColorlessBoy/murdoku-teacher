@@ -244,3 +244,7 @@
 ## 0.8.65 extended e2e
 - step1 B / accept E / exam INVALID / eventlog 28；ledger write flag on。
 - E2E2 OK calls 5 turns 2。
+
+## 0.8.66
+- 英文 UI clear/erase 选择器。
+- E2E3：B/E/challenge/exam/clear/new/eventlog 65 条通过。

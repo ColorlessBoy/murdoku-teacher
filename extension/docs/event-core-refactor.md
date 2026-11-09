@@ -539,3 +539,10 @@ test/core/*.test.mjs
 
 结果：`E2E2 OK calls 5 turns 2`。  
 这说明 content/background/session/tool pipeline/board/chat/ledger/event log 在最新 0.8.65 上端到端可用（模型为 mock）。
+
+### E2E3（0.8.66）
+
+- step1 B → accept E → challenge（不动盘）→ exam（不动盘）→ `/clear`（notes 0）→ `/new`（notes 1）。
+- `/eventlog` 65 条；`E2E3 OK calls 11 turns 3`。
+- 覆盖 session gate、clearDone、auto-start、tool pipeline、LLM binding、chat、marks、ledger 事件、event log。
+- 仍为 mock 模型；真实模型和 exam queue 未覆盖。

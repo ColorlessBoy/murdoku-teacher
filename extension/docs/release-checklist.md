@@ -57,6 +57,9 @@
 ## 最新 E2E
 
 - [x] 教学 step1/accept step2
+- [x] challenge 不动盘
+- [x] clear/new
+- [x] eventlog
 - [x] exam audit 不改盘
 - [x] ledger write flag + event log
 
