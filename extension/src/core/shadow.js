@@ -6,6 +6,7 @@ import { ChatProjection } from './projections/chat.js';
 import { MarksProjection } from './projections/marks.js';
 import { QueueProjection } from './projections/queue.js';
 import { LedgerProjection } from './projections/ledger.js';
+import { TurnProjection } from './projections/turn.js';
 
 function normBoard(board = []) {
   return board
@@ -38,6 +39,7 @@ export class ShadowCore {
     this.marks = null;
     this.queue = null;
     this.ledger = null;
+    this.turn = null;
   }
 
   _append(type, payload = {}, meta = {}) {
@@ -61,6 +63,7 @@ export class ShadowCore {
     this.marks = this.host.register('marks', new MarksProjection());
     this.queue = this.host.register('queue', new QueueProjection());
     this.ledger = this.host.register('ledger', new LedgerProjection());
+    this.turn = this.host.register('turn', new TurnProjection());
     this._append(E.sessionStart, { title, puzzle: this.puzzle });
     this._append(E.boardSnapshot, { cells: board });
     for (const m of chat || []) {
@@ -205,6 +208,7 @@ export class ShadowCore {
       board: this.board ? this.board.snapshot().length : 0,
       chat: this.chat ? this.chat.snapshot().length : 0,
       marks: this.marks ? this.marks.snapshot().length : 0,
+      turnSteps: this.turn && this.turn.snapshot().current ? this.turn.snapshot().current.steps.length : 0,
       audit: this.session ? this.session.audit() : [],
     };
   }

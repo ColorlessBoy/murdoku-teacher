@@ -221,3 +221,10 @@ test/core/*.test.mjs
 - `test/core/ledger-projection.test.mjs` 3 条全过。
 - background `handleBoardChanges`、agent resolved 时写 shadow，比较 unresolved 计数，记 `core.divergence kind:ledger`。
 - 旧账本 asked/answered 细分仍由 legacy；core 先对齐 unresolved。
+
+### Phase 5 turn/step 投影
+
+- `src/core/projections/turn.js`：turn/start → step/start → llm/request/response → tool/call/result → assistant/message → review/accept|challenge → turn/end。
+- 记录 requests/tools/assistant/review、pendingTools、orphan 事件。
+- 测试 `test/core/turn-projection.test.mjs` 4 条全过。
+- shadow 注册 turn 投影；summary 增加 turnSteps。

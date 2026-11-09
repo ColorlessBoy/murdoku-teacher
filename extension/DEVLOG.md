@@ -96,3 +96,7 @@
 ## 0.8.30
 - Phase 4：ledger projection + shadow 对比（unresolved）。
 - 3 条测试；旧账本未接管。
+
+## 0.8.31
+- Phase 5：turn/step projection + 4 条测试；shadow 注册。
+- 未接管 turn/step 驱动。
