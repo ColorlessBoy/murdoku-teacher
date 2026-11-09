@@ -142,6 +142,13 @@ function shadowObserveQueue(puzzle, queue) {
   try { sh.observeQueue(queue || []); } catch (e) { warn('core.shadow.queue_failed', { puzzle, message: e.message }); }
 }
 
+function shadowObserveLedger(puzzle, ledger) {
+  if (!shadowEnabled) return;
+  const sh = shadows.get(puzzle);
+  if (!sh || !sh.session) return;
+  try { sh.observeLedger(ledger); } catch (e) { warn('core.shadow.ledger_failed', { puzzle, message: e.message }); }
+}
+
 function shadowSummary(puzzle) {
   if (!shadowEnabled) return;
   const sh = shadows.get(puzzle);
@@ -461,13 +468,16 @@ async function runAgent({ tabId, puzzle, board, changes, userText, clues, ledger
     const chat2 = await getChat(puzzle);
     const lastUser = [...chat2].reverse().find((m) => m.role === 'you');
     const resolved = assistant.verdict === 'VALID' || assistant.verdict === 'VALID BUT INCOMPLETE';
-    if (resolved) await closeQuestion(puzzle, assistant.verdict);
-    else await markAsked(puzzle);
+    if (resolved) {
+      await closeQuestion(puzzle, assistant.verdict);
+      shadowEvent(puzzle, E.reviewAccept, { verdict: assistant.verdict });
+    } else await markAsked(puzzle);
     const after = await getLedger(puzzle);
     if (userText) await addFact(puzzle, userText, assistant.verdict || null);
     await addChat(puzzle, 'me', text);
     await saveMarks(puzzle, marks);
     await sendToTab(tabId, { type: 'mm:assistant', text, marks, verdict: assistant.verdict, replyTo: lastUser?.ts || null, ts: Date.now(), unresolved: after.counts.unresolved });
+    shadowObserveLedger(puzzle, after);
     await info('agent.reply', { tabId, mode, verdict: assistant.verdict, length: assistant.text.length, marks: marks.length, unresolved: after.counts.unresolved });
   } catch (e) {
     if (await getEpoch(puzzle) !== runEpoch) {
@@ -513,6 +523,7 @@ async function handleBoardChanges({ tabId, puzzle, board, changes, clues, title 
   }
   const led = await recordChanges({ puzzle, changes, source: 'observed' });
   const state = await getLedger(puzzle);
+  shadowObserveLedger(puzzle, state);
   await info('ledger.record', { tabId, mode, puzzle, created: led.created, changes: changes?.length || 0, counts: state.counts, cells: led.batch?.changes || [] });
   if (mode !== 'exam') return { ok: true, skipped: 'tutor', ledger: state.counts };
   if (!led.created) return { ok: true, appended: true, ledger: state.counts };

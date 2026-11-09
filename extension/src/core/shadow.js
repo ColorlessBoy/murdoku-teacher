@@ -5,6 +5,7 @@ import { BoardProjection } from './projections/board.js';
 import { ChatProjection } from './projections/chat.js';
 import { MarksProjection } from './projections/marks.js';
 import { QueueProjection } from './projections/queue.js';
+import { LedgerProjection } from './projections/ledger.js';
 
 function normBoard(board = []) {
   return board
@@ -36,6 +37,7 @@ export class ShadowCore {
     this.chat = null;
     this.marks = null;
     this.queue = null;
+    this.ledger = null;
   }
 
   _append(type, payload = {}, meta = {}) {
@@ -58,6 +60,7 @@ export class ShadowCore {
     this.chat = this.host.register('chat', new ChatProjection());
     this.marks = this.host.register('marks', new MarksProjection());
     this.queue = this.host.register('queue', new QueueProjection());
+    this.ledger = this.host.register('ledger', new LedgerProjection());
     this._append(E.sessionStart, { title, puzzle: this.puzzle });
     this._append(E.boardSnapshot, { cells: board });
     for (const m of chat || []) {
@@ -139,6 +142,17 @@ export class ShadowCore {
     if (expected === actual) return true;
     this.onDivergence?.({ kind: 'queue', puzzle: this.puzzle, expected: expected.slice(0, 2000), actual: actual.slice(0, 2000) });
     return false;
+  }
+
+  observeLedger(ledger = null) {
+    this.ensure();
+    const oldUnresolved = Array.isArray(ledger?.unresolved) ? ledger.unresolved.length : (ledger?.counts?.unresolved || 0);
+    const coreUnresolved = this.ledger ? this.ledger.unresolved().length : 0;
+    if (oldUnresolved !== coreUnresolved) {
+      this.onDivergence?.({ kind: 'ledger', puzzle: this.puzzle, expected: String(oldUnresolved), actual: String(coreUnresolved) });
+      return false;
+    }
+    return true;
   }
 
   appendChat(role, text) {
