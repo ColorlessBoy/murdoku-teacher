@@ -305,7 +305,9 @@ async function runAgent({ tabId, puzzle, board, changes, userText, clues, ledger
       text = text.replace(/结论[:：]\s*(INVALID|VALID)/i, '结论：GAP');
     }
     let marks = Array.isArray(assistant.marks) ? assistant.marks : [];
-    if (!marks.length) {
+    if (mode === 'tutor') {
+      marks = [];
+    } else if (!marks.length) {
       const found = [...new Set(text.match(/R\d+C\d+/g) || [])].slice(0, 5).map((s) => {
         const m = s.match(/R(\d+)C(\d+)/);
         return { r: Number(m[1]), c: Number(m[2]), label: s, kind: 'ask' };
