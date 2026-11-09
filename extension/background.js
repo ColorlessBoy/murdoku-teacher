@@ -16,7 +16,6 @@ import { recordChanges, answerQuestion, closeQuestion, getLedger, ledgerText, cl
 
 setLedgerEventSink((e) => shadowEvent(e.puzzle, e.type, e.payload));
 setBoardProvider((puzzle) => { const sh = shadows.get(puzzle); return sh && sh.board ? sh.board.snapshot() : null; });
-setBoardWriteEnabled(!coreBoardWriteEnabled);
 setLedgerBackend({
   load: async (puzzle) => {
     if (!coreLedgerWriteEnabled) return null;
@@ -181,6 +180,7 @@ let coreBoardEnabled = true;
 let coreLedgerEnabled = true;
 let coreBoardWriteEnabled = true;
 let coreLedgerWriteEnabled = false;
+setBoardWriteEnabled(!coreBoardWriteEnabled);
 
 function shadowFor(puzzle) {
   let sh = shadows.get(puzzle);
