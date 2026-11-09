@@ -463,7 +463,8 @@ async function runAgent({ tabId, puzzle, board, changes, userText, clues, ledger
     let nudged = false;
     const actionMarks = new Map();
     let useTools = true;
-    for (let round = 0; round < 3; round++) {
+    const maxRounds = mode === 'tutor' ? 5 : 3;
+    for (let round = 0; round < maxRounds; round++) {
       if (await getEpoch(puzzle) !== runEpoch) {
         await info('agent.stale_discarded', { tabId, puzzle, epoch: runEpoch, stage: 'pre_llm' });
         return;
@@ -574,7 +575,12 @@ async function runAgent({ tabId, puzzle, board, changes, userText, clues, ledger
     if (!rawText) {
       const reqEpoch = await getEpoch(puzzle);
       lastReqEpoch = reqEpoch;
-      const payload = await callLLM({ messages: baseMessages, settings: llmSettings, expectJson: false, session: 'ses_' + encodeURIComponent(puzzle).slice(0, 60), puzzle });
+      const fallbackMessages = messages.concat([{
+        role: 'user',
+        content: '请直接用 2-4 句中文解释刚才这一步；不要再调用工具，也不要返回空内容。',
+      }]);
+      await info('agent.fallback_text', { tabId, puzzle, messages: messages.length });
+      const payload = await callLLM({ messages: fallbackMessages, settings: llmSettings, expectJson: false, session: 'ses_' + encodeURIComponent(puzzle).slice(0, 60), puzzle });
       const afterEpoch = await getEpoch(puzzle);
       if (afterEpoch !== reqEpoch || afterEpoch !== runEpoch) {
         await info('agent.stale_discarded', { tabId, puzzle, epoch: runEpoch, nowEpoch: afterEpoch, stage: 'fallback' });
