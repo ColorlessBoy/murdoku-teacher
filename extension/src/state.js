@@ -30,7 +30,11 @@ export async function recall(puzzle, patch = {}) {
     const add = Array.isArray(patch.clues) ? patch.clues : String(patch.clues).split('\n');
     st.clues = [...new Set([...(st.clues || []), ...add.map((x) => String(x).trim()).filter(Boolean)])].slice(-40);
   }
-  if (Array.isArray(patch.board) && patch.board.length) st.board = patch.board;
+  if (patch.clearedAt !== undefined) st.clearedAt = patch.clearedAt;
+  if (Array.isArray(patch.board) && patch.board.length) {
+    st.board = patch.board;
+    if (patch.board.some((c) => c && (c.big || (c.notes || []).length || c.x))) st.clearedAt = 0;
+  }
   st.type = inferType(st.title, puzzle);
   await save(puzzle, st);
   return st;
@@ -124,12 +128,12 @@ export function buildBrief(st, { focus = '', ledger = '', userText = '', chat = 
 }
 
 
-export async function clearFacts(puzzle) {
+export async function clearFacts(puzzle, { markCleared = true } = {}) {
   const st = await loadState(puzzle);
   st.facts = [];
   st.lastMarks = [];
   st.prep = null;
-  st.clearedAt = Date.now();
+  if (markCleared) st.clearedAt = Date.now();
   await save(puzzle, st);
   return st;
 }

@@ -887,9 +887,9 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           await clearQueue(puzzle);
           await clearChat(puzzle);
           await clearLedger(puzzle);
-          await clearFacts(puzzle);
+          await clearFacts(puzzle, { markCleared: false });
           await resetBoardState(puzzle);
-          await recall(puzzle, { title: msg.title, clues: msg.clues, board: msg.board });
+          await recall(puzzle, { title: msg.title, clues: msg.clues, board: msg.board, clearedAt: 0 });
           shadowStart(puzzle, { board: msg.board, chat: [], title: msg.title });
           const settings = await getSettings();
           await ensurePrep(puzzle, msg.board, msg.clues, settings);
