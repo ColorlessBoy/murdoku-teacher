@@ -214,3 +214,10 @@ test/core/*.test.mjs
 - 测试 `test/core/queue-projection.test.mjs` 3 条全过；shadow queue 匹配/divergence。
 - background `enqueueBoard` / `processQueue` / `clearQueue` 写入 shadow queue 事件并对比。
 - 未接管真实队列；仅 shadow。
+
+### Phase 4 账本投影
+
+- `src/core/projections/ledger.js`：board/diff 开/并问题，review/accept 关闭，session/end 清空。
+- `test/core/ledger-projection.test.mjs` 3 条全过。
+- background `handleBoardChanges`、agent resolved 时写 shadow，比较 unresolved 计数，记 `core.divergence kind:ledger`。
+- 旧账本 asked/answered 细分仍由 legacy；core 先对齐 unresolved。

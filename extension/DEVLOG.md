@@ -92,3 +92,7 @@
 ## 0.8.29
 - Phase 4 queue projection + shadow integration；3 条测试。
 - 真实队列未接管。
+
+## 0.8.30
+- Phase 4：ledger projection + shadow 对比（unresolved）。
+- 3 条测试；旧账本未接管。
