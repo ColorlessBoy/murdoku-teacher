@@ -129,3 +129,8 @@
 ## 0.8.42
 - 队列 enqueue/process 决策切到 QueueProjection（mm_core_queue flag）。
 - reload/开启时从 storage seed；旧 storage 持久化。
+
+## 0.8.43
+- SessionEvent 持久化（mm_events_ + cap 1200 + 串行写入）。
+- /eventlog 可查条数/最近类型；live 21 条。
+- 尚未 replay 恢复。

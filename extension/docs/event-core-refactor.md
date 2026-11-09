@@ -291,3 +291,12 @@ test/core/*.test.mjs
 - `mm:hello` 和开启开关时从 storage seed，避免丢队列；
 - `/corequeue` 可切换；默认关闭。
 - 未 live 验证完整队列消费（需要考试模式产生排队）。
+
+### Phase 5 SessionEvent 持久化
+
+- `src/core/event-log.js`：compactEvent + appendCapped（默认 1200 条）。
+- `ShadowCore` 增加 `onEvent`；每个 committed event 写入 `mm_events_<puzzle>`。
+- 写入按 puzzle 串行链，避免并发覆盖。
+- `/eventlog` 查询条数与最近事件类型。
+- live 0.8.43：21 条事件，最近 assistant/user/assistant。
+- 目前是 append-only 审计；尚未在 hello 时 replay/restore 投影。
