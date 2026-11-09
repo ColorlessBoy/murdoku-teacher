@@ -751,7 +751,7 @@
     ta.value = '';
     if (t === '/corequeue') {
       addMsg('you', '/corequeue');
-      const r = await sendMsg({ type: 'mm:core-queue', toggle: true });
+      const r = await sendMsg({ type: 'mm:core-queue', toggle: true, puzzle: PUZZLE });
       addMsg('me', 'core queue ' + (r?.on ? '已开启' : '已关闭'), true);
       return;
     }

@@ -713,6 +713,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           const on = msg.on == null ? !cur.mm_core_queue : !!msg.on;
           await chrome.storage.local.set({ mm_core_queue: on });
           coreQueueEnabled = on;
+          if (on) shadowSeedQueue(msg.puzzle || 'unknown', await loadQueue(msg.puzzle || 'unknown'));
           await info('core.queue.toggle', { tabId, on });
           sendResponse({ ok: true, on });
           break;
