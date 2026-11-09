@@ -386,13 +386,21 @@ async function ensurePrep(puzzle, board, clues, settings, force = false) {
 }
 
 async function readLiveBoard(tabId, puzzle) {
+  let timer = null;
   try {
-    const r = await chrome.tabs.sendMessage(tabId, { type: 'mm:read-board' });
+    const r = await Promise.race([
+      chrome.tabs.sendMessage(tabId, { type: 'mm:read-board' }),
+      new Promise((_, reject) => { timer = setTimeout(() => reject(new Error('read_board_timeout')), 2500); }),
+    ]);
     if (r?.ok && Array.isArray(r.board)) {
       await recall(puzzle, { title: r.title, clues: r.clues, board: r.board });
       return { board: r.board, clues: r.clues, title: r.title };
     }
-  } catch (e) {}
+  } catch (e) {
+    if (e.message === 'read_board_timeout') await warn('agent.live_board_timeout', { tabId, puzzle });
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
   return null;
 }
 
