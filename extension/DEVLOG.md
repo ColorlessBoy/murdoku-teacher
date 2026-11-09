@@ -122,3 +122,6 @@
 ## 0.8.39
 - LLM request/response 绑定 shadow Session（requestBound），stale 前后校验。
 - live：E 步 9 notes，无 agent.failed/stale/divergence。
+
+## 0.8.40
+- marks 读取切到 MarksProjection（tool result）；live E 步 9 notes/6 高亮，无错误。

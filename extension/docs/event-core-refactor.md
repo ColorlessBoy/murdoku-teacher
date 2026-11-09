@@ -277,3 +277,9 @@ test/core/*.test.mjs
   - LLM 异常写 error event 并保留原始错误。
 - 无 shadow session 时回退旧 callLLM，保持可用。
 - live 0.8.39：接受后 E 步，9 个笔记；`agent.failed/stale`、`core.divergence` 均为空。
+
+### Phase 5 marks 读取 cutover
+
+- agent 回复的 marks 改为优先读 `MarksProjection`（tool result 来源）；旧 actionMarks 作为 fallback。
+- 旧/新不一致记 `core.marks.divergence`，不阻断回复。
+- live 0.8.40：E 步 9 notes、6 个高亮；无 agent.failed/stale/divergence。
