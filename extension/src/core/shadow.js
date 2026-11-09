@@ -8,7 +8,7 @@ import { MarksProjection } from './projections/marks.js';
 function normBoard(board = []) {
   return board
     .filter((c) => c && (c.big || (c.notes || []).length || c.x))
-    .map((c) => `${c.r},${c.c}:${c.big || ''}|${(c.notes || []).join('')}|${c.x ? 1 : 0}|${c.area || ''}|${c.objName || ''}`)
+    .map((c) => `${c.r},${c.c}:${c.big || ''}|${(c.notes || []).join('')}|${c.x ? 1 : 0}`)
     .sort()
     .join('\n');
 }

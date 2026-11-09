@@ -61,3 +61,11 @@ test('shadow records turn/step/llm/tool events and audits cleanly', () => {
     assert.ok(types.includes(t), t);
   }
 });
+
+test('static area/object fields do not cause board divergence', () => {
+  const divergences = [];
+  const s = new ShadowCore('p1', { now: () => 1000, onDivergence: (d) => divergences.push(d) });
+  s.start({ board: [{ r: 3, c: 4, notes: ['B'], area: '步道', objName: '椅子' }] });
+  s.observeBoard([{ r: 3, c: 4, notes: ['B'] }], [{ r: 3, c: 4, after: { notes: ['B'] } }]);
+  assert.deepEqual(divergences, []);
+});
