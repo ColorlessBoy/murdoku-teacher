@@ -175,3 +175,7 @@
 ## 0.8.55 stability
 - 第二次 accept 约 39s 后回复 G 步，34 notes，无 fallback/错误/divergence。
 - 延迟 30-40s；keepalive 有效，但需等待提示。
+
+## 0.8.56
+- 思考中 placeholder + 65s 超时兜底；sendMessage reject 提示。
+- 未 live 复测。

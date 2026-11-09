@@ -379,3 +379,10 @@ test/core/*.test.mjs
 - 第二次 accept：约 39 秒后老师回复 G 步（34 notes），无 fallback/agent.failed/stale/divergence。
 - 说明 keepalive 修复后不会再永久静默，但 LLM+工具链路延迟可达 30-40 秒。
 - 内容侧已有 owl thinking 状态；后续可加明确“正在思考”文案/超时提示。
+
+### 0.8.56 等待反馈
+
+- 用户消息发送后 textarea placeholder 显示“墨墨正在思考…（通常 10-40 秒，最长 60 秒）”，changes 状态同步。
+- 收到 assistant 清除；65 秒兜底显示“响应超时…可以再发一次或 /reload”。
+- sendMessage reject 也立即提示后台未响应。
+- 未 live 复测。
