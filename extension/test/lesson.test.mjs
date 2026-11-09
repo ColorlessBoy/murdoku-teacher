@@ -22,3 +22,14 @@ test('bundled lesson names murderer and never leaks via flag', () => {
   assert.ok(e);
   assert.match(lesson.chain.join(' '), /凶手/);
 });
+
+test('lesson chain is step-by-step and covers candidates before solution', () => {
+  assert.ok(Array.isArray(lesson.chain));
+  assert.ok(lesson.chain.length >= 7);
+  const joined = lesson.chain.join('\n');
+  assert.match(joined, /第1步/);
+  assert.match(joined, /候选/);
+  assert.match(joined, /官方解/);
+  assert.match(joined, /不能直接报/);
+  assert.ok(lesson.pitfalls.some((p) => /候选|接受|答案/.test(p)));
+});
