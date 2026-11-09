@@ -627,6 +627,12 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           sendResponse({ ok: true });
           break;
         }
+        case 'mm:clear-done': {
+          const pz = msg.puzzle || 'unknown';
+          const r = sessionDispatch(pz, 'clear/boardDone', { token: msg.token });
+          sendResponse({ ok: !r.rejected, error: r.rejected ? r.rejected.reason : null, remaining: msg.remaining ?? null });
+          break;
+        }
         case 'mm:clear-start': {
           const pz = msg.puzzle || 'unknown';
           const clearToken = String(Date.now());
@@ -636,11 +642,10 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           await clearQueue(pz);
           await closeAllUnresolved(pz, 'board_cleared');
           await resetBoardState(pz);
-          sessionDispatch(pz, 'clear/boardDone', { token: clearToken });
           shadowStart(pz, { board: [], chat: await getChat(pz), title: 'cleared' });
           if (tabId) await sendToTab(tabId, { type: 'mm:epoch', epoch: ce });
           await info('clear.start', { tabId, puzzle: pz, epoch: ce });
-          sendResponse({ ok: true, epoch: ce });
+          sendResponse({ ok: true, epoch: ce, token: clearToken });
           break;
         }
         case 'mm:reload-extension': {

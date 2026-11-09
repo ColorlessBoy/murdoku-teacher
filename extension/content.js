@@ -756,12 +756,17 @@
       return;
     }
     if (t === '/clear') {
-      await sendMsg({ type: 'mm:clear-start', puzzle: PUZZLE });
+      const clearStart = await sendMsg({ type: 'mm:clear-start', puzzle: PUZZLE });
+      if (clearStart && clearStart.ok === false) {
+        addMsg('me', '清盘被拒绝：' + (clearStart.error || 'unknown'), true);
+        return;
+      }
       addMsg('you', '/clear');
       sendMsg({ type: 'mm:epoch-bump', puzzle: PUZZLE });
       owl.classList.add('wiping');
       const r = await clearBoard();
       await sleep(2200);
+      await sendMsg({ type: 'mm:clear-done', puzzle: PUZZLE, token: clearStart?.token, remaining: r?.remaining ?? null });
       owl.classList.remove('thinking');
       if (mascotEl) mascotEl.classList.remove('busy');
       setTimeout(() => owl.classList.remove('wiping'), 2400);
