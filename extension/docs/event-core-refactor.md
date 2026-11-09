@@ -486,3 +486,11 @@ test/core/*.test.mjs
   - clearLedger → ledger/cleared。
 - 全量测试 85 pass。
 - live 仍受页面/侧栏环境阻塞，未验证。
+
+### 0.8.62 sidebar init 修复
+
+- 侧栏隐藏的直接原因：content 初始化先 `await loadChanges(); await loadReactBridge();`，再读 `mm_enabled`；
+  bridge/页面卡住时 `applyEnabled` 永远不执行，侧栏停在 `display:none`。
+- 修：先读 `mm_enabled` 并 `applyEnabled`，再 timebox `loadChanges`/`loadReactBridge`（2s/2.5s）。
+- 单测 85 pass。
+- live 未验证：通过 `chrome.runtime.reload()` 尝试重载扩展，页面 badge 仍 0.8.61，未加载 0.8.62。

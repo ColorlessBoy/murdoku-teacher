@@ -225,3 +225,7 @@
 
 ## ledger write backend test
 - fake backend 端到端测试通过；全量 85 pass。
+
+## 0.8.62
+- 侧栏先 enable 后加载 bridge；loadChanges/loadReactBridge timebox。
+- 扩展 reload 未生效（badge 仍 0.8.61），live 未验证。
