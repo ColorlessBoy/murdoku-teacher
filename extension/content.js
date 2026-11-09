@@ -755,6 +755,7 @@
       return;
     }
     if (t === '/clear') {
+      await sendMsg({ type: 'mm:clear-start', puzzle: PUZZLE });
       addMsg('you', '/clear');
       sendMsg({ type: 'mm:epoch-bump', puzzle: PUZZLE });
       owl.classList.add('wiping');

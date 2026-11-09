@@ -191,6 +191,7 @@ async function runAgent({ tabId, puzzle, board, changes, userText, clues, ledger
   if (!tab) { await warn('agent.tab_gone', { tabId, puzzle }); return; }
   const mode = await getMode();
   const settings = await getSettings();
+  const runEpoch = await getEpoch(puzzle);
   const chat = await getChat(puzzle);
   if (userText) await addChat(puzzle, 'you', userText);
   const live = await readLiveBoard(tabId, puzzle);
@@ -225,6 +226,10 @@ async function runAgent({ tabId, puzzle, board, changes, userText, clues, ledger
     let toolsUsed = 0;
     let useTools = true;
     for (let round = 0; round < 3; round++) {
+      if (await getEpoch(puzzle) !== runEpoch) {
+        await info('agent.stale_discarded', { tabId, puzzle, epoch: runEpoch, stage: 'pre_llm' });
+        return;
+      }
       const reqEpoch = await getEpoch(puzzle);
       lastReqEpoch = reqEpoch;
       await info('agent.request', { tabId, puzzle, epoch: reqEpoch, round });
@@ -244,16 +249,16 @@ async function runAgent({ tabId, puzzle, board, changes, userText, clues, ledger
         throw e;
       }
       const afterReqEpoch = await getEpoch(puzzle);
-      if (afterReqEpoch !== reqEpoch) {
-        await info('agent.stale_discarded', { tabId, puzzle, epoch: reqEpoch, nowEpoch: afterReqEpoch, stage: 'llm' });
+      if (afterReqEpoch !== reqEpoch || afterReqEpoch !== runEpoch) {
+        await info('agent.stale_discarded', { tabId, puzzle, epoch: runEpoch, nowEpoch: afterReqEpoch, stage: 'llm' });
         return;
       }
       if (payload.toolCalls && payload.toolCalls.length) {
         toolsUsed += payload.toolCalls.length;
         messages.push(payload.message);
         for (const tc of payload.toolCalls) {
-          if (await getEpoch(puzzle) !== reqEpoch) {
-            await info('agent.stale_discarded', { tabId, puzzle, epoch: reqEpoch, nowEpoch: await getEpoch(puzzle), stage: 'tool' });
+          if (await getEpoch(puzzle) !== runEpoch) {
+            await info('agent.stale_discarded', { tabId, puzzle, epoch: runEpoch, stage: 'tool' });
             return;
           }
           let args = {};
@@ -271,8 +276,8 @@ async function runAgent({ tabId, puzzle, board, changes, userText, clues, ledger
       lastReqEpoch = reqEpoch;
       const payload = await callLLM({ messages: baseMessages, settings: llmSettings, expectJson: false, session: 'ses_' + encodeURIComponent(puzzle).slice(0, 60), puzzle });
       const afterEpoch = await getEpoch(puzzle);
-      if (afterEpoch !== reqEpoch) {
-        await info('agent.stale_discarded', { tabId, puzzle, epoch: reqEpoch, nowEpoch: afterEpoch, stage: 'fallback' });
+      if (afterEpoch !== reqEpoch || afterEpoch !== runEpoch) {
+        await info('agent.stale_discarded', { tabId, puzzle, epoch: runEpoch, nowEpoch: afterEpoch, stage: 'fallback' });
         return;
       }
       rawText = payload.text;
@@ -297,8 +302,8 @@ async function runAgent({ tabId, puzzle, board, changes, userText, clues, ledger
     if (marks.length && !/R\d+C\d+/.test(text)) {
       text += `\n（圈出：${marks.map((m) => `R${m.r}C${m.c}`).join('、')}）`;
     }
-    if (lastReqEpoch !== null && await getEpoch(puzzle) !== lastReqEpoch) {
-      await info('agent.stale_discarded', { tabId, puzzle, epoch: lastReqEpoch, nowEpoch: await getEpoch(puzzle), stage: 'final' });
+    if (await getEpoch(puzzle) !== runEpoch) {
+      await info('agent.stale_discarded', { tabId, puzzle, epoch: runEpoch, stage: 'final' });
       return;
     }
     const chat2 = await getChat(puzzle);
@@ -313,8 +318,8 @@ async function runAgent({ tabId, puzzle, board, changes, userText, clues, ledger
     await sendToTab(tabId, { type: 'mm:assistant', text, marks, verdict: assistant.verdict, replyTo: lastUser?.ts || null, ts: Date.now(), unresolved: after.counts.unresolved });
     await info('agent.reply', { tabId, mode, verdict: assistant.verdict, length: assistant.text.length, marks: assistant.marks.length, unresolved: after.counts.unresolved });
   } catch (e) {
-    if (lastReqEpoch !== null && await getEpoch(puzzle) !== lastReqEpoch) {
-      await info('agent.stale_discarded', { tabId, puzzle, epoch: lastReqEpoch, error: e.code || e.message });
+    if (await getEpoch(puzzle) !== runEpoch) {
+      await info('agent.stale_discarded', { tabId, puzzle, epoch: runEpoch, error: e.code || e.message });
       return;
     }
     const text = e.code === 'NO_API_KEY'
@@ -449,6 +454,16 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           sendResponse({ ok: true });
           break;
         }
+        case 'mm:clear-start': {
+          const pz = msg.puzzle || 'unknown';
+          await bumpEpoch(pz);
+          await clearQueue(pz);
+          await closeAllUnresolved(pz, 'board_cleared');
+          await resetBoardState(pz);
+          await info('clear.start', { tabId, puzzle: pz });
+          sendResponse({ ok: true });
+          break;
+        }
         case 'mm:reload-extension': {
           sendResponse({ ok: true });
           setTimeout(() => { try { chrome.runtime.reload(); } catch (e) {} }, 120);
@@ -513,7 +528,8 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           await addChat(puzzle, 'me', welcome);
           const mode = await getMode();
           await sendToTab(tabId, { type: 'mm:pending', unresolved: 0 });
-          if (mode === 'tutor' && Array.isArray(msg.board) && msg.board.length) {
+          const boardClean = Array.isArray(msg.board) && msg.board.length && !msg.board.some((c) => c.big || (c.notes || []).length || c.x);
+          if (mode === 'tutor' && boardClean) {
             await new Promise((r) => setTimeout(r, 2000));
             await runAgent({ tabId, puzzle, board: msg.board, clues: msg.clues, changes: [], userText: null, ledger: await getLedger(puzzle), autoStart: true });
           }
