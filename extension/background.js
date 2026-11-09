@@ -95,7 +95,7 @@ async function processQueue(puzzle) {
     if (sh && sh.session && sh.queue) {
       const q = sh.queue.snapshot();
       if (!q.length) return;
-      const led = await getLedger(puzzle);
+      const led = await getLedgerNow(puzzle);
       if (led.unresolved.length) return;
       const next = q[0];
       sh.queueDequeue(next.id);
@@ -110,7 +110,7 @@ async function processQueue(puzzle) {
   const q = mergeBatches(await loadQueue(puzzle), 600000);
   await saveQueue(puzzle, q);
   if (!q.length) return;
-  const led = await getLedger(puzzle);
+  const led = await getLedgerNow(puzzle);
   if (led.unresolved.length) return;
   const next = q.shift();
   await saveQueue(puzzle, q);
@@ -158,6 +158,7 @@ let shadowEnabled = true;
 let coreChatEnabled = true;
 let coreQueueEnabled = false;
 let coreBoardEnabled = true;
+let coreLedgerEnabled = true;
 
 function shadowFor(puzzle) {
   let sh = shadows.get(puzzle);
@@ -288,6 +289,23 @@ function shadowObserveBoard(puzzle, board, changes) {
   const sh = shadows.get(puzzle);
   if (!sh || !sh.session) return;
   try { sh.observeBoard(board, changes); } catch (e) { warn('core.shadow.board_failed', { puzzle, message: e.message }); }
+}
+
+function coreLedgerState(sh) {
+  const qs = sh.ledger.snapshot();
+  const unresolved = qs.filter((q) => q.status !== 'closed');
+  return {
+    seq: 0, unresolved, recentBatches: [],
+    counts: { batches: 0, cellsTracked: 0, questions: qs.length, unresolved: unresolved.length },
+  };
+}
+
+async function getLedgerNow(puzzle) {
+  if (coreLedgerEnabled) {
+    const sh = shadows.get(puzzle);
+    if (sh && sh.ledger && sh.ledger.hasLedger) return coreLedgerState(sh);
+  }
+  return getLedger(puzzle);
 }
 
 async function getSettings() {
@@ -426,7 +444,7 @@ async function runAgent({ tabId, puzzle, board, changes, userText, clues, ledger
   const cluesNow = (live && Array.isArray(live.clues)) ? live.clues : clues;
   if (boardNow && boardNow.length) await shadowSyncBoard(puzzle, boardNow, await getChat(puzzle));
   if (settings.apiKey) await ensurePrep(puzzle, boardNow, cluesNow, settings, true);
-  const ledState = await getLedger(puzzle);
+  const ledState = await getLedgerNow(puzzle);
   const focusQ = (ledState.unresolved || []).slice(-1)[0];
   const focus = focusText(focusQ, boardNow);
   const puzzleType = /minigolf|高尔夫/i.test(String(puzzle)) ? 'minigolf' : 'murdoku';
@@ -636,7 +654,7 @@ async function runAgent({ tabId, puzzle, board, changes, userText, clues, ledger
       await closeQuestion(puzzle, assistant.verdict);
       shadowEvent(puzzle, E.reviewAccept, { verdict: assistant.verdict });
     } else await markAsked(puzzle);
-    const after = await getLedger(puzzle);
+    const after = await getLedgerNow(puzzle);
     if (userText) await addFact(puzzle, userText, assistant.verdict || null);
     await addChat(puzzle, 'me', text);
     await saveMarks(puzzle, marks);
@@ -686,13 +704,13 @@ async function handleBoardChanges({ tabId, puzzle, board, changes, clues, title 
     return { ok: true, reset: true };
   }
   const led = await recordChanges({ puzzle, changes, source: 'observed' });
-  const state = await getLedger(puzzle);
+  const state = await getLedgerNow(puzzle);
   shadowObserveLedger(puzzle, state);
   await info('ledger.record', { tabId, mode, puzzle, created: led.created, changes: changes?.length || 0, counts: state.counts, cells: led.batch?.changes || [] });
   if (mode !== 'exam') return { ok: true, skipped: 'tutor', ledger: state.counts };
   if (!led.created) return { ok: true, appended: true, ledger: state.counts };
   await runAgent({ tabId, puzzle, board, changes, clues, ledger: ledgerText(state) });
-  const after = await getLedger(puzzle);
+  const after = await getLedgerNow(puzzle);
   if (!after.unresolved.length) await processQueue(puzzle);
   return { ok: true, ledger: state.counts };
 }
@@ -715,11 +733,12 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       switch (msg?.type) {
         case 'mm:hello': {
           try {
-            const flags = await chrome.storage.local.get(['mm_core_shadow', 'mm_core_chat', 'mm_core_queue', 'mm_core_board']);
+            const flags = await chrome.storage.local.get(['mm_core_shadow', 'mm_core_chat', 'mm_core_queue', 'mm_core_board', 'mm_core_ledger']);
             shadowEnabled = flags.mm_core_shadow !== false;
             coreChatEnabled = flags.mm_core_chat !== false;
             coreQueueEnabled = flags.mm_core_queue === true;
             coreBoardEnabled = flags.mm_core_board !== false;
+            coreLedgerEnabled = flags.mm_core_ledger !== false;
           } catch (e) {}
           const [settings, mode, ledgerState] = await Promise.all([getSettings(), getMode(), getLedger(msg.puzzle)]);
           let chat = await getChat(msg.puzzle);
@@ -735,7 +754,8 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
             shadowStart(msg.puzzle, { board: msg.board, chat, title: msg.title });
             shadowSeedQueue(msg.puzzle, await loadQueue(msg.puzzle));
           }
-          shadowSeedLedger(msg.puzzle, await getLedger(msg.puzzle));
+          shadowSeedLedger(msg.puzzle, await getLedgerNow(msg.puzzle));
+          ledgerState = await getLedgerNow(msg.puzzle);
           sessionMachines.set(msg.puzzle, initSession({ phase: PHASE.active, sessionId: msg.puzzle + ':hello' }));
           sendResponse({ ok: true, epoch: helloEpoch, settings: { ...settings, apiKey: settings.apiKey ? '«saved»' : '' }, mode, chat, ledger: ledgerState });
           await info('content.hello', { tabId, puzzle: msg.puzzle, hasKey: !!settings.apiKey, mode });
@@ -757,7 +777,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         }
         case 'mm:board-changes': {
           const puzzle = msg.puzzle || 'unknown';
-          const gate = await getLedger(puzzle);
+          const gate = await getLedgerNow(puzzle);
           if (gate.unresolved.length) {
             const n = await enqueueBoard(puzzle, { tabId, puzzle, board: msg.board, changes: msg.changes, clues: msg.clues, title: msg.title });
             await info('board.queued', { tabId, puzzle, changes: msg.changes?.length || 0, queue: n });
@@ -773,7 +793,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           await recall(puzzle, { title: msg.title, clues: msg.clues, board: msg.board });
           await addFact(puzzle, msg.text);
           const q = await answerQuestion(puzzle, msg.text);
-          const state = await getLedger(puzzle);
+          const state = await getLedgerNow(puzzle);
           await info('ledger.answer', { tabId, puzzle, question: q?.id || null, answer: msg.text, counts: state.counts });
           await runAgent({
             tabId, puzzle,
@@ -783,7 +803,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
             userText: msg.text,
             ledger: ledgerText(state),
           });
-          const after = await getLedger(puzzle);
+          const after = await getLedgerNow(puzzle);
           if (!after.unresolved.length) await processQueue(puzzle);
           sendResponse({ ok: true });
           break;
@@ -799,6 +819,15 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           await addChat(puzzle, 'me', msg.remaining === 0 ? '已清空盘面：放置 / 笔记 / X 全部清除。清空前的推理不再追问。' : `清空未完成：盘面还剩 ${msg.remaining ?? '?'} 格。`);
           await info('board.clear', { tabId, puzzle, remaining: msg.remaining, reset: true });
           sendResponse({ ok: true });
+          break;
+        }
+        case 'mm:core-ledger': {
+          const cur = await chrome.storage.local.get('mm_core_ledger');
+          const on = msg.on == null ? !cur.mm_core_ledger : !!msg.on;
+          await chrome.storage.local.set({ mm_core_ledger: on });
+          coreLedgerEnabled = on;
+          await info('core.ledger.toggle', { tabId, on });
+          sendResponse({ ok: true, on });
           break;
         }
         case 'mm:core-board': {
@@ -936,11 +965,11 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           if (mode === 'tutor' && boardClean) {
             await new Promise((r) => setTimeout(r, 2000));
             sessionDispatch(puzzle, 'auto/started', {});
-            await runAgent({ tabId, puzzle, board: msg.board, clues: msg.clues, changes: [], userText: null, ledger: await getLedger(puzzle), autoStart: true });
+            await runAgent({ tabId, puzzle, board: msg.board, clues: msg.clues, changes: [], userText: null, ledger: await getLedgerNow(puzzle), autoStart: true });
           }
           await shadowSummary(puzzle);
           await info('session.new', { tabId, puzzle, clearLogs: !!msg.clearLogs });
-          sendResponse({ ok: true, mode, epoch: newEpoch, chat: await getChat(puzzle), ledger: await getLedger(puzzle) });
+          sendResponse({ ok: true, mode, epoch: newEpoch, chat: await getChat(puzzle), ledger: await getLedgerNow(puzzle) });
           break;
         }
         case 'mm:get-logs': {
@@ -983,14 +1012,14 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         case 'mm:get-ledger': {
           let p = msg.puzzle;
           if (!p) { const { [LAST_PUZZLE_KEY]: last } = await chrome.storage.local.get(LAST_PUZZLE_KEY); p = last; }
-          sendResponse({ ok: true, ledger: await getLedger(p), puzzle: p });
+          sendResponse({ ok: true, ledger: await getLedgerNow(p), puzzle: p });
           break;
         }
         case 'mm:close-ledger': {
           let p = msg.puzzle;
           if (!p) { const { [LAST_PUZZLE_KEY]: last } = await chrome.storage.local.get(LAST_PUZZLE_KEY); p = last; }
           const n = await closeAllUnresolved(p);
-          const state = await getLedger(p);
+          const state = await getLedgerNow(p);
           await info('ledger.closed_all', { puzzle: p, closed: n, counts: state.counts });
           try { const tabs = await chrome.tabs.query({ url: 'https://murdoku.com/*' }); for (const t of tabs) await sendToTab(t.id, { type: 'mm:pending', unresolved: state.counts.unresolved }); } catch (e) { await warn('tabs.query_failed', { message: e.message }); }
           sendResponse({ ok: true, closed: n, counts: state.counts });
