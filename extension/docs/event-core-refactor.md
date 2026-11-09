@@ -309,3 +309,12 @@ test/core/*.test.mjs
 - `mm:hello` 先查最后一段未结束 session：能恢复则恢复并重算 chat，否则新建。
 - live 0.8.44：reload 后 `core.shadow.restore events:10 chat:8 board:0`，无 divergence；
   board 为 0 是因为 hello 时盘面还没加载，随后 board-sync 填充。
+
+### Restore board 补齐
+
+- 修 `shadowSyncBoard`：恢复 session 已存在但 board 投影为 0 时，不再新开 session，
+  而是 `syncBoard` 追加 `board/snapshot` 到同一事件线。
+- live 0.8.45：
+  - restore events:10 / chat:8 / board:0
+  - 随后 sync board:100 mode=restore-snapshot
+  - 同一 session，无 divergence。
