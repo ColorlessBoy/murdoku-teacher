@@ -79,7 +79,7 @@ function stateText(c) {
   return '空';
 }
 
-export async function execTool(puzzle, name, args = {}, tabId = null) {
+export async function execTool(puzzle, name, args = {}, tabId = null, epoch = null) {
   const st = await loadState(puzzle);
   const board = st.board || [];
   const at = (r, c) => board.find((x) => x.r === r && x.c === c);
@@ -87,8 +87,9 @@ export async function execTool(puzzle, name, args = {}, tabId = null) {
   if (name.startsWith('board_')) {
     if (!tabId) return { error: 'no_tab' };
     try {
-      const res = await chrome.tabs.sendMessage(tabId, { type: 'mm:board-action', action: { name, args } });
+      const res = await chrome.tabs.sendMessage(tabId, { type: 'mm:board-action', action: { name, args }, epoch });
       if (res?.board) await recall(puzzle, { board: res.board, clues: st.clues, title: st.title });
+      if (res?.stale) return { ok: false, stale: true, error: 'stale_epoch' };
       return { ok: !!res?.ok, action: name, cell: res?.cell || null, error: res?.error || null };
     } catch (e) {
       return { error: 'board_action_failed', message: e.message };

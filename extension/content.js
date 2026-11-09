@@ -509,6 +509,7 @@
 
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   let selfActingUntil = 0;
+  let sessionEpoch = null;
   let chatEmptyOnLoad = false;
   let autoStartSent = false;
 
@@ -784,6 +785,7 @@
       setTimeout(() => owl.classList.remove('waking'), 1600);
       const r = await pending;
       if (r?.ok) {
+        if (r.epoch != null) sessionEpoch = r.epoch;
         logEl.innerHTML = '';
         const list = r.chat || [];
         if (list.length) {
@@ -838,7 +840,16 @@
   };
 
   chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+    if (msg?.type === 'mm:epoch') {
+      sessionEpoch = msg.epoch != null ? msg.epoch : null;
+      sendResponse({ ok: true });
+      return;
+    }
     if (msg?.type === 'mm:board-action') {
+      if (msg.epoch != null && sessionEpoch != null && msg.epoch !== sessionEpoch) {
+        sendResponse({ ok: false, stale: true, error: 'stale_epoch' });
+        return true;
+      }
       performBoardAction(msg.action).then((r) => sendResponse(r)).catch((e) => sendResponse({ ok: false, error: e.message }));
       return true;
     }
@@ -880,6 +891,7 @@
       const res = await sendMsg({ type: 'mm:hello', puzzle: PUZZLE, title: document.title, board: readBoardSafe(), clues: clues() });
       if (res?.ok) {
         setMode(res.mode || 'exam');
+        if (res.epoch != null) sessionEpoch = res.epoch;
         setPending(res.ledger?.counts?.unresolved || 0);
         for (const m of res.chat || []) addMsg(m.role, m.text, false, m.ts || Date.now());
         chatEmptyOnLoad = !(res.chat || []).length;

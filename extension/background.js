@@ -266,7 +266,11 @@ async function runAgent({ tabId, puzzle, board, changes, userText, clues, ledger
           let args = {};
           try { args = JSON.parse(tc.function?.arguments || '{}'); } catch (e) {}
           if (String(tc.function?.name || '').startsWith('board_')) boardActions++;
-          const out = await execTool(puzzle, tc.function?.name, args, tabId);
+          const out = await execTool(puzzle, tc.function?.name, args, tabId, runEpoch);
+          if (out && out.stale) {
+            await info('agent.stale_discarded', { tabId, puzzle, epoch: runEpoch, stage: 'tool_epoch' });
+            return;
+          }
           messages.push({ role: 'tool', tool_call_id: tc.id, content: JSON.stringify(out) });
         }
         continue;
@@ -397,7 +401,9 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           if (msg.puzzle) chrome.storage.local.set({ [LAST_PUZZLE_KEY]: msg.puzzle });
           await recall(msg.puzzle, { title: msg.title, clues: msg.clues, board: msg.board });
           await ensurePrep(msg.puzzle, msg.board, msg.clues, settings);
-          sendResponse({ ok: true, settings: { ...settings, apiKey: settings.apiKey ? '«saved»' : '' }, mode, chat, ledger: ledgerState });
+          const helloEpoch = await getEpoch(msg.puzzle);
+          await sendToTab(tabId, { type: 'mm:epoch', epoch: helloEpoch });
+          sendResponse({ ok: true, epoch: helloEpoch, settings: { ...settings, apiKey: settings.apiKey ? '«saved»' : '' }, mode, chat, ledger: ledgerState });
           await info('content.hello', { tabId, puzzle: msg.puzzle, hasKey: !!settings.apiKey, mode });
           break;
         }
@@ -467,12 +473,13 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         }
         case 'mm:clear-start': {
           const pz = msg.puzzle || 'unknown';
-          await bumpEpoch(pz);
+          const ce = await bumpEpoch(pz);
           await clearQueue(pz);
           await closeAllUnresolved(pz, 'board_cleared');
           await resetBoardState(pz);
-          await info('clear.start', { tabId, puzzle: pz });
-          sendResponse({ ok: true });
+          if (tabId) await sendToTab(tabId, { type: 'mm:epoch', epoch: ce });
+          await info('clear.start', { tabId, puzzle: pz, epoch: ce });
+          sendResponse({ ok: true, epoch: ce });
           break;
         }
         case 'mm:reload-extension': {
@@ -535,6 +542,8 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           const settings = await getSettings();
           await ensurePrep(puzzle, msg.board, msg.clues, settings);
           if (msg.clearLogs) await clearLogs();
+          const newEpoch = await getEpoch(puzzle);
+          await sendToTab(tabId, { type: 'mm:epoch', epoch: newEpoch });
           const welcome = '新会话已开始：聊天记录、账本和旧上下文已清空；盘面保留。' + (msg.clearLogs ? ' 日志已清空。' : '');
           await addChat(puzzle, 'me', welcome);
           const mode = await getMode();
@@ -545,7 +554,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
             await runAgent({ tabId, puzzle, board: msg.board, clues: msg.clues, changes: [], userText: null, ledger: await getLedger(puzzle), autoStart: true });
           }
           await info('session.new', { tabId, puzzle, clearLogs: !!msg.clearLogs });
-          sendResponse({ ok: true, mode, chat: await getChat(puzzle), ledger: await getLedger(puzzle) });
+          sendResponse({ ok: true, mode, epoch: newEpoch, chat: await getChat(puzzle), ledger: await getLedger(puzzle) });
           break;
         }
         case 'mm:get-logs': {
