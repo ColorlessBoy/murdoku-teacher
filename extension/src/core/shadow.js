@@ -188,6 +188,12 @@ export class ShadowCore {
     this._append(type, { text: text || '' });
   }
 
+  syncBoard(board = []) {
+    this.ensure();
+    this._append(E.boardSnapshot, { cells: board });
+    return this.compareBoard(board, 'sync');
+  }
+
   observeBoard(board = [], changes = []) {
     this.ensure();
     if (Array.isArray(changes) && changes.length) {

@@ -94,3 +94,13 @@ test('restart persists session end and restore rebuilds projections', () => {
   assert.equal(r.board.snapshot().length, 1);
   assert.equal(r.queueSeeded, true);
 });
+
+test('syncBoard fills a restored empty board without a new session', () => {
+  const s = new ShadowCore('p1', { now: () => 1000 });
+  s.start({ board: [], chat: [] });
+  const sid = s.session.id;
+  s.syncBoard([{ r: 3, c: 4, notes: ['B'] }]);
+  assert.equal(s.session.id, sid);
+  assert.equal(s.board.snapshot().length, 1);
+  assert.equal(s.session.events.filter((e) => e.type === 'board/snapshot').length, 2);
+});

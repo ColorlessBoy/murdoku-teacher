@@ -259,9 +259,14 @@ function shadowSyncBoard(puzzle, board, chat) {
   try {
     const sh = shadowFor(puzzle);
     const projected = sh.board ? sh.board.snapshot().length : 0;
-    if (!sh.session || (projected === 0 && Array.isArray(board) && board.length)) {
+    if (!sh.session) {
       sh.start({ board, chat, title: 'board-sync' });
-      info('core.shadow.sync', { puzzle, board: (board || []).length });
+      info('core.shadow.sync', { puzzle, board: (board || []).length, mode: 'start' });
+      return;
+    }
+    if (projected === 0 && Array.isArray(board) && board.length) {
+      sh.syncBoard(board);
+      info('core.shadow.sync', { puzzle, board: board.length, mode: 'restore-snapshot' });
       return;
     }
     sh.observeBoard(board, []);
