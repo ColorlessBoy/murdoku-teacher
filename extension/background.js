@@ -1059,7 +1059,8 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           break;
         }
         case 'mm:open-options': {
-          chrome.runtime.openOptionsPage();
+          try { chrome.runtime.openOptionsPage(); } catch (e) {}
+          try { chrome.tabs.create({ url: chrome.runtime.getURL('options.html') }); } catch (e) {}
           sendResponse({ ok: true });
           break;
         }
