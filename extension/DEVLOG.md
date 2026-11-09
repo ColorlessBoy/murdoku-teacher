@@ -185,3 +185,6 @@
 
 ## 0.8.56 clear/new regression
 - /clear → 0 notes；/new logs → 3 notes + B auto-start；无 divergence/失败；45s。
+
+## 0.8.56 tutor challenge
+- 质疑 B 三把椅子；老师解释且不动盘面（3 notes），无错误/fallback。

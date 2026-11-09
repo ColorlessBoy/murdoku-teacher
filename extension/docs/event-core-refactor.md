@@ -406,3 +406,14 @@ test/core/*.test.mjs
   - `core.divergence`、`agent.failed/stale` 为空；
   - 45 秒内完成，无 fallback。
 - 说明 clearDone、auto-start、LLM binding、keepalive 在清盘/新会话路径可用。
+
+### 0.8.56 tutor challenge live
+
+- 学生质疑：“B 的三把椅子不一定都要保留，能不能先只选 R3C4？”
+- 老师没有动盘面（notes 仍 3），解释了：
+  - 线索只说“坐在一把椅子上”；
+  - 三把都能坐，没有排除理由；
+  - R10C7/R10C8 同行最多一个，但仍不能确定，也排不掉 R3C4；
+  - 候选先保留，等行列唯一性收紧。
+- 末尾仍要求审查，没有直接进入下一步。
+- 无 divergence/agent.failed/stale/fallback。
