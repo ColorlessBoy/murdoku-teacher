@@ -1,40 +1,36 @@
-# 整题 E2E：老师连落 10 人并提交判定
+# 真实浏览器全解 E2E
 
-`scripts/e2e-full.mjs`：真实扩展 + 真实迷你高尔夫盘面 + mock LLM。
+`scripts/e2e-full.mjs`：真实 Chrome + 真实 Murdoku 盘面 + 真实扩展 + 本地 mock LLM。
 
-mock 按内置教案 `lessons/puzzle-minigolf-hard.json` 的 `solution`，每次接受返回下一步
-`board_place`；测试在每一步后发送“接受，继续下一步”，十人落齐后点游戏 `SUBMIT`，
-断言结果弹窗出现 `CASE SOLVED` / `You've found the murderer!`。
+## 为什么需要它
 
-## 覆盖
+`board_note` 的合成 click 能写笔记，但 Murdoku 的“落子”要求 press & hold；
+只测 note 会误以为盘面操作通过。全解 harness 是唯一能验证“10 个落子 + SUBMIT + CASE SOLVED”的回归。
 
-- 首次进入的 `Welcome, detective` 教学弹窗用真实 `Skip` 关闭（不绕过点击屏障）；
-- 10/10 角色经产品工具 `board_place` 落位，盘面逐步推进；
-- 每一步助手卡片要求审查，接受后才走下一步；
-- 游戏 `SUBMIT` → 判定 `CASE SOLVED`（Elyana 杀 Valeria）。
+## 修复
 
-## 0.8.69 结果
+`board_place` 改为：
+
+1. content 发 `mm:place-cell`；
+2. background 用 `chrome.scripting.executeScript({world:'MAIN'})`；
+3. 直接调用人物按钮的 React `onClick`（绕过 pointer 计时器）；
+4. 在可见 cell 上派发 pointer/mouse 长按 1600ms。
+
+真实浏览器探针确认：合成 DOM click 选不中人物、合成长按只写笔记；React onClick + 主世界 pointer 才能落子。
+
+## 0.8.71 结果
 
 ```
-step 1 … step 10 placed G I B V H E D C F A
-submit SUBMIT
-RESULT TAIL: … CASE SOLVED … You've found the murderer! Elyana (E) killed Valeria (V)! …
-FULL E2E OK calls 20 turns 10
+tutor: 10 个 board_place；CASE SOLVED；Elyana (E) killed Valeria (V)
+exam: 新 profile 重开；学生完整解；mock VALID；CASE SOLVED
+FULL E2E OK calls 12 tutorMsgs 10 examMsgs 2
 ```
 
 ## 运行
 
 ```bash
-PLAYWRIGHT_CORE=/path/to/playwright-core/index.mjs \
-CHROME_PATH="/path/to/Google Chrome for Testing" \
-node scripts/e2e-full.mjs
+PLAYWRIGHT_CORE=... CHROME_PATH=... node scripts/e2e-full.mjs
 ```
 
-这是对 `e2e-mock.mjs`（教学两步 + challenge/exam/clear/new/eventlog）的补充：
-后者验证模式与链路，本脚本验证“整题闭环”。
-
-## 已知限制
-
-- mock LLM 只回放内置教案的既定解，不验证真实模型的推理质量；
-- 游戏页需要联网加载；页面首次打开会弹 Welcome 教学，脚本用真实 `Skip` 关闭；
-- 单次运行约 40–60 秒（十步，每步一次 mock 轮次）。
+默认 headless。需要网络访问 murdoku.com。  
+这不是模型能力测试：mock 按官方 lesson solution 落子，exam mock 返回 VALID；真实模型/Key 仍需要 live 回归。

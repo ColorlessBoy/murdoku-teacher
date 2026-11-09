@@ -926,6 +926,39 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           sendResponse({ ok: true });
           break;
         }
+        case 'mm:place-cell': {
+          if (!tabId) { sendResponse({ ok: false, error: 'no_tab' }); break; }
+          try {
+            const results = await chrome.scripting.executeScript({
+              target: { tabId }, world: 'MAIN',
+              func: async (pname, r, c) => {
+                const btn = [...document.querySelectorAll('button')].filter((b) => b.offsetWidth).find((b) => b.title === pname || (b.getAttribute('aria-label') || '') === pname || (b.innerText || '').trim() === pname);
+                if (!btn) return { ok: false, error: 'no_person' };
+                const pk = Object.keys(btn).find((k) => k.startsWith('__reactProps$'));
+                const props = pk ? (btn[pk] || {}) : {};
+                if (typeof props.onClick === 'function') {
+                  props.onClick({ bubbles: true, cancelable: true, button: 0, preventDefault() {}, stopPropagation() {}, nativeEvent: {} });
+                } else {
+                  btn.click();
+                }
+                await new Promise((res) => setTimeout(res, 250));
+                const idx = (Number(r) - 1) * 10 + (Number(c) - 1);
+                const cell = [...document.querySelectorAll(`[data-cell-index="${idx}"]`)].filter((el) => el.offsetWidth).pop();
+                if (!cell) return { ok: false, error: 'no_cell' };
+                const pe = { bubbles: true, cancelable: true, pointerId: 1, pointerType: 'mouse', isPrimary: true, button: 0 };
+                cell.dispatchEvent(new PointerEvent('pointerdown', { ...pe, buttons: 1 }));
+                cell.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true, button: 0, buttons: 1 }));
+                await new Promise((res) => setTimeout(res, 1600));
+                cell.dispatchEvent(new PointerEvent('pointerup', { ...pe, buttons: 0 }));
+                cell.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true, button: 0, buttons: 0 }));
+                return { ok: true };
+              },
+              args: [msg.pname, msg.r, msg.c],
+            });
+            sendResponse(results?.[0]?.result || { ok: false, error: 'no_result' });
+          } catch (e) { sendResponse({ ok: false, error: e.message }); }
+          break;
+        }
         case 'mm:clear-done': {
           const pz = msg.puzzle || 'unknown';
           const r = sessionDispatch(pz, 'clear/boardDone', { token: msg.token });

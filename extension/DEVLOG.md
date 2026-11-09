@@ -284,3 +284,8 @@
 ## 0.8.70
 - popup/options 增加「重新加载扩展」按钮，直接 chrome.runtime.reload()。
 - 0.8.70 为发布候选；真实 Key 的最终 live 回归等待用户手动重载。
+
+## 0.8.71
+- board_place 改为 background MAIN world：React onClick 选中人物 + 1600ms pointer 长按落子。
+- 全解 E2E：tutor 10 步 CASE SOLVED；exam 新 profile 完整解 VALID + CASE SOLVED。
+- FULL E2E OK calls 12 tutorMsgs 10 examMsgs 2。

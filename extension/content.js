@@ -540,7 +540,8 @@
     const board0 = readBoardSafe();
     const cols = Math.round(Math.sqrt(board0.length || 100)) || 10;
     const idx = (r - 1) * cols + (c - 1);
-    const cell = [...document.querySelectorAll(`[data-cell-index="${idx}"]`)].pop();
+    const cell = [...document.querySelectorAll(`[data-cell-index="${idx}"]`)].filter((el) => el.offsetWidth).pop()
+      || [...document.querySelectorAll(`[data-cell-index="${idx}"]`)].pop();
     if (!cell) return { ok: false, error: 'no_cell' };
     selfActingUntil = Date.now() + 5000;
     const who = String(args.who || '').toUpperCase();
@@ -548,7 +549,8 @@
     const NAMES = { A: 'Albert', B: 'Burma', C: 'Craig', D: 'Duncan', E: 'Elyana', F: 'Faith', G: 'Ginny', H: 'Hugo', I: 'Idril', V: 'Valeria' };
     const sp = suspects.find((x) => x.symbol === who || x.name === who);
     const pname = sp?.name || NAMES[who] || who;
-    const personBtn = [...document.querySelectorAll('button')].find((b) => b.title === pname || (b.getAttribute('aria-label') || '') === pname || (b.innerText || '').trim() === pname);
+    const personBtn = [...document.querySelectorAll('button')].filter((b) => b.offsetWidth).find((b) => b.title === pname || (b.getAttribute('aria-label') || '') === pname || (b.innerText || '').trim() === pname)
+      || [...document.querySelectorAll('button')].find((b) => b.title === pname || (b.getAttribute('aria-label') || '') === pname || (b.innerText || '').trim() === pname);
     const toolBtn = (re) => [...document.querySelectorAll('button')].find((b) => re.test((b.title || '') + ' ' + (b.innerText || '')));
     const cur = board0.find((x) => x.r === r && x.c === c);
     const hit = (el) => {
@@ -571,13 +573,9 @@
       hit(personBtn); await sleep(250); hit(cell);
     } else if (name === 'board_place') {
       if (!personBtn) return { ok: false, error: 'no_suspect' };
-      hit(personBtn); await sleep(250);
-      cell.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true, pointerId: 1, pointerType: 'mouse', button: 0, buttons: 1, isPrimary: true }));
-      cell.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true, button: 0, buttons: 1 }));
-      await sleep(700);
-      cell.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, cancelable: true, pointerId: 1, pointerType: 'mouse', button: 0, buttons: 0, isPrimary: true }));
-      cell.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true, button: 0, buttons: 0 }));
-    } else if (name === 'board_x') {
+      const placed = await sendMsg({ type: 'mm:place-cell', puzzle: PUZZLE, r, c, who, pname });
+      if (!placed?.ok) return { ok: false, error: placed?.error || 'place_failed' };
+    } else if (name === 'board_x') {    } else if (name === 'board_x') {
       if (cur?.x) return { ok: true, action: name, cell: cur };
       const xb = toolBtn(/X 标记|^X$|排除|mark x|exclude|\bX\b/i);
       if (!xb) return { ok: false, error: 'no_x_tool' };
