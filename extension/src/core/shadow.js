@@ -33,6 +33,7 @@ export class ShadowCore {
     this.now = now;
     this.onDivergence = onDivergence;
     this.session = null;
+    this.queueSeeded = false;
     this.host = null;
     this.board = null;
     this.chat = null;
@@ -56,6 +57,7 @@ export class ShadowCore {
 
   start({ board = [], chat = [], title = '' } = {}) {
     if (this.session && this.session.status === 'active') this.session.end('restart');
+    this.queueSeeded = false;
     this.session = new Session(`shadow:${this.puzzle}:${this.now()}`, { now: this.now });
     this.host = new SessionProjections();
     this.board = this.host.register('board', new BoardProjection());

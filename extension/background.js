@@ -48,6 +48,16 @@ async function saveQueue(puzzle, q) {
 }
 
 async function enqueueBoard(puzzle, batch) {
+  if (coreQueueEnabled) {
+    const sh = shadows.get(puzzle);
+    if (sh && sh.session && sh.queue) {
+      sh.queueEnqueue(batch);
+      const q = sh.queue.snapshot();
+      await saveQueue(puzzle, q);
+      shadowObserveQueue(puzzle, q);
+      return q.length;
+    }
+  }
   const q = mergeBatches(await loadQueue(puzzle), 600000);
   const keys = new Set((batch.changes || []).map((c) => `${c.r},${c.c}`));
   const hit = q.find((x) => (x.changes || []).some((c) => keys.has(`${c.r},${c.c}`)));
@@ -77,6 +87,23 @@ async function clearQueue(puzzle) {
 }
 
 async function processQueue(puzzle) {
+  if (coreQueueEnabled) {
+    const sh = shadows.get(puzzle);
+    if (sh && sh.session && sh.queue) {
+      const q = sh.queue.snapshot();
+      if (!q.length) return;
+      const led = await getLedger(puzzle);
+      if (led.unresolved.length) return;
+      const next = q[0];
+      sh.queueDequeue(next.id);
+      const after = sh.queue.snapshot();
+      await saveQueue(puzzle, after);
+      shadowObserveQueue(puzzle, after);
+      await info('board.dequeue', { puzzle, remaining: after.length, source: 'core' });
+      await handleBoardChanges(next);
+      return;
+    }
+  }
   const q = mergeBatches(await loadQueue(puzzle), 600000);
   await saveQueue(puzzle, q);
   if (!q.length) return;
@@ -108,6 +135,7 @@ function sessionDispatch(puzzle, type, payload = {}) {
 const shadows = new Map();
 let shadowEnabled = true;
 let coreChatEnabled = true;
+let coreQueueEnabled = false;
 
 function shadowFor(puzzle) {
   let sh = shadows.get(puzzle);
@@ -149,6 +177,15 @@ function shadowObserveLedger(puzzle, ledger) {
   const sh = shadows.get(puzzle);
   if (!sh || !sh.session) return;
   try { sh.observeLedger(ledger); } catch (e) { warn('core.shadow.ledger_failed', { puzzle, message: e.message }); }
+}
+
+async function shadowSeedQueue(puzzle, queue) {
+  if (!shadowEnabled || !coreQueueEnabled) return;
+  const sh = shadows.get(puzzle);
+  if (!sh || !sh.session || sh.queueSeeded) return;
+  sh.queueSeeded = true;
+  for (const b of queue || []) sh.queueEnqueue(b);
+  sh.observeQueue(queue || []);
 }
 
 async function shadowSummary(puzzle) {
@@ -593,9 +630,10 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       switch (msg?.type) {
         case 'mm:hello': {
           try {
-            const flags = await chrome.storage.local.get(['mm_core_shadow', 'mm_core_chat']);
+            const flags = await chrome.storage.local.get(['mm_core_shadow', 'mm_core_chat', 'mm_core_queue']);
             shadowEnabled = flags.mm_core_shadow !== false;
             coreChatEnabled = flags.mm_core_chat !== false;
+            coreQueueEnabled = flags.mm_core_queue === true;
           } catch (e) {}
           const [settings, mode, chat, ledgerState] = await Promise.all([getSettings(), getMode(), getChat(msg.puzzle), getLedger(msg.puzzle)]);
           if (msg.puzzle) chrome.storage.local.set({ [LAST_PUZZLE_KEY]: msg.puzzle });
@@ -604,6 +642,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           const helloEpoch = await getEpoch(msg.puzzle);
           await sendToTab(tabId, { type: 'mm:epoch', epoch: helloEpoch });
           shadowStart(msg.puzzle, { board: msg.board, chat, title: msg.title });
+          shadowSeedQueue(msg.puzzle, await loadQueue(msg.puzzle));
           sessionMachines.set(msg.puzzle, initSession({ phase: PHASE.active, sessionId: msg.puzzle + ':hello' }));
           sendResponse({ ok: true, epoch: helloEpoch, settings: { ...settings, apiKey: settings.apiKey ? '«saved»' : '' }, mode, chat, ledger: ledgerState });
           await info('content.hello', { tabId, puzzle: msg.puzzle, hasKey: !!settings.apiKey, mode });
@@ -667,6 +706,15 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           await addChat(puzzle, 'me', msg.remaining === 0 ? '已清空盘面：放置 / 笔记 / X 全部清除。清空前的推理不再追问。' : `清空未完成：盘面还剩 ${msg.remaining ?? '?'} 格。`);
           await info('board.clear', { tabId, puzzle, remaining: msg.remaining, reset: true });
           sendResponse({ ok: true });
+          break;
+        }
+        case 'mm:core-queue': {
+          const cur = await chrome.storage.local.get('mm_core_queue');
+          const on = msg.on == null ? !cur.mm_core_queue : !!msg.on;
+          await chrome.storage.local.set({ mm_core_queue: on });
+          coreQueueEnabled = on;
+          await info('core.queue.toggle', { tabId, on });
+          sendResponse({ ok: true, on });
           break;
         }
         case 'mm:core-chat': {
