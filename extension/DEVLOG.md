@@ -171,3 +171,7 @@
 ## 0.8.55
 - 修复 mm:user-message 提前 sendResponse 导致 worker 回收、老师静默。
 - live：accept → H 步 36 notes，无 fallback/错误/divergence。
+
+## 0.8.55 stability
+- 第二次 accept 约 39s 后回复 G 步，34 notes，无 fallback/错误/divergence。
+- 延迟 30-40s；keepalive 有效，但需等待提示。

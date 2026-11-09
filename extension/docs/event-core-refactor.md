@@ -373,3 +373,9 @@ test/core/*.test.mjs
   - 36 notes；
   - 无 fallback/agent.failed/stale/divergence。
 - 这解决了连续多轮“accept 无回复”的主要根因。
+
+### 0.8.55 稳定性复查
+
+- 第二次 accept：约 39 秒后老师回复 G 步（34 notes），无 fallback/agent.failed/stale/divergence。
+- 说明 keepalive 修复后不会再永久静默，但 LLM+工具链路延迟可达 30-40 秒。
+- 内容侧已有 owl thinking 状态；后续可加明确“正在思考”文案/超时提示。
