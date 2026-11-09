@@ -972,7 +972,11 @@
       applyEnabled(mm_enabled !== false);
     } catch (e) {}
     try {
-      const res = await sendMsg({ type: 'mm:hello', puzzle: PUZZLE, title: document.title, board: readBoardSafe(), clues: clues() });
+      let res = null;
+      for (let i = 0; i < 3 && !res?.ok; i++) {
+        try { res = await sendMsg({ type: 'mm:hello', puzzle: PUZZLE, title: document.title, board: readBoardSafe(), clues: clues() }); } catch (e) {}
+        if (!res?.ok) await sleep(900);
+      }
       if (res?.ok) {
         setMode(res.mode || 'exam');
         if (res.epoch != null) sessionEpoch = res.epoch;
