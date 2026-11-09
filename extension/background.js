@@ -281,11 +281,15 @@ async function runAgent({ tabId, puzzle, board, changes, userText, clues, ledger
         continue;
       }
       const accepting = /接受|继续|对|同意|开始教学|开始上课/.test(String(userText || ''));
-      if (mode === 'tutor' && (autoStart || accepting) && boardActions === 0 && !nudged) {
+      const correcting = /擦|重标|标错|写错|错了|修正|改一下/.test(String(userText || ''));
+      if (mode === 'tutor' && (autoStart || accepting || correcting) && boardActions === 0 && !nudged) {
         nudged = true;
         messages.push({ role: 'assistant', content: payload.text || '（本轮还没有操作盘面）' });
-        messages.push({ role: 'user', content: '你刚才只说了，没有真的写盘。请先调用 board_note / board_place / board_x 把这一步操作到盘面上，再回复；marks 只是圈选，不算板书。' });
-        await info('agent.tool_nudge', { tabId, puzzle, mode, autoStart: !!autoStart, accepting });
+        const nudge = correcting
+          ? '学生指出这一步理解错了。请不要只解释：先用 board_erase 擦掉错误笔记，再用 board_note 按正确语义重标，然后回复。'
+          : '你刚才只说了，没有真的写盘。请先调用 board_note / board_place / board_x 把这一步操作到盘面上，再回复；marks 只是圈选，不算板书。';
+        messages.push({ role: 'user', content: nudge });
+        await info('agent.tool_nudge', { tabId, puzzle, mode, autoStart: !!autoStart, accepting, correcting });
         continue;
       }
       rawText = payload.text;
