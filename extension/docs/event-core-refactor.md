@@ -1,0 +1,158 @@
+# 事件核心重构（对齐 DSH）
+
+目标：把扩展从“分散直写 + 多处 epoch 补丁”改成 **单一事件线**：
+所有改变都是 SessionEvent 或 agent 事件；状态是事件投影；副作用由 effect shell 执行；
+过期事件强制退出模型上下文，冲突变成可定位的 `event/rejected`。
+
+参考：DSH `docs/architecture.zh.md`、`docs/cordis-primer.zh.md`、
+`packages/core/{session,agent-loop,tools,system-prompt}`。
+
+## 1. 不变量
+
+1. 唯一写入口 `dispatch(event)`；chat/board/ledger/queue/marks/epoch 不再各自直写。
+2. 纯 reducer / 纯投影；不 fetch、不碰 DOM、不写 storage。
+3. 副作用只由 effect shell 执行，结果再作为事件回来。
+4. 每个事件带 `sessionId / seq / cause / ttl / status`。
+5. **模型可见即已记录**：`deriveMessages()` 只从当前 session 的 committed SessionEvent 投影。
+6. 过期事件可留在 UI 历史，但绝不进模型上下文。
+7. 非法事件 = `event/rejected {reason, cause}`，不静默、不互相覆盖。
+
+## 2. DSH 映射
+
+| DSH | 本扩展 |
+|---|---|
+| Cordis Context / Service / inject | 轻量 `Context`；服务 `sessions/board/chat/ledger/queue/marks/prep/llm/tools/ui/agentLoop` |
+| emit / waterfall / parallel / serial / bail | 同一套事件总线；`agent/pre-step`、`agent/request`、`llm/stream`、`tools/*` 用 waterfall |
+| `ctx.effect()` 可逆副作用 | 监听器、定时器、marks、队列、UI 清理都返回 disposer |
+| SessionEvent 日志 | 只追加 `SessionEvent`；`deriveMessages()` |
+| turn / step | 一轮 = 用户输入到无欠工作；一步 = 一次 LLM + 它调用的工具 |
+| 工具流水线 | `tools/pre-execute → execute → post-execute`；工具结果带 `requestId/toolId` |
+| 能力 seam | `llm`、`board`、`prep` 可替换 provider；测试用 fake |
+| 投影 seam | board/chat/ledger/queue/marks 注册式投影；UI 读 snapshot |
+
+不 vendor 完整 Cordis：MV3 service worker 无构建链，实现 Cordis-shaped 的轻量核心。
+
+## 3. 事件分域
+
+### 持久会话事件（append-only）
+
+```
+session/start | session/end
+turn/start | turn/end
+step/start | step/end
+user/message
+assistant/message | assistant/attempt
+tool/call | tool/result
+board/snapshot | board/diff
+review/accept | review/challenge
+queue/enqueue | queue/dequeue | queue/expire
+prep/loaded
+event/rejected
+```
+
+### 实时 agent 事件（waterfall / emit，不持久）
+
+```
+agent/pre-step
+agent/request
+llm/stream
+tools/pre-execute
+tools/execute
+tools/post-execute
+agent/turn-stopping
+```
+
+### 能力事件（seam）
+
+```
+board/read | board/action
+llm/request | llm/response
+prep/get
+ui/render | ui/marks | ui/reset
+```
+
+## 4. turn / step
+
+```
+user/message
+→ turn/start
+→ agent/pre-step（准入；非当前 session 直接 reject）
+→ step/start
+→ agent/request → llm/stream → assistant/message
+→ tool/call* → tools/pre-execute → execute → post-execute → tool/result*
+→ step/end
+→ 有工具欠请求 / 有下一输入 → 下一步
+→ 无欠工作 → turn/end
+```
+
+- 学生“接受” = `review/accept`；只有 `waiting_review` 才允许下一步。
+- 学生“质疑” = `review/challenge`；留在同一 step，开新请求解释。
+- `/clear`、`/new` = `session/end`：取消 in-flight；过期所有 pending；不提交 assistant/tool 结果；
+  只有 `session/end` 完成后才接受 `session/start`。
+- 自动开场 = `session/start` 的一个 `step/start`，只发一次。
+
+## 5. 上下文过期与删除
+
+| 上下文 | 来源 | 过期 | 处理 |
+|---|---|---|---|
+| 模型消息 | user/assistant/tool result | session/request 过期 | `deriveMessages()` 只取当前 session committed；旧 UI 历史保留 |
+| 盘面 | board/snapshot、committed tool/result | session/step 变 | 旧 diff/笔记/队列不进 projection |
+| 账本问题 | step/start、review/* | step 结束 / session 变 | 旧问题关闭，不进 prompt |
+| 队列 | queue/enqueue | clear/new / TTL | 整批过期，不重问 |
+| marks | committed tool/result | step 结束 / 新回复 | 上一步 marks 清空 |
+| prep | prep/loaded | 静态教案保留；LLM prep 按 session | 旧 session prep 丢弃 |
+
+## 6. 工具流水线
+
+```
+tool/call {toolId, requestId, sessionId, stepId}
+→ tools/pre-execute：session/step/request 不匹配 → reject
+→ tools/execute：content 执行 board_note/place/x/erase，回显 toolId
+→ tools/post-execute：读盘校验
+→ tool/result：只有 committed 才进 board projection
+```
+
+## 7. 阶段
+
+- **P0 基线**：tag；`core_enabled` flag；live 基线三条。
+- **P1 纯核心**：Context/Event/Session/Projection + 测试；不改产品。
+- **P2 Shadow**：旧逻辑镜像事件；core 投影对比；`core.divergence`。
+- **P3 session/clear/new**：命令走 session/end→start；删除延迟/epoch 补丁。
+- **P4 board/tools/queue/ledger**：board/diff + 工具流水线；投影。
+- **P5 LLM/prompt/chat/agentLoop**：turn/step；deriveMessages；取消。
+- **P6 marks/prep/UI**：marks 投影；静态教案；事件查看器。
+- **P7 Cutover**：删旧直写；replay + live 回归。
+
+## 8. 验收
+
+- state/chat/board/ledger/queue/marks 只有 core 写入口。
+- `deriveMessages` 是模型上下文唯一来源。
+- 冲突日志可定位 `eventId + cause + reason`。
+- stale LLM/tool 不产生消息/板书。
+- clear/new 不污染新 session。
+- live：`/clear`→`/new`→B→接受→E→质疑→接受，消息/板书/marks 一致。
+- replay 复现任意时刻状态。
+
+## 9. 文件
+
+```
+src/core/context.js
+src/core/events.js
+src/core/session.js
+src/core/projections/{board,chat,marks,ledger,queue}.js
+src/core/services/{llm,tools,prep,ui}.js
+src/core/agent-loop.js
+src/core/prompt.js
+test/core/*.test.mjs
+```
+
+## 10. Phase 1 进度
+
+- 已实现：
+  - `src/core/context.js`：服务、emit/serial/parallel/waterfall、effect disposer；
+  - `src/core/events.js`：事件名、状态、`makeEvent`；
+  - `src/core/session.js`：append-only、pending/commit/expire/sweep、deriveMessages、audit、replay、EventStore；
+  - `src/core/projections/{board,chat,marks,host}.js`；
+  - `test/core/*.test.mjs`：context/session/projections/host/replay。
+- 测试命令：`node --test test/core/*.test.mjs`。
+- 未接入现有产品（Phase 1 无行为变化）。
