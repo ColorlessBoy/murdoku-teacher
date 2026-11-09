@@ -229,3 +229,6 @@
 ## 0.8.62
 - 侧栏先 enable 后加载 bridge；loadChanges/loadReactBridge timebox。
 - 扩展 reload 未生效（badge 仍 0.8.61），live 未验证。
+
+## live test guide
+- 新增 docs/live-test-guide.md；当前浏览器扩展 0.8.61，需手动 reload 到 0.8.62。
