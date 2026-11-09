@@ -765,7 +765,6 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           const q = await answerQuestion(puzzle, msg.text);
           const state = await getLedger(puzzle);
           await info('ledger.answer', { tabId, puzzle, question: q?.id || null, answer: msg.text, counts: state.counts });
-          sendResponse({ ok: true });
           await runAgent({
             tabId, puzzle,
             board: msg.board,
@@ -776,6 +775,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           });
           const after = await getLedger(puzzle);
           if (!after.unresolved.length) await processQueue(puzzle);
+          sendResponse({ ok: true });
           break;
         }
         case 'mm:clear': {
