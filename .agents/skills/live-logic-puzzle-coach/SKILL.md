@@ -46,7 +46,7 @@ metadata:
   - `spans` = an object may cover multiple cells (a bed may be 2 cells). Verify from data/rendering; do not assume one cell.
   - `exactly one` / `exactly two` apply to the whole board.
 - Turn each clue into a unary filter first; then combine.
-- **Read all clue sources:** `suspects[].analyzedKeywords` AND `puzzle.generalClues`. Global clues are not bound to a character (e.g. "exactly one person beside a table/barrel"); missing them silently drops constraints. Object cells come from `puzzle.objectNameByIndex`.
+- **Read all clue sources:** `suspects[].analyzedKeywords` AND `puzzle.generalClues`. Global clues are not bound to a character; they are **counting constraints on the final arrangement** (e.g. "exactly one person beside a table/barrel") and must not be rewritten as a role's candidate notes. Object cells come from `puzzle.objectNameByIndex`.
 
 ### 2. Board reader
 
