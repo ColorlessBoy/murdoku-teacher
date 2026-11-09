@@ -33,3 +33,9 @@ PLAYWRIGHT_CORE=/path/to/playwright-core/index.mjs \
 CHROME_PATH="/path/to/Google Chrome for Testing" \
 node scripts/e2e-mock.mjs
 ```
+
+## 选项页/日志下载
+
+产品路径是侧栏 ⚙ → `chrome.runtime.openOptionsPage`。  
+在 Playwright 独立 Chromium 里该调用没有被捕获为新 page，E2E 目前只记录、不判失败。  
+发布前需要手动回归：打开设置页，确认日志列表和“下载 JSON”。

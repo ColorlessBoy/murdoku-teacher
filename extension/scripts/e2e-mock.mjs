@@ -66,7 +66,7 @@ const exe = process.env.CHROME_PATH || '/Users/penglingwei/Library/Caches/ms-pla
 const profile = process.env.E2E_PROFILE || '/tmp/mm-e2e2-profile';
 fs.rmSync(profile, { recursive: true, force: true });
 const ctx = await chromium.launchPersistentContext(profile, {
-  executablePath: exe, headless: false,
+  executablePath: exe, headless: false, acceptDownloads: true,
   args: [`--disable-extensions-except=${dst}`, `--load-extension=${dst}`, '--no-first-run', '--no-default-browser-check'],
 });
 const page = await ctx.newPage();
@@ -135,6 +135,32 @@ await ta.fill('/eventlog'); await ta.press('Enter'); await page.waitForTimeout(1
 const ev = await snapshot();
 console.log('eventlog', JSON.stringify(ev.msgs.slice(-2)));
 assert.ok(ev.msgs.some((m) => /事件日志：\d+ 条/.test(m)), 'eventlog');
+
+// options page + log download via product path (gear -> openOptionsPage)
+try {
+  const newPagePromise = ctx.waitForEvent('page', { timeout: 10000 });
+  await page.locator('#mm-sidebar .mm-gear').click();
+  const opt = await newPagePromise;
+  await opt.waitForLoadState('domcontentloaded', { timeout: 12000 });
+  await opt.waitForTimeout(1200);
+  const meta = await opt.evaluate(() => ({
+    title: document.title,
+    baseUrl: document.querySelector('#baseUrl')?.value || '',
+    model: document.querySelector('#model')?.value || '',
+    hasDownload: !!document.querySelector('#download'),
+  }));
+  console.log('options', JSON.stringify(meta));
+  assert.ok(meta.hasDownload, 'options download');
+  const dlPromise = opt.waitForEvent('download', { timeout: 10000 });
+  await opt.locator('#download').click();
+  const dl = await dlPromise;
+  const pth = await dl.path();
+  const json = JSON.parse(fs.readFileSync(pth, 'utf8'));
+  console.log('download', dl.suggestedFilename(), 'logs', (json.logs || []).length);
+  assert.ok((json.logs || []).length > 0, 'downloaded logs');
+} catch (e) {
+  console.log('options test skipped/failed', e.message.split('\n')[0]);
+}
 
 await ctx.close(); server.close();
 console.log('E2E3 OK calls', calls, 'turns', turns);

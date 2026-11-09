@@ -248,3 +248,6 @@
 ## 0.8.66
 - 英文 UI clear/erase 选择器。
 - E2E3：B/E/challenge/exam/clear/new/eventlog 65 条通过。
+
+## 0.8.66 e2e options
+- 主链路 E2E3 通过；options openOptionsPage 在独立 Chromium 未被 Playwright 捕获，标记为手动回归。
