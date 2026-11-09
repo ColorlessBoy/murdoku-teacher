@@ -84,3 +84,7 @@
 - Phase 3 gate cutover：clear/new 先过 session 状态机，乱序/重复直接拒绝。
 - 旧副作用仍执行；effects 搬迁留到下一阶段。
 - live gate 复测待重试（CDP hang）。
+
+## 0.8.28
+- Phase 4：ToolPipeline core + 5 条测试；agent 工具执行接入。
+- live gate 通过；shadow board 假阳性修复（只比动态字段）。

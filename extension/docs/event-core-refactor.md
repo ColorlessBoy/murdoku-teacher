@@ -195,3 +195,15 @@ test/core/*.test.mjs
 - 旧副作用（清盘/清 chat/epoch/auto-start）暂留，下一阶段再搬到 effects。
 - 单元测试 7 条全过。
 - live gate 复测受 CDP 页面挂起影响，待重试。
+
+## 13. Phase 4 进度（tools）
+
+- 新增 `src/core/tool-pipeline.js`：`tools/pre-execute → execute → post-execute`，
+  - 缺 session/request/tool id 直接拒绝；
+  - pre 可拒绝/改写 call；
+  - execute 异常不崩；
+  - post 可拒绝/改写 result。
+- 测试 `test/core/tool-pipeline.test.mjs` 5 条全过。
+- agent 工具执行已切到 `ToolPipeline`：pre 校验 epoch，execute 调 `execTool`，post 拒绝 stale。
+- live：gate 序列 `clear/request → clear/boardDone → new/request → new/started → auto/started`，无 rejected。
+- shadow 假阳性：board diff 不带 area/objName，比较改为只比 big/notes/x；已修并加测试。
