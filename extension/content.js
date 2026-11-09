@@ -958,8 +958,13 @@
   });
 
   (async () => {
-    await loadChanges();
-    await loadReactBridge();
+    // 先读启用状态并显示侧栏，避免 React bridge 卡住时整个 UI 永久隐藏。
+    try {
+      const { mm_enabled = true } = await chrome.storage.local.get('mm_enabled');
+      applyEnabled(mm_enabled !== false);
+    } catch (e) {}
+    await Promise.race([loadChanges(), sleep(2000)]);
+    await Promise.race([loadReactBridge(), sleep(2500)]);
     setTimeout(loadReactBridge, 1500);
     setTimeout(loadReactBridge, 4000);
     try {
