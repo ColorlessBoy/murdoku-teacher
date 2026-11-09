@@ -54,6 +54,12 @@
 - [ ] 30 天事件日志/容量策略
 - [ ] 版本号与 README 发布说明
 
+## 最新 E2E
+
+- [x] 教学 step1/accept step2
+- [x] exam audit 不改盘
+- [x] ledger write flag + event log
+
 ## 当前结论
 
 三条用户主路径可用；架构核心（事件线、投影、turn/step、工具流水线）已接入并 live 验证。  

@@ -240,3 +240,7 @@
 
 ## 0.8.65 e2e
 - 新增 scripts/e2e-mock.mjs；真实扩展+真实盘面+mock LLM 通过：tool→board note→text。
+
+## 0.8.65 extended e2e
+- step1 B / accept E / exam INVALID / eventlog 28；ledger write flag on。
+- E2E2 OK calls 5 turns 2。

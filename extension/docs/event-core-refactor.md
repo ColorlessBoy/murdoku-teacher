@@ -526,3 +526,16 @@ test/core/*.test.mjs
   - mock 第二轮文本
   - 老师回复含“请审查”
 - 这验证了 content/background/session/LLM binding/tool pipeline/board/chat 的完整链路。
+
+### Extended mock E2E（0.8.65）
+
+`scripts/e2e-mock.mjs` 现在覆盖：
+
+- step1：mock tool_call → board_note B R3C4 → 文本；notes 1
+- accept：mock 第二轮 tool_call → board_note E R2C2 → 文本；notes 2
+- exam：mock 不返回工具，只 audit；notes 仍 2；回复 INVALID
+- `/eventlog` 28 条
+- `mm_core_ledger_write=true` 下 ledger 事件
+
+结果：`E2E2 OK calls 5 turns 2`。  
+这说明 content/background/session/tool pipeline/board/chat/ledger/event log 在最新 0.8.65 上端到端可用（模型为 mock）。
