@@ -443,3 +443,14 @@ test/core/*.test.mjs
   - 质疑 “R10C7/R10C8 同行不是已经排除一把了吗？”
   - 老师正确回答：“最多一真”不等于排除；B 候选仍是 R3C4 或 R10C7/R10C8 之一；
   - notes 仍 3；无 core.divergence / agent.failed/stale。
+
+### Phase 4 board 写入 cutover（flag）
+
+- `mm_core_board_write`：开启后 `state.recall` 不再写旧 board；工具读盘走 core BoardProjection provider。
+- `/coreboardwrite on|off`。
+- live 0.8.59：
+  - toggle on；
+  - core board 100 / old 100；
+  - 老师继续 E 步；
+  - 无 core.divergence / agent.failed/stale。
+- 旧 state board 写入关闭后，工具仍能读 core board。

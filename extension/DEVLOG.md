@@ -207,3 +207,7 @@
 ## 0.8.58 release checklist update
 - ledger 读 cutover 标记完成（live challenge）。
 - 剩余：board/ledger 写入仍双写。
+
+## 0.8.59
+- board 写入 cutover（mm_core_board_write flag）：旧 state board 写关闭，工具读 core board。
+- live：toggle on，core 100/old 100，E 步，无 divergence/错误。
