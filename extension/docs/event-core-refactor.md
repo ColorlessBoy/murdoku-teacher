@@ -156,3 +156,15 @@ test/core/*.test.mjs
   - `test/core/*.test.mjs`：context/session/projections/host/replay。
 - 测试命令：`node --test test/core/*.test.mjs`。
 - 未接入现有产品（Phase 1 无行为变化）。
+
+## 11. Phase 2 进度（shadow）
+
+- `src/core/shadow.js`：把旧链路的 board/chat/session 镜像进 core；
+  - `board/snapshot` / `board/diff` 投影对比，divergence 时重同步并记 `core.divergence`；
+  - chat 事件对比；
+  - session start/end/restart。
+- 接入：
+  - `mm:hello`、`mm:board-sync`、`mm:clear-start`、`mm:new-session`、`handleBoardChanges`、`addChat`；
+  - `mm_core_shadow` 开关默认 true，只记日志，不影响产品。
+- 实测：0.8.23 页面 `core.shadow.sync board:100`，未出现 `core.divergence`。
+- 尚未 shadow：LLM 请求/响应、tool call/result、turn/step；下一轮补。

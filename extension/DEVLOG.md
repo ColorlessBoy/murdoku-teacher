@@ -63,3 +63,9 @@
   - `/new` → 老师开场 + B 笔记 R3C4/R10C7/R10C8；
   - 学生质疑“只标 R3C4 行不行” → 老师同一步逐条解释，未跳步；
   - 学生“接受，继续” → 老师走 E 沙地一步，写 6 个 e 笔记并继续等接受。
+
+## 0.8.23
+- Phase 2 shadow：`src/core/shadow.js` + background 接入。
+- shadow 覆盖 session/board/chat；`core.shadow.start/sync`、`core.divergence` 日志。
+- `mm_core_shadow` 可关闭；默认只观察，不影响产品。
+- live：`core.shadow.sync board:100`，无 divergence。
