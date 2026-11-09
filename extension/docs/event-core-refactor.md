@@ -475,3 +475,14 @@ test/core/*.test.mjs
 - 页面侧栏曾被 `mm_enabled=false` 隐藏；通过 CDP isolated world 设置 `mm_enabled=true` 后恢复。
 - 但 `/coreledgerwrite on` 仍被当成普通消息（无 `core.ledger.write.toggle`），随后强制 reload 后 `locator.fill` 30s 超时。
 - 未拿到 ledger write 的 live 样本；代码/单测通过。
+
+### ledger write backend 离线闭环
+
+- 新增 `test/core/ledger-backend.test.mjs`：fake backend 验证
+  - recordChanges → ledger/question；
+  - answerQuestion → ledger/answered；
+  - closeQuestion → ledger/closed；
+  - getLedger 读 backend；
+  - clearLedger → ledger/cleared。
+- 全量测试 85 pass。
+- live 仍受页面/侧栏环境阻塞，未验证。

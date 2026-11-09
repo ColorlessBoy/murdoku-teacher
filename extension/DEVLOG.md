@@ -222,3 +222,6 @@
 
 ## 0.8.61 live blockers
 - sidebar 曾 mm_enabled=false；CDP 开启后 /coreledgerwrite 未识别；reload 后 fill 超时。
+
+## ledger write backend test
+- fake backend 端到端测试通过；全量 85 pass。
