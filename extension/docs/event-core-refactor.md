@@ -417,3 +417,11 @@ test/core/*.test.mjs
   - 候选先保留，等行列唯一性收紧。
 - 末尾仍要求审查，没有直接进入下一步。
 - 无 divergence/agent.failed/stale/fallback。
+
+### 0.8.56 exam live
+
+- 切到考试；提交主张“B 在 R3C4，因为 R10C7/R10C8 同行不能同时坐人”。
+- 老师只审计，不改盘面：
+  - `结论：INVALID`
+  - “同行只说明最多一真；你凭什么把这两把都排除、只留 R3C4？”
+- notes 仍 3；没有代解；随后切回教学。

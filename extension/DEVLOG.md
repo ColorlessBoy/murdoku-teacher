@@ -188,3 +188,6 @@
 
 ## 0.8.56 tutor challenge
 - 质疑 B 三把椅子；老师解释且不动盘面（3 notes），无错误/fallback。
+
+## 0.8.56 exam live
+- 考试模式主张 B=R3C4 → INVALID，指出同行只说明最多一真；未改盘面；notes 3。
