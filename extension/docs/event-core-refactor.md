@@ -433,3 +433,13 @@ test/core/*.test.mjs
 - shadow 启动时用旧账本 unresolved 做 `ledger/snapshot` seed；之后 board/diff 近似不再覆盖（hasLedger）。
 - 旧的 `mm_ledger_` 仍是权威写入；core 现在有精确镜像，为读 cutover 做准备。
 - 全量测试 84+ 通过。
+
+### Phase 4 ledger 读 cutover
+
+- `mm_core_ledger` 默认开启；`getLedgerNow` 优先 core `LedgerProjection`，未 hydrate 时 fallback 旧账本。
+- 旧账本继续写并镜像 `ledger/*` 事件；core 读现在 live。
+- `/coreledger on|off`。
+- live 0.8.58：
+  - 质疑 “R10C7/R10C8 同行不是已经排除一把了吗？”
+  - 老师正确回答：“最多一真”不等于排除；B 候选仍是 R3C4 或 R10C7/R10C8 之一；
+  - notes 仍 3；无 core.divergence / agent.failed/stale。

@@ -199,3 +199,7 @@
 ## 0.8.57
 - ledger 写入镜像：旧账本每次变更发 ledger/* 事件；shadow 启动 seed snapshot。
 - 旧 ledger storage 仍权威；core 精确镜像，待读 cutover。
+
+## 0.8.58
+- ledger 读切 core（mm_core_ledger 默认开；fallback）。
+- live challenge：老师正确解释“最多一真”，3 notes，无 divergence/错误。
