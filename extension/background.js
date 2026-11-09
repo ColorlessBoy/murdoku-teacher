@@ -9,6 +9,7 @@ import { buildMessages } from './src/prompt.js';
 import { ShadowCore } from './src/core/shadow.js';
 import { E } from './src/core/events.js';
 import { initSession, reduceSession, PHASE } from './src/core/session-machine.js';
+import { ToolPipeline } from './src/core/tool-pipeline.js';
 import { recordChanges, answerQuestion, closeQuestion, getLedger, ledgerText, closeAllUnresolved, clearLedger, markAsked } from './src/ledger.js';
 
 const SETTINGS_KEY = 'mm_settings';
@@ -364,7 +365,20 @@ async function runAgent({ tabId, puzzle, board, changes, userText, clues, ledger
           try { args = JSON.parse(tc.function?.arguments || '{}'); } catch (e) {}
           if (String(tc.function?.name || '').startsWith('board_')) boardActions++;
           shadowEvent(puzzle, E.toolCall, { name: tc.function?.name, args }, { toolId: tc.id, requestId: shadowReq });
-          const out = await execTool(puzzle, tc.function?.name, args, tabId, runEpoch);
+          const pipeline = new ToolPipeline({
+            execute: async (call) => execTool(puzzle, call.name, call.args, tabId, runEpoch),
+          });
+          pipeline.usePre(async () => (await getEpoch(puzzle) !== runEpoch ? { rejected: 'stale_session' } : null));
+          pipeline.usePost((result) => (result && result.stale ? { rejected: 'stale_tool' } : null));
+          const toolRes = await pipeline.run(
+            { name: tc.function?.name, args },
+            { sessionId: `${puzzle}:${runEpoch}`, stepId: 'step1', requestId: shadowReq, toolId: tc.id || `${shadowReq}:${boardActions}` },
+          );
+          if (toolRes.rejected) {
+            await info('agent.stale_discarded', { tabId, puzzle, epoch: runEpoch, stage: 'tool_pipeline', reason: toolRes.rejected });
+            return;
+          }
+          const out = toolRes.ok ? toolRes.result : { error: toolRes.error };
           shadowEvent(puzzle, E.toolResult, { name: tc.function?.name, ok: !!out?.ok, cell: out?.cell || null, error: out?.error || null, action: tc.function?.name, content: out?.ok ? 'ok' : (out?.error || 'error') }, { toolId: tc.id, requestId: shadowReq });
           if (out?.ok && /^board_(note|place|x|erase)$/.test(String(tc.function?.name))) {
             const rr = Number(args.r), cc = Number(args.c);
