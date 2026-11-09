@@ -191,3 +191,7 @@
 
 ## 0.8.56 exam live
 - 考试模式主张 B=R3C4 → INVALID，指出同行只说明最多一真；未改盘面；notes 3。
+
+## 0.8.56 release checklist
+- 全量测试 84 pass。
+- 新增 docs/release-checklist.md；明确 board/ledger 写入、双写、延迟为发布阻塞。
