@@ -69,3 +69,13 @@ test('static area/object fields do not cause board divergence', () => {
   s.observeBoard([{ r: 3, c: 4, notes: ['B'] }], [{ r: 3, c: 4, after: { notes: ['B'] } }]);
   assert.deepEqual(divergences, []);
 });
+
+test('summary turnSteps uses the last ended turn', () => {
+  const s = new ShadowCore('p1', { now: () => 1000 });
+  s.start({ board: [], chat: [] });
+  s.turnStart({ text: 'go' });
+  s.stepStart({ no: 1 });
+  s.stepEnd();
+  s.turnEnd();
+  assert.equal(s.snapshot().turnSteps, 1);
+});

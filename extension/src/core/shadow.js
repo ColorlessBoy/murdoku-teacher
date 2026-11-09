@@ -208,7 +208,7 @@ export class ShadowCore {
       board: this.board ? this.board.snapshot().length : 0,
       chat: this.chat ? this.chat.snapshot().length : 0,
       marks: this.marks ? this.marks.snapshot().length : 0,
-      turnSteps: this.turn && this.turn.snapshot().current ? this.turn.snapshot().current.steps.length : 0,
+      turnSteps: (() => { if (!this.turn) return 0; const t = this.turn.snapshot(); return t.turns.length ? t.turns[t.turns.length - 1].steps.length : 0; })(),
       audit: this.session ? this.session.audit() : [],
     };
   }
