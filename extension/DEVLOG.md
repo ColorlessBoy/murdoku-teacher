@@ -105,3 +105,7 @@
 - clear/boardDone 改为 content 清盘完成后驱动，修复状态机提前 cleared。
 - shadow summary 改为 await，避免 worker idle 丢日志。
 - live：clear 后 0 notes；new 后 3 B notes；无 divergence；summary live 样本待补。
+
+## 0.8.36
+- live `core.shadow.summary`：board 100/chat 2/audit []/divergence 0。
+- turnSteps 统计改为最后一个 turn；加测试。

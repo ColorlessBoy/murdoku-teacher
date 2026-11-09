@@ -239,3 +239,10 @@ test/core/*.test.mjs
   - background 只在这之后 `clear/boardDone`。
 - live：`/clear` 后 notes=0；`/new logs` 后 notes=3（B 自动开场），无 `core.divergence`。
 - shadow summary 之前调用 `info()` 未 await，worker idle 可能丢日志；已改 `await info`。
+
+### Phase 5 live summary
+
+- 0.8.35 干净跑 `/clear → /new logs` 得到 `core.shadow.summary`：
+  - board: 100, chat: 2, marks: 0, audit: [], divergence: 0。
+- turnSteps 统计 bug：turn 结束后 current=null；改为取最后一个 turn 的 steps。
+- 0.8.36 修复并加测试。
