@@ -514,7 +514,7 @@ async function runAgent({ tabId, puzzle, board, changes, userText, clues, ledger
     const baseMessages = messages;
     let rawText = '';
     const llmSettings = mode === 'tutor'
-      ? { ...settings, maxTokens: Math.max(Number(settings.maxTokens) || 0, 8192) }
+      ? { ...settings, maxTokens: Math.max(Number(settings.maxTokens) || 0, 393216) }
       : settings;
     let toolsUsed = 0;
     let boardActions = 0;
