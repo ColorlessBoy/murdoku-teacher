@@ -334,7 +334,7 @@ async function runAgent({ tabId, puzzle, board, changes, userText, clues, ledger
     await addChat(puzzle, 'me', text);
     await saveMarks(puzzle, marks);
     await sendToTab(tabId, { type: 'mm:assistant', text, marks, verdict: assistant.verdict, replyTo: lastUser?.ts || null, ts: Date.now(), unresolved: after.counts.unresolved });
-    await info('agent.reply', { tabId, mode, verdict: assistant.verdict, length: assistant.text.length, marks: assistant.marks.length, unresolved: after.counts.unresolved });
+    await info('agent.reply', { tabId, mode, verdict: assistant.verdict, length: assistant.text.length, marks: marks.length, unresolved: after.counts.unresolved });
   } catch (e) {
     if (await getEpoch(puzzle) !== runEpoch) {
       await info('agent.stale_discarded', { tabId, puzzle, epoch: runEpoch, error: e.code || e.message });
