@@ -228,3 +228,14 @@ test/core/*.test.mjs
 - 记录 requests/tools/assistant/review、pendingTools、orphan 事件。
 - 测试 `test/core/turn-projection.test.mjs` 4 条全过。
 - shadow 注册 turn 投影；summary 增加 turnSteps。
+
+### Phase 3 修正：clear/boardDone 由 content 驱动
+
+- 之前 background 在 reset 后立即发 `clear/boardDone`，但盘面实际还没清完，状态机提前 cleared，
+  导致 `/new` 的 boardClean=false、老师静默。
+- 现在：
+  - content `/clear` 先请求 `mm:clear-start`，拿到 token；
+  - 实际清盘完成后发 `mm:clear-done`；
+  - background 只在这之后 `clear/boardDone`。
+- live：`/clear` 后 notes=0；`/new logs` 后 notes=3（B 自动开场），无 `core.divergence`。
+- shadow summary 之前调用 `info()` 未 await，worker idle 可能丢日志；已改 `await info`。

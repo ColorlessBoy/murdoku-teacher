@@ -100,3 +100,8 @@
 ## 0.8.31
 - Phase 5：turn/step projection + 4 条测试；shadow 注册。
 - 未接管 turn/step 驱动。
+
+## 0.8.34
+- clear/boardDone 改为 content 清盘完成后驱动，修复状态机提前 cleared。
+- shadow summary 改为 await，避免 worker idle 丢日志。
+- live：clear 后 0 notes；new 后 3 B notes；无 divergence；summary live 样本待补。
