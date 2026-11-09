@@ -168,3 +168,10 @@ test/core/*.test.mjs
   - `mm_core_shadow` 开关默认 true，只记日志，不影响产品。
 - 实测：0.8.23 页面 `core.shadow.sync board:100`，未出现 `core.divergence`。
 - 尚未 shadow：LLM 请求/响应、tool call/result、turn/step；下一轮补。
+
+### Phase 2 补充（LLM/tool/turn shadow）
+
+- `ShadowCore` 增加 `turnStart/stepStart/llmRequest/llmResponse/toolCall/toolResult/stepEnd/turnEnd`。
+- background 在 `runAgent` 每个 turn/step、每次 LLM 请求/响应、每个 tool call/result 写入 shadow；turn 结束记 `core.shadow.summary`（session/board/chat/marks/audit）。
+- 单元测试覆盖事件序列 + audit 成对。
+- live：`core.shadow.sync board:100`，无 `core.divergence`；LLM/tool summary 待下一轮在真实 agent run 中确认。

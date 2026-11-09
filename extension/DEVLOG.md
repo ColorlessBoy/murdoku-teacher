@@ -69,3 +69,8 @@
 - shadow 覆盖 session/board/chat；`core.shadow.start/sync`、`core.divergence` 日志。
 - `mm_core_shadow` 可关闭；默认只观察，不影响产品。
 - live：`core.shadow.sync board:100`，无 divergence。
+
+## 0.8.24
+- Phase 2 shadow 扩展：turn/step、llm request/response、tool call/result、summary。
+- `core.shadow.summary` 输出 session/board/chat/marks/audit。
+- core 单元测试全过；live board sync 无 divergence。
