@@ -16,7 +16,7 @@ export async function requestBound({ session, requestId, stepId, messages = [], 
     result = await call();
   } catch (e) {
     session.append(E.llmResponse, { status: 'error', message: e.message }, { requestId, stepId });
-    return { ok: false, rejected: 'llm_error', error: e.message };
+    return { ok: false, rejected: 'llm_error', error: e.message, original: e };
   }
   if (isCurrent && !(await isCurrent())) return { ok: false, rejected: 'stale_after_call' };
   session.append(E.llmResponse, { status: 'ok', toolCalls: result?.toolCalls?.length || 0, textLength: String(result?.text || '').length }, { requestId, stepId });

@@ -10,6 +10,7 @@ import { ShadowCore } from './src/core/shadow.js';
 import { E } from './src/core/events.js';
 import { initSession, reduceSession, PHASE } from './src/core/session-machine.js';
 import { ToolPipeline } from './src/core/tool-pipeline.js';
+import { requestBound } from './src/core/llm-binding.js';
 import { recordChanges, answerQuestion, closeQuestion, getLedger, ledgerText, closeAllUnresolved, clearLedger, markAsked } from './src/ledger.js';
 
 const SETTINGS_KEY = 'mm_settings';
@@ -363,24 +364,47 @@ async function runAgent({ tabId, puzzle, board, changes, userText, clues, ledger
       const reqEpoch = await getEpoch(puzzle);
       lastReqEpoch = reqEpoch;
       const shadowReq = `req_${puzzle}_${round}_${Date.now()}`;
-      shadowEvent(puzzle, E.llmRequest, { round, messageCount: messages.length }, { requestId: shadowReq });
       await info('agent.request', { tabId, puzzle, epoch: reqEpoch, round });
+      const llmCall = () => callLLM({
+        messages, settings: llmSettings, expectJson: false,
+        session: 'ses_' + encodeURIComponent(puzzle).slice(0, 60), puzzle,
+        tools: useTools ? toolsForMode(mode) : null,
+      });
       let payload;
-      try {
-        payload = await callLLM({
-          messages, settings: llmSettings, expectJson: false,
-          session: 'ses_' + encodeURIComponent(puzzle).slice(0, 60), puzzle,
-          tools: useTools ? toolsForMode(mode) : null,
+      const sh = shadows.get(puzzle);
+      if (sh && sh.session && sh.session.status === 'active') {
+        const isCurrent = async () => { const e = await getEpoch(puzzle); return e === reqEpoch && e === runEpoch; };
+        const bound = await requestBound({
+          session: sh.session, requestId: shadowReq, stepId: 'step1', messages, isCurrent, call: llmCall,
         });
-      } catch (e) {
-        if (useTools) {
-          useTools = false;
-          await warn('agent.tools_fallback', { code: e.code, message: e.message });
-          continue;
+        if (!bound.ok) {
+          if (bound.rejected === 'llm_error') {
+            if (useTools) {
+              useTools = false;
+              await warn('agent.tools_fallback', { code: bound.original?.code, message: bound.error });
+              continue;
+            }
+            throw bound.original || new Error(bound.error || 'llm error');
+          }
+          if (['stale_before_call', 'stale_after_call', 'session_not_active'].includes(bound.rejected)) {
+            await info('agent.stale_discarded', { tabId, puzzle, epoch: runEpoch, stage: 'llm_binding', reason: bound.rejected });
+            return;
+          }
+          throw new Error(bound.rejected);
         }
-        throw e;
+        payload = bound.result;
+      } else {
+        try {
+          payload = await llmCall();
+        } catch (e) {
+          if (useTools) {
+            useTools = false;
+            await warn('agent.tools_fallback', { code: e.code, message: e.message });
+            continue;
+          }
+          throw e;
+        }
       }
-      shadowEvent(puzzle, E.llmResponse, { toolCalls: payload.toolCalls?.length || 0, textLength: String(payload.text || '').length, status: 'ok' }, { requestId: shadowReq });
       const afterReqEpoch = await getEpoch(puzzle);
       if (afterReqEpoch !== reqEpoch || afterReqEpoch !== runEpoch) {
         await info('agent.stale_discarded', { tabId, puzzle, epoch: runEpoch, nowEpoch: afterReqEpoch, stage: 'llm' });
