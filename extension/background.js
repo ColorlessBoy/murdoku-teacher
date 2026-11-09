@@ -496,6 +496,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           const mode = await getMode();
           await sendToTab(tabId, { type: 'mm:pending', unresolved: 0 });
           if (mode === 'tutor' && Array.isArray(msg.board) && msg.board.length) {
+            await new Promise((r) => setTimeout(r, 2000));
             await runAgent({ tabId, puzzle, board: msg.board, clues: msg.clues, changes: [], userText: null, ledger: await getLedger(puzzle), autoStart: true });
           }
           await info('session.new', { tabId, puzzle, clearLogs: !!msg.clearLogs });

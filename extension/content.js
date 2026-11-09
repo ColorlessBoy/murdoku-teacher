@@ -759,6 +759,7 @@
       sendMsg({ type: 'mm:epoch-bump', puzzle: PUZZLE });
       owl.classList.add('wiping');
       const r = await clearBoard();
+      await sleep(2200);
       owl.classList.remove('thinking');
       if (mascotEl) mascotEl.classList.remove('busy');
       setTimeout(() => owl.classList.remove('wiping'), 2400);
