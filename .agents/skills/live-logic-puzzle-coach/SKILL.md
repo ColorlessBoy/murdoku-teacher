@@ -185,6 +185,7 @@ The bundled panel is a chat, not a debug console:
 | User sees highlight but cell class diff is 0 | Highlight is inline on the selected suspect's notes/cells | Diff `.grid-container.outerHTML`; query `.grid-note-letter` inline `drop-shadow`/`scale(1.4)`; read clue cells from `analyzedKeywords[].data.cellIndices` |
 | Corner defined as the four board corners | Room corner = 2+ thick wall edges, incl. concave | Read the game's `analyzedKeywords` cellIndices per level (current-level C has 31; level-specific) |
 | Chair/bed candidate excluded as object | `objId` prefilter also removes occupiable objects | Click all clue-valid cells; let the game reject blocked cells |
+| Said a clue was "satisfied" because no candidate notes remained | Notes are candidates; the clue constrains final placements | Say "other roles excluded from this area", not "clue satisfied"; the clue is only satisfied after final placement |
 | F forced into island / V forced into barrels | "alone"/"victim" are area-composition constraints, not fixed areas | Do not write area-only candidates until the area is proven; prove room composition first |
 
 ## Checklists
