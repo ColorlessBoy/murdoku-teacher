@@ -151,3 +151,20 @@ function readNotes() {
 ```
 
 不要用 `document.querySelectorAll('.grid-note-letter').length` 直接当“笔记数”：两层会重复。
+
+## 9. 房间 vs 地形（【通用】）
+
+**关键区别：**
+
+- `puzzle.wallRoomIdByIndex`：**真正的房间**（墙围起来的区域），clue 里的 “room / 区域 / alone / victim” 用它；
+- `puzzle.roomIdByIndex`：**地形/地板**（沙漠、沙地、小径、水域、步道等），不是房间；
+- `roomLabels[].isSubarea === true` 的项是子区域（地形）；子区域可以属于更大的房间。
+
+**【本关】示例：**
+
+- 沙漠房间 = `0,1,2,3,4,10,11,12,13,14,20,21,30,31`；
+- 其中 11、12、20、21 是沙地砖，但**属于沙漠房间**；
+- 步道房间包含小径格；岛屿房间包含水域格；
+- 所以 I 的沙漠候选必须包含 11、12、20、21，否则会漏。
+
+**【错误经验】**：用 `roomIdByIndex`（地形）当房间去推 I/H/F/V，会把“沙地砖在沙漠房间里”这件事完全漏掉。房间只看 `wallRoomIdByIndex`。

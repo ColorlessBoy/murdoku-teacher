@@ -40,6 +40,7 @@ metadata:
 ### 1. Data and rules
 
 - Extract rooms, blocked objects (tables, shelves, TVs, plants, barrels), occupiable cells, chairs, bed cells.
+- **Rooms vs terrain:** the actual room is `puzzle.wallRoomIdByIndex`; `puzzle.roomIdByIndex` is the floor/terrain and must NOT be used as "room". `roomLabels[].isSubarea` marks terrain subareas that belong to a larger room (e.g. sand tiles inside the desert room).
 - Pin down every predicate **before** solving:
   - `beside` = orthogonally adjacent **and same room**.
   - `east of` = any column to the right (same row not required unless stated).
