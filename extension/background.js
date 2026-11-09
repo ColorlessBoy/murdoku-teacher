@@ -16,6 +16,7 @@ import { recordChanges, answerQuestion, closeQuestion, getLedger, ledgerText, cl
 
 setLedgerEventSink((e) => shadowEvent(e.puzzle, e.type, e.payload));
 setBoardProvider((puzzle) => { const sh = shadows.get(puzzle); return sh && sh.board ? sh.board.snapshot() : null; });
+setBoardWriteEnabled(!coreBoardWriteEnabled);
 
 const SETTINGS_KEY = 'mm_settings';
 const CHAT_PREFIX = 'mm_chat_';
@@ -160,7 +161,7 @@ let coreChatEnabled = true;
 let coreQueueEnabled = false;
 let coreBoardEnabled = true;
 let coreLedgerEnabled = true;
-let coreBoardWriteEnabled = false;
+let coreBoardWriteEnabled = true;
 
 function shadowFor(puzzle) {
   let sh = shadows.get(puzzle);
@@ -741,7 +742,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
             coreQueueEnabled = flags.mm_core_queue === true;
             coreBoardEnabled = flags.mm_core_board !== false;
             coreLedgerEnabled = flags.mm_core_ledger !== false;
-            coreBoardWriteEnabled = flags.mm_core_board_write === true;
+            coreBoardWriteEnabled = flags.mm_core_board_write !== false;
             setBoardWriteEnabled(!coreBoardWriteEnabled);
           } catch (e) {}
           const [settings, mode, ledgerState] = await Promise.all([getSettings(), getMode(), getLedger(msg.puzzle)]);
