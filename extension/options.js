@@ -144,6 +144,7 @@ $('refresh').onclick = refreshLogs;
 $('level').onchange = refreshLogs;
 $('puzzleFilter').addEventListener('input', refreshLogs);
 $('download').onclick = download;
+$('reloadExt').onclick = () => chrome.runtime.reload();
 $('clearLogs').onclick = clearLogs;
 $('ledgerRefresh').onclick = refreshLedger;
 $('ledgerClose').onclick = async () => { await send({ type: 'mm:close-ledger' }); await refreshLedger(); };
