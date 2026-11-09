@@ -356,3 +356,10 @@ test/core/*.test.mjs
 - `readLiveBoard` 对 content `sendMessage` 加 2.5s 超时；超时记 `agent.live_board_timeout` 并回退到已有 board，避免 agent 永久等待。
 - live：accept 后 agent 正常进入；`core.board.context {cells:100}`；无 timeout/divergence。
 - 但模型返回空内容，产品显示“（模型没有返回内容）”；这是 LLM 输出问题，下一步排查。
+
+### 0.8.54 空文本 fallback
+
+- 日志显示模型连续返回 tool calls、无 text，3 轮后进入 fallback。
+- tutor 工具轮上限 3 → 5。
+- fallback 改用带 tool 结果的 messages，并追加“用 2-4 句解释、不要再调工具”的提示。
+- live 0.8.54：accept 后 24s 内没有老师回复，也没有 fallback 日志；不能宣称修复。

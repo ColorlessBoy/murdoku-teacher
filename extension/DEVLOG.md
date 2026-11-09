@@ -163,3 +163,7 @@
 ## 0.8.53
 - readLiveBoard 2.5s 超时，避免 content 卡住导致老师静默。
 - live：agent 进入，board context 100；模型返回空内容，显示 fallback。
+
+## 0.8.54
+- tutor 工具轮 5；空文本 fallback 带 tool 结果和明确提示。
+- live accept 未回复，待查 LLM/worker。
