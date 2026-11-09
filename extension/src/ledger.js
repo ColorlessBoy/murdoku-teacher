@@ -1,4 +1,6 @@
 let eventSink = null;
+let backend = null;
+export function setLedgerBackend(b) { backend = b && typeof b.load === 'function' ? b : null; }
 export function setLedgerEventSink(fn) { eventSink = typeof fn === 'function' ? fn : null; }
 function emit(puzzle, type, payload = {}) { try { eventSink?.({ puzzle, type, payload }); } catch (e) {} }
 
@@ -17,6 +19,12 @@ function cellKey(r, c) {
 const emptyState = () => ({ seq: 0, batches: [], cells: {}, questions: [] });
 
 async function load(puzzle) {
+  if (backend) {
+    try {
+      const st = await backend.load(puzzle);
+      if (st) return { ...emptyState(), ...st, cells: st.cells || {}, batches: st.batches || [], questions: st.questions || [] };
+    } catch (e) {}
+  }
   const key = storeKey(puzzle);
   const { [key]: st } = await chrome.storage.local.get(key);
   if (!st || typeof st !== 'object') return emptyState();
@@ -24,6 +32,9 @@ async function load(puzzle) {
 }
 
 async function save(puzzle, st) {
+  if (backend) {
+    try { if (await backend.save(puzzle, st)) return; } catch (e) {}
+  }
   if (st.batches.length > MAX_BATCHES) st.batches.splice(0, st.batches.length - MAX_BATCHES);
   if (st.questions.length > 300) st.questions.splice(0, st.questions.length - 300);
   for (const k of Object.keys(st.cells)) {
@@ -181,7 +192,11 @@ export async function closeAllUnresolved(puzzle, reason = 'closed_by_user') {
 }
 
 export async function clearLedger(puzzle) {
-  await chrome.storage.local.remove(storeKey(puzzle));
+  let clearedByBackend = false;
+  if (backend) {
+    try { clearedByBackend = !!(await backend.clear(puzzle)); } catch (e) {}
+  }
+  if (!clearedByBackend) await chrome.storage.local.remove(storeKey(puzzle));
   emit(puzzle, 'ledger/cleared', {});
 }
 

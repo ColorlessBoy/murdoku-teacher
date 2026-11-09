@@ -12,11 +12,29 @@ import { initSession, reduceSession, PHASE } from './src/core/session-machine.js
 import { ToolPipeline } from './src/core/tool-pipeline.js';
 import { requestBound } from './src/core/llm-binding.js';
 import { appendCapped } from './src/core/event-log.js';
-import { recordChanges, answerQuestion, closeQuestion, getLedger, ledgerText, closeAllUnresolved, clearLedger, markAsked, setLedgerEventSink } from './src/ledger.js';
+import { recordChanges, answerQuestion, closeQuestion, getLedger, ledgerText, closeAllUnresolved, clearLedger, markAsked, setLedgerEventSink, setLedgerBackend } from './src/ledger.js';
 
 setLedgerEventSink((e) => shadowEvent(e.puzzle, e.type, e.payload));
 setBoardProvider((puzzle) => { const sh = shadows.get(puzzle); return sh && sh.board ? sh.board.snapshot() : null; });
 setBoardWriteEnabled(!coreBoardWriteEnabled);
+setLedgerBackend({
+  load: async (puzzle) => {
+    if (!coreLedgerWriteEnabled) return null;
+    const sh = shadows.get(puzzle);
+    if (!sh || !sh.ledger || !sh.ledger.hasLedger) return null;
+    return coreLedgerState(sh);
+  },
+  save: async (puzzle) => {
+    if (!coreLedgerWriteEnabled) return false;
+    const sh = shadows.get(puzzle);
+    return !!(sh && sh.ledger && sh.ledger.hasLedger);
+  },
+  clear: async (puzzle) => {
+    if (!coreLedgerWriteEnabled) return false;
+    try { await chrome.storage.local.remove('mm_ledger_' + encodeURIComponent(String(puzzle || 'unknown')).slice(0, 90)); } catch (e) {}
+    return true;
+  },
+});
 
 const SETTINGS_KEY = 'mm_settings';
 const CHAT_PREFIX = 'mm_chat_';
@@ -162,6 +180,7 @@ let coreQueueEnabled = false;
 let coreBoardEnabled = true;
 let coreLedgerEnabled = true;
 let coreBoardWriteEnabled = true;
+let coreLedgerWriteEnabled = false;
 
 function shadowFor(puzzle) {
   let sh = shadows.get(puzzle);
@@ -295,11 +314,20 @@ function shadowObserveBoard(puzzle, board, changes) {
 }
 
 function coreLedgerState(sh) {
-  const qs = sh.ledger.snapshot();
+  const full = sh.ledger.fullSnapshot();
+  const qs = full.questions;
+  const batches = full.batches || [];
+  const cells = {};
+  for (const b of batches) {
+    for (const c of b.changes || []) {
+      const k = `R${c.r}C${c.c}`;
+      (cells[k] = cells[k] || []).push({ seq: b.id, ts: b.ts, before: c.before, after: c.after, source: c.source });
+    }
+  }
   const unresolved = qs.filter((q) => q.status !== 'closed');
   return {
-    seq: 0, unresolved, recentBatches: [],
-    counts: { batches: 0, cellsTracked: 0, questions: qs.length, unresolved: unresolved.length },
+    seq: batches.length, unresolved, recentBatches: batches.slice(-12), cells,
+    counts: { batches: batches.length, cellsTracked: Object.keys(cells).length, questions: qs.length, unresolved: unresolved.length },
   };
 }
 
@@ -736,13 +764,14 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       switch (msg?.type) {
         case 'mm:hello': {
           try {
-            const flags = await chrome.storage.local.get(['mm_core_shadow', 'mm_core_chat', 'mm_core_queue', 'mm_core_board', 'mm_core_ledger', 'mm_core_board_write']);
+            const flags = await chrome.storage.local.get(['mm_core_shadow', 'mm_core_chat', 'mm_core_queue', 'mm_core_board', 'mm_core_ledger', 'mm_core_board_write', 'mm_core_ledger_write']);
             shadowEnabled = flags.mm_core_shadow !== false;
             coreChatEnabled = flags.mm_core_chat !== false;
             coreQueueEnabled = flags.mm_core_queue === true;
             coreBoardEnabled = flags.mm_core_board !== false;
             coreLedgerEnabled = flags.mm_core_ledger !== false;
             coreBoardWriteEnabled = flags.mm_core_board_write !== false;
+            coreLedgerWriteEnabled = flags.mm_core_ledger_write === true;
             setBoardWriteEnabled(!coreBoardWriteEnabled);
           } catch (e) {}
           const [settings, mode, ledgerState] = await Promise.all([getSettings(), getMode(), getLedger(msg.puzzle)]);
@@ -824,6 +853,15 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           await addChat(puzzle, 'me', msg.remaining === 0 ? '已清空盘面：放置 / 笔记 / X 全部清除。清空前的推理不再追问。' : `清空未完成：盘面还剩 ${msg.remaining ?? '?'} 格。`);
           await info('board.clear', { tabId, puzzle, remaining: msg.remaining, reset: true });
           sendResponse({ ok: true });
+          break;
+        }
+        case 'mm:core-ledger-write': {
+          const cur = await chrome.storage.local.get('mm_core_ledger_write');
+          const on = msg.on == null ? !cur.mm_core_ledger_write : !!msg.on;
+          await chrome.storage.local.set({ mm_core_ledger_write: on });
+          coreLedgerWriteEnabled = on;
+          await info('core.ledger.write.toggle', { tabId, on });
+          sendResponse({ ok: true, on });
           break;
         }
         case 'mm:core-board-write': {

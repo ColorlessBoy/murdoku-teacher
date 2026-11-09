@@ -5,7 +5,7 @@ import { E, COMMITTED } from '../events.js';
  * 旧账本的 asked/answered 细分仍由 legacy 管，core 先跟 unresolved 对齐。
  */
 export class LedgerProjection {
-  constructor() { this.questions = []; this.seq = 0; this.hasLedger = false; }
+  constructor() { this.questions = []; this.batches = []; this.seq = 0; this.hasLedger = false; }
 
   apply(event) {
     if (!event || event.status !== COMMITTED) return;
@@ -15,7 +15,12 @@ export class LedgerProjection {
       this.questions = (event.payload?.questions || []).map((q) => JSON.parse(JSON.stringify(q)));
       return;
     }
-    if (event.type === E.ledgerBatch) return;
+    if (event.type === E.ledgerBatch) {
+      this.hasLedger = true;
+      if (event.payload?.batch) this.batches.push(event.payload.batch);
+      if (this.batches.length > 600) this.batches.splice(0, this.batches.length - 600);
+      return;
+    }
     if (event.type === E.ledgerQuestion) {
       this.hasLedger = true;
       const q = event.payload?.question;
@@ -36,7 +41,7 @@ export class LedgerProjection {
       }
       return;
     }
-    if (event.type === E.ledgerCleared) { this.hasLedger = true; this.questions = []; return; }
+    if (event.type === E.ledgerCleared) { this.hasLedger = true; this.questions = []; this.batches = []; return; }
     if (event.type === E.reviewAccept) {
       for (const q of this.questions) if (q.status !== 'closed') { q.status = 'closed'; q.closedAt = event.ts; }
       return;
@@ -60,4 +65,6 @@ export class LedgerProjection {
   unresolved() { return this.questions.filter((q) => q.status !== 'closed'); }
 
   snapshot() { return this.questions.map((q) => ({ ...q, cells: (q.cells || []).map((c) => ({ ...c })) })); }
+
+  fullSnapshot() { return { questions: this.snapshot(), batches: this.batches.map((b) => JSON.parse(JSON.stringify(b))) }; }
 }

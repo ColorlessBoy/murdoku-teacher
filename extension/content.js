@@ -768,6 +768,14 @@
     const t = ta.value.trim();
     if (!t) return;
     ta.value = '';
+    if (t === '/coreledgerwrite' || String(t).startsWith('/coreledgerwrite ')) {
+      addMsg('you', t);
+      const arg = String(t).split(/\s+/)[1];
+      const on = arg === 'on' ? true : arg === 'off' ? false : undefined;
+      const r = await sendMsg({ type: 'mm:core-ledger-write', on });
+      addMsg('me', 'core ledger write ' + (r?.on ? '已开启（旧 ledger 写入关闭）' : '已关闭（旧 ledger 写入恢复）'), true);
+      return;
+    }
     if (t === '/coreboardwrite' || String(t).startsWith('/coreboardwrite ')) {
       addMsg('you', t);
       const arg = String(t).split(/\s+/)[1];
