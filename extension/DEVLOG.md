@@ -211,3 +211,7 @@
 ## 0.8.59
 - board 写入 cutover（mm_core_board_write flag）：旧 state board 写关闭，工具读 core board。
 - live：toggle on，core 100/old 100，E 步，无 divergence/错误。
+
+## 0.8.60
+- board 写入默认关闭；旧 state board 不再写；工具读 core board。
+- 保留 /coreboardwrite off 回退。

@@ -454,3 +454,10 @@ test/core/*.test.mjs
   - 老师继续 E 步；
   - 无 core.divergence / agent.failed/stale。
 - 旧 state board 写入关闭后，工具仍能读 core board。
+
+### 0.8.60 board 写入默认切断
+
+- `coreBoardWriteEnabled` 默认 true；启动时 `setBoardWriteEnabled(false)`。
+- `mm_core_board_write !== false` 才回退旧 board 写入。
+- 工具读盘 provider 仍由 core BoardProjection 提供。
+- 全量测试通过；flag 路径此前已 live。
