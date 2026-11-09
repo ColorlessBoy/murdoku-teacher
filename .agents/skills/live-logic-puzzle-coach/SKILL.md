@@ -144,6 +144,17 @@ The bundled panel is a chat, not a debug console:
 - `clearBoard` long-presses the clear button; never use reload as clear.
 - The game may persist some pieces but not all in-progress notation; localStorage `mg_hist` is the recovery source.
 
+## Murdoku UI highlight (verified)
+
+- Selecting a suspect changes only the portrait button (`border/outline: var(--select-primary)`); cell class/inline style/innerHTML/children/pseudo-elements, SVG, board root, body and all canvas `toDataURL()` stay unchanged.
+- The visible highlight is inline on the selected suspect's **candidate notes/cells**: `.grid-note-letter` gets `transform: scale(1.4); z-index: 10; filter: drop-shadow(<suspect color> 0 0 3px)`, plus cell inline `background` changes.
+- The highlighted cells are the suspect's candidate notes, **not** the clue's highlighted cells.
+- Clue spatial cells come from `puzzle.suspects[].analyzedKeywords[].data.cellIndices`. For C ("not in a corner") this is 31 room-corner cells, definition "位于两面墙交汇处的格子".
+- Identify the highlight by diffing `.grid-container.outerHTML`, or querying `.grid-note-letter` for inline `drop-shadow`/`scale(1.4)`.
+- Room/terrain: 5 rooms (entrance, barrels, island, walkway, desert); sand/path/water are terrain, not rooms.
+- Never prefilter occupiable objects by `objId`; click every clue-valid cell and let the game reject blocked cells.
+- F's "alone" and V's victim clue are area-composition constraints; they do **not** directly fix the island/barrels area.
+
 ## Consent and recovery
 
 - Never reload, replay, or clear the board without explicit consent; a reload can wipe in-progress notation.
@@ -169,6 +180,10 @@ The bundled panel is a chat, not a debug console:
 | Notation wiped by reload | Game does not persist all in-progress marks | Never reload without consent; restore from `mg_hist` |
 | Restore toggles notes | Per-cell note clicks toggle | Clear first; group notes by letter; X in one batch |
 | Highlight offset | Columns computed from 200 cells (`sqrt`=14) | Use 100 unique indices (10) |
+| User sees highlight but cell class diff is 0 | Highlight is inline on the selected suspect's notes/cells | Diff `.grid-container.outerHTML`; query `.grid-note-letter` inline `drop-shadow`/`scale(1.4)`; read clue cells from `analyzedKeywords[].data.cellIndices` |
+| Corner defined as the four board corners | Room corner = 2+ thick wall edges, incl. concave | Read the game's `analyzedKeywords` cellIndices; C has 31 corner cells |
+| Chair/bed candidate excluded as object | `objId` prefilter also removes occupiable objects | Click all clue-valid cells; let the game reject blocked cells |
+| F forced into island / V forced into barrels | "alone"/"victim" are area-composition constraints, not fixed areas | Do not write area-only candidates until the area is proven; prove room composition first |
 
 ## Checklists
 
