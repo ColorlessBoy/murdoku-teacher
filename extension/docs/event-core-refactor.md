@@ -395,3 +395,14 @@ test/core/*.test.mjs
 - 约 50 秒后老师回复 A 步，57 notes，placeholder 恢复。
 - 本轮未触发 65s 超时。
 - 延迟接近超时阈值，发布前仍需优化首轮工具/文本轮次。
+
+### 0.8.56 clear/new live 回归
+
+- `/clear`：盘面 notes → 0；
+- `/new logs`：
+  - session gate `new/request → new/started → auto/started`，无 rejected；
+  - 自动开场老师 B 步，盘面 3 notes；
+  - 欢迎语 + B 文本正常；
+  - `core.divergence`、`agent.failed/stale` 为空；
+  - 45 秒内完成，无 fallback。
+- 说明 clearDone、auto-start、LLM binding、keepalive 在清盘/新会话路径可用。

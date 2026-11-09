@@ -182,3 +182,6 @@
 
 ## 0.8.56 live
 - thinking placeholder 正常显示/恢复；accept 约 50s 后回复 A 步，57 notes。
+
+## 0.8.56 clear/new regression
+- /clear → 0 notes；/new logs → 3 notes + B auto-start；无 divergence/失败；45s。
