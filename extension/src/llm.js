@@ -30,6 +30,18 @@ export function extractJson(text) {
   return null;
 }
 
+
+export function parseXmlToolCalls(text) {
+  const calls = [];
+  let cleaned = String(text || '');
+  cleaned = cleaned.replace(/<tool_call>\s*([A-Za-z0-9_]+)\s*(\{[\s\S]*?\})\s*<\/tool_call>/g, (m, name, args) => {
+    try { JSON.parse(args); } catch (e) { return m; }
+    calls.push({ id: `call_xml_${calls.length}_${Date.now().toString(36)}`, type: 'function', function: { name, arguments: args } });
+    return '';
+  });
+  return { text: cleaned.trim(), calls };
+}
+
 export async function callLLM({ messages, settings, expectJson = true, timeoutMs = 120000, session, puzzle, tools }) {
   session = session || 'ses_' + Date.now().toString(36);
   const s = normalizeSettings(settings);
@@ -82,9 +94,18 @@ export async function callLLM({ messages, settings, expectJson = true, timeoutMs
     throw err;
   }
   const message = data?.choices?.[0]?.message || {};
-  const text = message?.content ?? data?.choices?.[0]?.text ?? '';
+  let text = message?.content ?? data?.choices?.[0]?.text ?? '';
   const reasoning = message?.reasoning_content || message?.reasoning || '';
-  const toolCalls = message?.tool_calls || null;
+  let toolCalls = message?.tool_calls || null;
+  if (!toolCalls && typeof text === 'string' && text.includes('<tool_call>')) {
+    const parsed = parseXmlToolCalls(text);
+    if (parsed.calls.length) {
+      toolCalls = parsed.calls;
+      text = parsed.text;
+      message.tool_calls = toolCalls;
+      message.content = text;
+    }
+  }
   const usage = data?.usage || null;
   await info('llm.response', { text, reasoning: reasoning ? reasoning.slice(0, 4000) : '', toolCalls: toolCalls ? toolCalls.length : 0, usage, model: data?.model, puzzle });
   let json = null;

@@ -293,3 +293,7 @@
 ## 0.8.72
 - 真实教师模型在长上下文下超过 60 秒，扩展 abort；LLM timeout 60s→120s，content thinking 65s→125s。
 - 真实交互已验证到 B/E/G/D/H 五步及 H 质疑/修正；端点恢复后继续。
+
+## 0.8.73
+- 兼容 OpenCode/DeepSeek 返回的 <tool_call>name{...}</tool_call> 文本工具调用；
+- 转换为 OpenAI tool_calls，教师可继续真实落子；新增 llm-xml 单测。
