@@ -46,6 +46,7 @@ node scripts/e2e-real-models.mjs
 
 - 教学：真实教师/学生多轮交互后，游戏出现 `CASE SOLVED`；
 - 考试：全新 profile；真实学生模型给出完整解并落子；真实教师模型审出 `VALID`；游戏 `CASE SOLVED`。
+- 如果第一次提交未通关，harness 会把真实教师审计反馈交给学生模型修正，最多重试一次；没有 mock 答案。
 
 ## 注意
 

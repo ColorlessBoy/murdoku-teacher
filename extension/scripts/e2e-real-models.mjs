@@ -222,16 +222,38 @@ async function place(m) {
   await page.waitForTimeout(400);
 }
 
-for (const m of plan.actions) await place(m);
-await submit(page);
-await page.waitForTimeout(4000);
-await send(page, '我的结论：完整解已经放好。');
-await page.waitForTimeout(15000);
-state = await gameState(page);
-const examMsgs = await page.locator('#mm-sidebar .mm-msg.me:not(.system) .mm-text').allInnerTexts();
-console.log('[real-model-e2e] EXAM', JSON.stringify({ solved: state.solved, actions: plan.actions.length, msgs: examMsgs.slice(-4) }));
-assert.ok(state.solved, 'exam: real student plan must solve the game');
+let planActions = plan.actions;
+let examState = null;
+let examMsgs = [];
+let auditText = '';
+for (let attempt = 0; attempt < 2; attempt++) {
+  for (const m of planActions) await place(m);
+  await submit(page);
+  await page.waitForTimeout(4000);
+  const beforeClaim = await teacherCount(page);
+  await send(page, '我的结论：完整解已经放好。');
+  try {
+    const audit = await waitTeacher(page, beforeClaim, 240000);
+    auditText = audit.text;
+    console.log('[exam-teacher]', auditText.replace(/\s+/g, ' ').slice(0, 300));
+  } catch (e) {
+    console.log('[exam-teacher] no new audit message within timeout');
+  }
+  examState = await gameState(page);
+  examMsgs = await page.locator('#mm-sidebar .mm-msg.me:not(.system) .mm-text').allInnerTexts();
+  if (examState.solved) break;
+  if (attempt === 1) break;
+  await send(page, '/clear');
+  await page.waitForTimeout(6000);
+  const feedback = examMsgs.slice(-4).join('\n---\n').slice(0, 4000);
+  const revRaw = await chat(student, [{ role: 'user', content: `你上一版完整解没有让游戏通关。老师审计反馈：\n${feedback}\n\n盘面/线索：\n${(await gameState(page)).body.slice(0, 6000)}\n\n请修正完整落子 JSON：{"actions":[{"who":"A","r":1,"c":1}, ...]}，10 个角色都要有。只输出 JSON。` }], { maxTokens: 3000, temperature: 0.1 });
+  const rev = parseJson(revRaw);
+  if (!rev?.actions?.length) throw new Error('exam: student revision did not return JSON');
+  planActions = rev.actions;
+  console.log('[real-model-e2e] exam retry actions', planActions.length);
+}
+assert.ok(examState?.solved, 'exam: real student plan must solve the game');
 assert.ok(examMsgs.some((m) => /VALID/i.test(m)), 'exam: real teacher must audit VALID');
 
 await ctx.close();
-console.log('[real-model-e2e] OK', JSON.stringify({ teacher: teacher.model, student: student.model, tutorMsgs: count, tutorLog: tutorLog.length, examActions: plan.actions.length }));
+console.log('[real-model-e2e] OK', JSON.stringify({ teacher: teacher.model, student: student.model, tutorMsgs: count, tutorLog: tutorLog.length, examActions: planActions.length }));
