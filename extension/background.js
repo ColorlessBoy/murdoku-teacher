@@ -8,6 +8,7 @@ import { toolsForMode, execTool } from './src/tools.js';
 import { buildMessages } from './src/prompt.js';
 import { ShadowCore } from './src/core/shadow.js';
 import { E } from './src/core/events.js';
+import { initSession, reduceSession, PHASE } from './src/core/session-machine.js';
 import { recordChanges, answerQuestion, closeQuestion, getLedger, ledgerText, closeAllUnresolved, clearLedger, markAsked } from './src/ledger.js';
 
 const SETTINGS_KEY = 'mm_settings';
@@ -80,6 +81,20 @@ async function processQueue(puzzle) {
   await handleBoardChanges(next);
 }
 
+
+const sessionMachines = new Map();
+
+function sessionDispatch(puzzle, type, payload = {}) {
+  const st = sessionMachines.get(puzzle) || initSession();
+  const r = reduceSession(st, { type, ...payload });
+  sessionMachines.set(puzzle, r.state);
+  info('core.session.transition', {
+    puzzle, type, phase: r.state.phase,
+    effects: r.effects.map((e) => e.type),
+    rejected: r.rejected ? r.rejected.reason : null,
+  });
+  return r;
+}
 
 const shadows = new Map();
 let shadowEnabled = true;
@@ -500,6 +515,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           const helloEpoch = await getEpoch(msg.puzzle);
           await sendToTab(tabId, { type: 'mm:epoch', epoch: helloEpoch });
           shadowStart(msg.puzzle, { board: msg.board, chat, title: msg.title });
+          if (!sessionMachines.has(msg.puzzle)) sessionMachines.set(msg.puzzle, initSession({ phase: PHASE.active, sessionId: msg.puzzle + ':hello' }));
           sendResponse({ ok: true, epoch: helloEpoch, settings: { ...settings, apiKey: settings.apiKey ? '«saved»' : '' }, mode, chat, ledger: ledgerState });
           await info('content.hello', { tabId, puzzle: msg.puzzle, hasKey: !!settings.apiKey, mode });
           break;
@@ -571,9 +587,11 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         case 'mm:clear-start': {
           const pz = msg.puzzle || 'unknown';
           const ce = await bumpEpoch(pz);
+          sessionDispatch(pz, 'clear/request', { token: String(ce) });
           await clearQueue(pz);
           await closeAllUnresolved(pz, 'board_cleared');
           await resetBoardState(pz);
+          sessionDispatch(pz, 'clear/boardDone', { token: String(ce) });
           shadowStart(pz, { board: [], chat: await getChat(pz), title: 'cleared' });
           if (tabId) await sendToTab(tabId, { type: 'mm:epoch', epoch: ce });
           await info('clear.start', { tabId, puzzle: pz, epoch: ce });
@@ -643,14 +661,17 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           await ensurePrep(puzzle, msg.board, msg.clues, settings);
           if (msg.clearLogs) await clearLogs();
           const newEpoch = await getEpoch(puzzle);
+          sessionDispatch(puzzle, 'new/request', { token: String(newEpoch) });
           await sendToTab(tabId, { type: 'mm:epoch', epoch: newEpoch });
           const welcome = '新会话已开始：聊天记录、账本和旧上下文已清空；盘面保留。' + (msg.clearLogs ? ' 日志已清空。' : '');
           await addChat(puzzle, 'me', welcome);
           const mode = await getMode();
           await sendToTab(tabId, { type: 'mm:pending', unresolved: 0 });
           const boardClean = Array.isArray(msg.board) && msg.board.length && !msg.board.some((c) => c.big || (c.notes || []).length || c.x);
+          sessionDispatch(puzzle, 'new/started', { token: String(newEpoch), sessionId: puzzle + ':' + newEpoch });
           if (mode === 'tutor' && boardClean) {
             await new Promise((r) => setTimeout(r, 2000));
+            sessionDispatch(puzzle, 'auto/started', {});
             await runAgent({ tabId, puzzle, board: msg.board, clues: msg.clues, changes: [], userText: null, ledger: await getLedger(puzzle), autoStart: true });
           }
           await info('session.new', { tabId, puzzle, clearLogs: !!msg.clearLogs });
