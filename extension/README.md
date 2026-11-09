@@ -31,7 +31,7 @@
 
 ## 发布说明
 
-[0.8.68 发布说明](docs/release-0.8.68.md)
+[0.8.69 发布说明](docs/release-0.8.68.md)
 
 ## 事件内核
 
@@ -50,28 +50,32 @@
 node --test test/*.test.mjs test/core/*.test.mjs
 ```
 
-当前：**85 pass / 0 fail**（含 core/session/projection/tool/turn/ledger/queue/llm 测试）。
+当前：**86 pass / 0 fail**（含 core/session/projection/tool/turn/ledger/queue/llm 测试）。
 
 端到端（真实扩展 + 真实盘面 + mock LLM）：
 
 ```bash
 PLAYWRIGHT_CORE=/path/to/playwright-core/index.mjs \
 CHROME_PATH="/path/to/Google Chrome for Testing" \
-node scripts/e2e-mock.mjs
+node scripts/e2e-mock.mjs      # 教学两步 + challenge/exam/clear/new/eventlog
+node scripts/e2e-full.mjs      # 整题：连落 10 人 + SUBMIT → CASE SOLVED
+node scripts/e2e-queue.mjs     # 考试队列：第一批 audit，第二批排队
 ```
 
-覆盖教学 B/E、accept、challenge、exam、clear、new、eventlog。
+覆盖：教学 B/E、accept、challenge、exam、clear、new、eventlog；整题闭环；
+options 页/日志下载；考试 core queue。
 
 ## 发布状态
 
 - 三条用户主路径（教学 accept / challenge / 考试 audit）已通过 mock E2E；
+- 整题闭环已通过 full E2E：10 人落位、SUBMIT、游戏判定 `CASE SOLVED`；
 - 清盘、新会话、reload restore、board 100/100、thinking/keepalive 已 live/mock 验证；
-- 真实 API Key 的最新 0.8.66 live 回归仍需在加载了 Key 的 Chrome 手动 reload 后执行；
+- 真实 API Key 的最新 0.8.69 live 回归仍需在加载了 Key 的 Chrome 手动 reload 后执行；
 - 已知限制：
   - 单轮模型延迟 30-50 秒；
-  - exam core queue 完整消费未自动验证；
-  - options 页/日志下载需手动回归；
-  - ledger write、queue write 仍为 flag。
+  - options 页/日志下载已由 E2E 覆盖，仍建议 live 手动复核；
+  - 旧 storage 双写保留作为 fallback；
+  - 事件日志 cap 1200/关卡，未做 30 天归档。
 
 ## 隐私
 

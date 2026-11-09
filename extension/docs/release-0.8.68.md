@@ -6,7 +6,7 @@
 2. 找到「墨墨 · Murdoku 陪练」
 3. 点「重新加载」
 4. 刷新 Murdoku 页面
-5. badge 应为 `v0.8.68`
+5. badge 应为 `v0.8.69`
 
 ## 本版核心
 
@@ -35,14 +35,15 @@
 
 ## 自动验证
 
-- `node --test test/*.test.mjs test/core/*.test.mjs`：85 pass。
+- `node --test test/*.test.mjs test/core/*.test.mjs`：86 pass。
 - mock E2E：B → accept E → challenge → exam INVALID → clear → new → eventlog 65。
-- options：设置页、日志下载 129 条。
+- 整题 E2E：教学连落 10 人 → SUBMIT → 游戏判定 `CASE SOLVED`（`FULL E2E OK calls 20 turns 10`）。
+- options：设置页、日志下载 121 条。
 - exam queue：第一批 audit INVALID，第二批排队，模型只调一次；默认 flag 下通过。
 
 ## 已知限制
 
-- 真实 API Key 的 0.8.68 live 回归需在重载后的主 Chrome 跑；
+- 真实 API Key 的 0.8.69 live 回归需在重载后的主 Chrome 跑；
 - 单轮模型延迟 30–50 秒；
 - 旧 storage 双写仍保留作为 fallback；
 - 事件日志 cap 1200/关卡，未做 30 天归档。

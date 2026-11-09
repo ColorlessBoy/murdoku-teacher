@@ -275,3 +275,8 @@
 ## 0.8.69
 - tool_call 同消息 text fast path；mock E2E calls 11→8。
 - prompt 要求同一条回复给解释。
+
+## 0.8.69 full-puzzle e2e
+- 新增 `scripts/e2e-full.mjs`：真扩展 + 真迷你高尔夫盘面 + mock LLM，按教案 solution 连落 10 人、逐步接受、点 `SUBMIT`，游戏判定 `CASE SOLVED`（Elyana → Valeria）。
+- 结果：`FULL E2E OK calls 20 turns 10`；补上此前 mock E2E 只跑两步的教学缺口。
+- 首次进入的 `Welcome, detective` 教学弹窗用真实 `Skip` 关闭，不绕过点击屏障。
