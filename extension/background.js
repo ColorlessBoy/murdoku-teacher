@@ -6,6 +6,7 @@ import { mergeBatches } from './src/queue.js';
 import { tighten, condense } from './src/format.js';
 import { toolsForMode, execTool } from './src/tools.js';
 import { buildMessages } from './src/prompt.js';
+import { ShadowCore } from './src/core/shadow.js';
 import { recordChanges, answerQuestion, closeQuestion, getLedger, ledgerText, closeAllUnresolved, clearLedger, markAsked } from './src/ledger.js';
 
 const SETTINGS_KEY = 'mm_settings';
@@ -79,6 +80,61 @@ async function processQueue(puzzle) {
 }
 
 
+const shadows = new Map();
+let shadowEnabled = true;
+
+function shadowFor(puzzle) {
+  let sh = shadows.get(puzzle);
+  if (!sh) {
+    sh = new ShadowCore(puzzle, { onDivergence: (d) => warn('core.divergence', d) });
+    shadows.set(puzzle, sh);
+  }
+  return sh;
+}
+
+function shadowStart(puzzle, opts = {}) {
+  if (!shadowEnabled) return;
+  try {
+    shadowFor(puzzle).start(opts);
+    info('core.shadow.start', { puzzle, board: (opts.board || []).length, chat: (opts.chat || []).length });
+  } catch (e) { warn('core.shadow.start_failed', { puzzle, message: e.message }); }
+}
+
+function shadowAppendChat(puzzle, role, text) {
+  if (!shadowEnabled) return;
+  const sh = shadows.get(puzzle);
+  if (!sh || !sh.session) return;
+  try { sh.appendChat(role, text); } catch (e) { warn('core.shadow.chat_failed', { puzzle, message: e.message }); }
+}
+
+function shadowObserveChat(puzzle, chat) {
+  if (!shadowEnabled) return;
+  const sh = shadows.get(puzzle);
+  if (!sh || !sh.session) return;
+  try { sh.observeChat(chat); } catch (e) { warn('core.shadow.chat_failed', { puzzle, message: e.message }); }
+}
+
+function shadowSyncBoard(puzzle, board, chat) {
+  if (!shadowEnabled) return;
+  try {
+    const sh = shadowFor(puzzle);
+    const projected = sh.board ? sh.board.snapshot().length : 0;
+    if (!sh.session || (projected === 0 && Array.isArray(board) && board.length)) {
+      sh.start({ board, chat, title: 'board-sync' });
+      info('core.shadow.sync', { puzzle, board: (board || []).length });
+      return;
+    }
+    sh.observeBoard(board, []);
+  } catch (e) { warn('core.shadow.board_failed', { puzzle, message: e.message }); }
+}
+
+function shadowObserveBoard(puzzle, board, changes) {
+  if (!shadowEnabled) return;
+  const sh = shadows.get(puzzle);
+  if (!sh || !sh.session) return;
+  try { sh.observeBoard(board, changes); } catch (e) { warn('core.shadow.board_failed', { puzzle, message: e.message }); }
+}
+
 async function getSettings() {
   const { [SETTINGS_KEY]: s = {} } = await chrome.storage.local.get(SETTINGS_KEY);
   return normalizeSettings(s);
@@ -121,6 +177,8 @@ async function addChat(puzzle, role, text) {
   chat.push({ role, text, ts: Date.now() });
   if (chat.length > 300) chat.splice(0, chat.length - 300);
   await chrome.storage.local.set({ [key]: chat });
+  shadowAppendChat(puzzle, role, text);
+  shadowObserveChat(puzzle, chat);
 }
 
 async function clearChat(puzzle) {
@@ -361,6 +419,7 @@ async function handleBoardChanges({ tabId, puzzle, board, changes, clues, title 
   const mode = await getMode();
   if (puzzle) chrome.storage.local.set({ [LAST_PUZZLE_KEY]: puzzle });
   await recall(puzzle, { title, clues, board });
+  shadowObserveBoard(puzzle, board, changes);
   const remaining = Array.isArray(board) ? board.filter((c) => c.big || (c.notes || []).length || c.x).length : -1;
   const allEmpty = Array.isArray(changes) && changes.length > 0 &&
     changes.every((c) => c.after && !c.after.big && !(c.after.notes || []).length && !c.after.x);
@@ -405,11 +464,13 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       switch (msg?.type) {
         case 'mm:hello': {
           const [settings, mode, chat, ledgerState] = await Promise.all([getSettings(), getMode(), getChat(msg.puzzle), getLedger(msg.puzzle)]);
+          try { const sh = await chrome.storage.local.get('mm_core_shadow'); shadowEnabled = sh.mm_core_shadow !== false; } catch (e) {}
           if (msg.puzzle) chrome.storage.local.set({ [LAST_PUZZLE_KEY]: msg.puzzle });
           await recall(msg.puzzle, { title: msg.title, clues: msg.clues, board: msg.board });
           await ensurePrep(msg.puzzle, msg.board, msg.clues, settings);
           const helloEpoch = await getEpoch(msg.puzzle);
           await sendToTab(tabId, { type: 'mm:epoch', epoch: helloEpoch });
+          shadowStart(msg.puzzle, { board: msg.board, chat, title: msg.title });
           sendResponse({ ok: true, epoch: helloEpoch, settings: { ...settings, apiKey: settings.apiKey ? '«saved»' : '' }, mode, chat, ledger: ledgerState });
           await info('content.hello', { tabId, puzzle: msg.puzzle, hasKey: !!settings.apiKey, mode });
           break;
@@ -484,6 +545,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           await clearQueue(pz);
           await closeAllUnresolved(pz, 'board_cleared');
           await resetBoardState(pz);
+          shadowStart(pz, { board: [], chat: await getChat(pz), title: 'cleared' });
           if (tabId) await sendToTab(tabId, { type: 'mm:epoch', epoch: ce });
           await info('clear.start', { tabId, puzzle: pz, epoch: ce });
           sendResponse({ ok: true, epoch: ce });
@@ -504,6 +566,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           await recall(puzzle, { title: msg.title, clues: msg.clues, board: msg.board });
           const settings = await getSettings();
           await ensurePrep(puzzle, msg.board, msg.clues, settings);
+          shadowSyncBoard(puzzle, msg.board, await getChat(puzzle));
           sendResponse({ ok: true });
           break;
         }
@@ -546,6 +609,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           await clearFacts(puzzle);
           await resetBoardState(puzzle);
           await recall(puzzle, { title: msg.title, clues: msg.clues, board: msg.board });
+          shadowStart(puzzle, { board: msg.board, chat: [], title: msg.title });
           const settings = await getSettings();
           await ensurePrep(puzzle, msg.board, msg.clues, settings);
           if (msg.clearLogs) await clearLogs();
