@@ -39,3 +39,12 @@ node scripts/e2e-mock.mjs
 产品路径是侧栏 ⚙ → `chrome.runtime.openOptionsPage`。  
 在 Playwright 独立 Chromium 里该调用没有被捕获为新 page，E2E 目前只记录、不判失败。  
 发布前需要手动回归：打开设置页，确认日志列表和“下载 JSON”。
+
+## 0.8.67 options
+
+- 侧栏 ⚙ 现在通过 `chrome.tabs.create(options.html)` 兜底打开设置页。
+- E2E 已能打开 options：
+  - title「墨墨 · Murdoku 陪练 · 设置」
+  - baseUrl/model 正确
+  - 下载按钮生成 JSON
+- 日志下载是**数组**，不是 `{logs}`；E2E 断言已修正。

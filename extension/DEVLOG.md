@@ -251,3 +251,7 @@
 
 ## 0.8.66 e2e options
 - 主链路 E2E3 通过；options openOptionsPage 在独立 Chromium 未被 Playwright 捕获，标记为手动回归。
+
+## 0.8.67
+- options 用 tabs.create 兜底；E2E 打开设置页、下载 JSON。
+- 修正日志下载 JSON 数组断言。

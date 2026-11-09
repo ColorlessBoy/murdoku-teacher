@@ -156,8 +156,9 @@ try {
   const dl = await dlPromise;
   const pth = await dl.path();
   const json = JSON.parse(fs.readFileSync(pth, 'utf8'));
-  console.log('download', dl.suggestedFilename(), 'logs', (json.logs || []).length);
-  assert.ok((json.logs || []).length > 0, 'downloaded logs');
+  const logs = Array.isArray(json) ? json : (json.logs || []);
+  console.log('download', dl.suggestedFilename(), 'logs', logs.length);
+  assert.ok(logs.length > 0, 'downloaded logs');
 } catch (e) {
   console.log('options test skipped/failed', e.message.split('\n')[0]);
 }
