@@ -212,6 +212,25 @@
   const sb = root.querySelector('#mm-sidebar');
   const logEl = root.querySelector('.mm-log');
   const ta = root.querySelector('.mm-composer textarea');
+  const taPlaceholder = ta.placeholder;
+  let thinkingTimer = null;
+  function setThinking(on) {
+    if (on) {
+      if (thinkingTimer) clearTimeout(thinkingTimer);
+      ta.placeholder = '墨墨正在思考…（通常 10-40 秒，最长 60 秒）';
+      if (changesState) changesState.textContent = '墨墨正在思考…';
+      thinkingTimer = setTimeout(() => {
+        thinkingTimer = null;
+        setThinking(false);
+        addMsg('me', '响应超时（超过 65 秒）。可以再发一次，或 /reload 重载扩展。', true);
+        if (changesState) changesState.textContent = '响应超时';
+        clientLog('assistant_timeout', {});
+      }, 65000);
+    } else {
+      if (thinkingTimer) { clearTimeout(thinkingTimer); thinkingTimer = null; }
+      ta.placeholder = taPlaceholder;
+    }
+  }
   const badgeEl = root.querySelector('.mm-pending');
   function setPending(n) {
     if (!badgeEl) return;
@@ -842,9 +861,13 @@
     addMsg('you', t, false, Date.now());
     if (owl) owl.classList.add('thinking');
     readBoard();
+    setThinking(true);
     sendMsg({
       type: 'mm:user-message', puzzle: PUZZLE, text: t, title: document.title,
       board: readBoardSafe(), changes: [], clues: clues(),
+    }).catch((e) => {
+      setThinking(false);
+      addMsg('me', '后台未响应：' + (e?.message || 'sendMessage failed'), true);
     });
   }
 
@@ -891,6 +914,7 @@
     }
     if (msg?.type === 'mm:pending') { setPending(msg.unresolved || 0); return; }
     if (msg?.type === 'mm:assistant') {
+      setThinking(false);
       if (owl) { owl.classList.remove('thinking'); owl.classList.add('happy'); setTimeout(() => owl.classList.remove('happy'), 650); }
       if (mascotEl) mascotEl.classList.remove('busy');
       if (changesState) changesState.textContent = '墨墨已回复';
