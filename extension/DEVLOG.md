@@ -79,3 +79,8 @@
 - Phase 3 session 状态机纯核心 + 7 条测试。
 - background shadow 记 `core.session.transition`，不接管 clear/new。
 - live transition 样本受 CDP 页面关闭影响，待重试。
+
+## 0.8.26
+- Phase 3 gate cutover：clear/new 先过 session 状态机，乱序/重复直接拒绝。
+- 旧副作用仍执行；effects 搬迁留到下一阶段。
+- live gate 复测待重试（CDP hang）。

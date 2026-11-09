@@ -185,3 +185,13 @@ test/core/*.test.mjs
 - `test/core/session-machine.test.mjs` 7 条全过。
 - background shadow：`core.session.transition` 日志（phase/effects/rejected），不接管行为。
 - live：attempted `/clear`→`/new`，CDP/page 在刷新后关闭，未拿到本轮 transition 样本；下一轮重试。
+
+### Phase 3 gate cutover
+
+- `/clear`、`/new` 现在先经过 session 状态机门控：
+  - clear 进行中 new → 直接拒绝；
+  - 重复 clear / stale token / 重复 new 被拒绝；
+  - 通过后才执行旧副作用。
+- 旧副作用（清盘/清 chat/epoch/auto-start）暂留，下一阶段再搬到 effects。
+- 单元测试 7 条全过。
+- live gate 复测受 CDP 页面挂起影响，待重试。
