@@ -461,3 +461,11 @@ test/core/*.test.mjs
 - `mm_core_board_write !== false` 才回退旧 board 写入。
 - 工具读盘 provider 仍由 core BoardProjection 提供。
 - 全量测试通过；flag 路径此前已 live。
+
+### Phase 4 ledger 写入 cutover（实现）
+
+- `src/ledger.js` 增加 `setLedgerBackend`；load/save/clear 可走 backend。
+- background backend 基于 `LedgerProjection.fullSnapshot`（questions+batches），旧 `mm_ledger_` 只在 core 未 hydrate 时 fallback。
+- `mm_core_ledger_write` 默认关闭；`/coreledgerwrite on|off`。
+- 全量测试通过。
+- live 0.8.61 复测失败：reload 后页面/扩展未就绪，`locator.fill` 30s 超时；不能宣称 live 通过。

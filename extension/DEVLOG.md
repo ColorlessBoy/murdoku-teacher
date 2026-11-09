@@ -215,3 +215,7 @@
 ## 0.8.60
 - board 写入默认关闭；旧 state board 不再写；工具读 core board。
 - 保留 /coreboardwrite off 回退。
+
+## 0.8.61
+- ledger 写入 backend cutover 实现（flag）。
+- 测试通过；live reload 后扩展未就绪，未拿到 live 样本。
