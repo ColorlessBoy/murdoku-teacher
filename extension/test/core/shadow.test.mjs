@@ -43,3 +43,21 @@ test('shadow session ends and restarts', () => {
   s.start({ board: [], chat: [] });
   assert.equal(s.session.status, 'active');
 });
+
+test('shadow records turn/step/llm/tool events and audits cleanly', () => {
+  const s = new ShadowCore('p1', { now: () => 1000 });
+  s.start({ board: [], chat: [] });
+  s.turnStart({ text: 'hi', mode: 'tutor' });
+  s.stepStart({ no: 1 });
+  s.llmRequest({ requestId: 'r1', round: 0, messageCount: 3 });
+  s.llmResponse({ requestId: 'r1', toolCalls: 1 });
+  s.toolCall({ toolId: 't1', requestId: 'r1', name: 'board_note', args: { r: 3, c: 4 } });
+  s.toolResult({ toolId: 't1', requestId: 'r1', name: 'board_note', ok: true, cell: { r: 3, c: 4 } });
+  s.stepEnd();
+  s.turnEnd();
+  assert.deepEqual(s.session.audit(), []);
+  const types = s.session.events.map((e) => e.type);
+  for (const t of ['turn/start', 'step/start', 'llm/request', 'llm/response', 'tool/call', 'tool/result', 'step/end', 'turn/end']) {
+    assert.ok(types.includes(t), t);
+  }
+});

@@ -22,6 +22,8 @@ export const E = {
   queueExpire: 'queue/expire',
   prepLoaded: 'prep/loaded',
   eventRejected: 'event/rejected',
+  llmRequest: 'llm/request',
+  llmResponse: 'llm/response',
   agentPreStep: 'agent/pre-step',
   agentRequest: 'agent/request',
   llmStream: 'llm/stream',

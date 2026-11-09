@@ -7,6 +7,7 @@ import { tighten, condense } from './src/format.js';
 import { toolsForMode, execTool } from './src/tools.js';
 import { buildMessages } from './src/prompt.js';
 import { ShadowCore } from './src/core/shadow.js';
+import { E } from './src/core/events.js';
 import { recordChanges, answerQuestion, closeQuestion, getLedger, ledgerText, closeAllUnresolved, clearLedger, markAsked } from './src/ledger.js';
 
 const SETTINGS_KEY = 'mm_settings';
@@ -105,6 +106,23 @@ function shadowAppendChat(puzzle, role, text) {
   const sh = shadows.get(puzzle);
   if (!sh || !sh.session) return;
   try { sh.appendChat(role, text); } catch (e) { warn('core.shadow.chat_failed', { puzzle, message: e.message }); }
+}
+
+function shadowSummary(puzzle) {
+  if (!shadowEnabled) return;
+  const sh = shadows.get(puzzle);
+  if (!sh || !sh.session) return;
+  try {
+    const snap = sh.snapshot();
+    info('core.shadow.summary', { puzzle, session: snap.session?.status, board: snap.board, chat: snap.chat, marks: snap.marks, audit: snap.audit });
+  } catch (e) { warn('core.shadow.summary_failed', { puzzle, message: e.message }); }
+}
+
+function shadowEvent(puzzle, type, payload = {}, meta = {}) {
+  if (!shadowEnabled) return;
+  const sh = shadows.get(puzzle);
+  if (!sh || !sh.session) return;
+  try { sh.appendEvent(type, payload, meta); } catch (e) { warn('core.shadow.event_failed', { puzzle, type, message: e.message }); }
 }
 
 function shadowObserveChat(puzzle, chat) {
@@ -264,6 +282,8 @@ async function runAgent({ tabId, puzzle, board, changes, userText, clues, ledger
   const chatNow = await getChat(puzzle);
   const brief = buildBrief(st, { focus, ledger, userText, chat: chatNow });
   const messages = buildMessages({ mode, brief, userText, puzzle, autoStart });
+  shadowEvent(puzzle, E.turnStart, { text: userText || '', mode, autoStart: !!autoStart });
+  shadowEvent(puzzle, E.stepStart, { no: 1 });
   await info('agent.run', { tabId, mode, puzzle, changes: changes?.length || 0, boardCells: boardNow.length, userText: userText || null, hasKey: !!settings.apiKey });
 
   if (!settings.apiKey) {
@@ -293,6 +313,8 @@ async function runAgent({ tabId, puzzle, board, changes, userText, clues, ledger
       }
       const reqEpoch = await getEpoch(puzzle);
       lastReqEpoch = reqEpoch;
+      const shadowReq = `req_${puzzle}_${round}_${Date.now()}`;
+      shadowEvent(puzzle, E.llmRequest, { round, messageCount: messages.length }, { requestId: shadowReq });
       await info('agent.request', { tabId, puzzle, epoch: reqEpoch, round });
       let payload;
       try {
@@ -309,6 +331,7 @@ async function runAgent({ tabId, puzzle, board, changes, userText, clues, ledger
         }
         throw e;
       }
+      shadowEvent(puzzle, E.llmResponse, { toolCalls: payload.toolCalls?.length || 0, textLength: String(payload.text || '').length, status: 'ok' }, { requestId: shadowReq });
       const afterReqEpoch = await getEpoch(puzzle);
       if (afterReqEpoch !== reqEpoch || afterReqEpoch !== runEpoch) {
         await info('agent.stale_discarded', { tabId, puzzle, epoch: runEpoch, nowEpoch: afterReqEpoch, stage: 'llm' });
@@ -325,7 +348,9 @@ async function runAgent({ tabId, puzzle, board, changes, userText, clues, ledger
           let args = {};
           try { args = JSON.parse(tc.function?.arguments || '{}'); } catch (e) {}
           if (String(tc.function?.name || '').startsWith('board_')) boardActions++;
+          shadowEvent(puzzle, E.toolCall, { name: tc.function?.name, args }, { toolId: tc.id, requestId: shadowReq });
           const out = await execTool(puzzle, tc.function?.name, args, tabId, runEpoch);
+          shadowEvent(puzzle, E.toolResult, { name: tc.function?.name, ok: !!out?.ok, cell: out?.cell || null, error: out?.error || null, action: tc.function?.name, content: out?.ok ? 'ok' : (out?.error || 'error') }, { toolId: tc.id, requestId: shadowReq });
           if (out?.ok && /^board_(note|place|x|erase)$/.test(String(tc.function?.name))) {
             const rr = Number(args.r), cc = Number(args.c);
             if (rr && cc) actionMarks.set(`${rr},${cc}`, { r: rr, c: cc, label: `R${rr}C${cc}`, kind: tc.function.name === 'board_x' ? 'excl' : tc.function.name === 'board_erase' ? 'ask' : 'cand' });
@@ -412,6 +437,10 @@ async function runAgent({ tabId, puzzle, board, changes, userText, clues, ledger
     await addChat(puzzle, 'me', text);
     await sendToTab(tabId, { type: 'mm:assistant', text, marks: [], verdict: null, system: true });
     await error('agent.failed', { tabId, code: e.code, message: e.message, detail: e.detail });
+  } finally {
+    shadowEvent(puzzle, E.stepEnd, { reason: 'done' });
+    shadowEvent(puzzle, E.turnEnd, { reason: 'done' });
+    shadowSummary(puzzle);
   }
 }
 

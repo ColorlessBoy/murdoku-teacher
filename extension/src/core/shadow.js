@@ -68,6 +68,43 @@ export class ShadowCore {
     return this;
   }
 
+  appendEvent(type, payload = {}, meta = {}) {
+    this.ensure();
+    return this._append(type, payload, meta);
+  }
+
+  turnStart({ text = '', mode = '' } = {}) {
+    return this.appendEvent(E.turnStart, { text, mode });
+  }
+
+  stepStart({ no = 1 } = {}) {
+    return this.appendEvent(E.stepStart, { no });
+  }
+
+  llmRequest({ requestId = null, round = 0, messageCount = 0 } = {}) {
+    return this.appendEvent(E.llmRequest, { round, messageCount }, { requestId });
+  }
+
+  llmResponse({ requestId = null, toolCalls = 0, textLength = 0, status = 'ok' } = {}) {
+    return this.appendEvent(E.llmResponse, { toolCalls, textLength, status }, { requestId });
+  }
+
+  toolCall({ toolId = null, requestId = null, name = '', args = {} } = {}) {
+    return this.appendEvent(E.toolCall, { name, args }, { toolId, requestId });
+  }
+
+  toolResult({ toolId = null, requestId = null, name = '', ok = false, cell = null, error = null } = {}) {
+    return this.appendEvent(E.toolResult, { name, ok, cell, error, action: name, content: ok ? 'ok' : (error || 'error') }, { toolId, requestId });
+  }
+
+  stepEnd({ reason = 'done' } = {}) {
+    return this.appendEvent(E.stepEnd, { reason });
+  }
+
+  turnEnd({ reason = 'done' } = {}) {
+    return this.appendEvent(E.turnEnd, { reason });
+  }
+
   end(reason = 'ended') {
     if (this.session) { const e = this.session.end(reason); if (e) this.host.apply(e); }
   }
