@@ -19,6 +19,11 @@ import { readFileSync, existsSync, mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, extname } from 'node:path'
 
+if (typeof WebSocket === 'undefined') {
+  console.error('需要 Node.js ≥ 22（全局 WebSocket）。当前版本: ' + process.version)
+  process.exit(1)
+}
+
 const argv = process.argv.slice(2)
 const arg = (name, fallback) => {
   const i = argv.indexOf('--' + name)
