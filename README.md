@@ -4,6 +4,17 @@
 
 当前唯一维护的方案是 **集成进 DSH 的侧边栏插件**（`dsh-webpane/`）：离线站挂在 DSH 自己的 origin 上，右侧栏 iframe 与 agent 同源，agent 可直接读棋盘 DOM、落子、打笔记、打叉、提交，并把进度镜像到本地 `progress/`（不依赖登录）。
 
+## 在线试玩（GitHub Pages）
+
+**寻宝 · The Treasure Hunt（24×24 竞赛关互动版）**
+
+### 👉 <https://colorlessboy.github.io/murdoku-teacher/>
+
+- 原题棋盘高清图 + 24×24 可点格子：笔记 / 打叉 / 橡皮 / 撤销 / 重做 / 操作记录
+- 24 条线索侧栏、答案判对（四档反馈）、6 级提示阶梯、进度自动保存
+- 非官方互动版：原题 by Manuel Garand（murdoku.com），美术 by Valentyna Bezdushna & Manuel Garand，署名与说明见页面底部
+- 源码在 `docs/contest/`；26 项 E2E 检测（`scripts/e2e-contest.mjs`），CI 每次推送自动跑
+
 ## 目录
 
 ```
@@ -62,6 +73,7 @@ plugin_manager install_bundle  →  target: /Users/penglingwei/Documents/murdoku
 - DSH 侧边栏路线可用：同源托管 + 每 session 隔离面板 + 本地存档（通关记录、`✓ 案件已破`、`progress/history.json` 不需要登录）；
 - 已通关并归档：海滩篝火、读书俱乐部、猪圈、24小时送货、Fresh Paint、迷你高尔夫（含完整 65 步台账）；
 - 旧 Chrome 扩展 + Playwright 路线已归档到 `archive/chrome-extension/`（见 `archive/README.md`），不再维护；
+- 竞赛关「寻宝」互动页已发布在 GitHub Pages：<https://colorlessboy.github.io/murdoku-teacher/>（源码 `docs/contest/`，CI 见 `.github/workflows/e2e-contest.yml`）；
 - 仓库不含游戏素材或答案文件；关卡数据来自 `.worktree/original-app/public/play_puzzles/`。
 
 ## License

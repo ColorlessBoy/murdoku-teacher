@@ -1,5 +1,8 @@
 # 寻宝 · The Treasure Hunt（非官方互动版）
 
+**在线玩（GitHub Pages）：<https://colorlessboy.github.io/murdoku-teacher/contest/>**
+
+
 这是把 **Murdoku Contest #1「The Treasure Hunt」** 原题 PDF 做成网页互动版的页面，用于在浏览器里查看棋盘、做笔记、打叉和核对答案坐标。
 
 ## 来源与版权（重要）
