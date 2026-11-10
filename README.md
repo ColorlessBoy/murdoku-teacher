@@ -6,16 +6,15 @@
 
 ## 在线试玩（GitHub Pages）
 
-**寻宝 · The Treasure Hunt（24×24 竞赛关互动版）**
+**寻宝 · The Treasure Hunt（24×24 竞赛关 · 单文件离线版镜像）**
 
 ### 👉 <https://colorlessboy.github.io/murdoku-teacher/>
 
-- 原题棋盘高清图 + 24×24 可点格子：笔记 / 打叉 / 橡皮 / 撤销 / 重做 / 操作记录
-- **三栏同页**：左栏 24 张原题 PDF 裁切立绘（密集网格）+ 选中线索中英同显；中栏棋盘尽量大；右栏动作 + 规则 + 答案提示
-- 答案判对（四档反馈）、6 级提示阶梯、撤销/重做/操作记录、进度自动保存
-- 同页排版：手机端**棋盘吸顶**、人物卡与答案在下方滚动；电脑端三栏，棋盘默认「适应窗口」
-- 非官方互动版：原题 by Manuel Garand（murdoku.com），美术 by Valentyna Bezdushna & Manuel Garand，署名与说明见页面底部
-- 源码在 `docs/contest/`；26 项 E2E 检测（`scripts/e2e-contest.mjs`），CI 每次推送自动跑
+- **完整还原原题交互**：24×24 棋盘、24 张角色立绘卡、中英切换、笔记 / X / 橡皮 / 撤销 / 提示 / 缩放 / 计时
+- **SUBMIT 判对**：23 位人物 + 宝藏全部放对后提交，弹出「找到宝藏 · R4 · C11」
+- 进度自动保存（localStorage），刷新不丢；响应式：电脑三栏、手机单栏（人物卡 4 列）
+- 单文件离线页面，无外部请求；原题 by Manuel Garand（murdoku.com · Murdoku Contest #1），美术 by Valentyna Bezdushna & Manuel Garand，页面 About 内附署名与官方链接
+- 源码在 `docs/contest/`；**22 项 E2E 闭环检测**（`scripts/e2e-contest.mjs`，含按内嵌全解走完整盘并提交判对），CI 每次推送自动跑
 
 ## 目录
 
@@ -48,8 +47,8 @@ progress/                    本地存档
 ├── lessons/<id>.jsonl|md     可回放教学记录
 └── archive/<id>.json         单文件归档（教完一局合并）
 
-contest 互动页                竞赛关「寻宝」(24×24)：原题棋盘图 + 24×24 笔记板 + 线索栏 + 答案判对
-                             （文件在 .worktree/original-app/public/play_puzzles/contest/，从右侧栏右下角金色按钮进入）
+contest 互动页                竞赛关「寻宝」(24×24)：官方单文件离线版（棋盘 + 立绘线索 + 笔记/打叉/撤销 + SUBMIT 判对）
+                             （文件在 docs/contest/ 与 .worktree/original-app/public/play_puzzles/contest/，从右侧栏右下角金色按钮进入）
 
 docs/                        产品与复盘
 archive/                     已放弃的旧路线（Chrome 扩展 + Playwright/CDP），仅参考
