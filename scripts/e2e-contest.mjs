@@ -293,6 +293,30 @@ async function main() {
     })`).then(JSON.parse)
     record('悬浮字：坐标补零 + 区域中英名 + 已知物件名', /^R01 · C01/.test(hover.c0) && /WOODS（树林）/.test(hover.c0) && /篝火（fire）/.test(hover.fire), hover)
 
+    // 3.8) 悬浮气泡：坐标 + 物件名（椅子/床/吊床/篝火…）
+    const bubble = await evalJS(`(() => {
+      const out = {}
+      const I = (r, c) => (r - 1) * 24 + c - 1
+      const hover = (r, c) => {
+        const el = document.querySelector('.cell[data-i="' + I(r, c) + '"]')
+        const b = el.getBoundingClientRect()
+        el.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, clientX: b.left + 10, clientY: b.top + 10 }))
+        const t = document.querySelector('.tip')
+        return { on: t.classList.contains('on'), text: t.textContent }
+      }
+      out.chair = hover(15, 13)
+      out.bed = hover(14, 15)
+      out.hammock = hover(5, 21)
+      out.fire = hover(10, 4)
+      out.object = hover(1, 1)
+      out.empty = hover(1, 3)
+      document.getElementById('grid').dispatchEvent(new PointerEvent('pointerleave'))
+      out.hidden = !document.querySelector('.tip').classList.contains('on')
+      return JSON.stringify(out)
+    })()`).then(JSON.parse)
+    record('悬浮气泡：椅子 / 床 / 吊床 显示坐标 + 物件名', bubble.chair.on && /R15C13 点/.test(bubble.chair.text) && /椅子（chair）/.test(bubble.chair.text) && /床（bed）/.test(bubble.bed.text) && /吊床（hammock）/.test(bubble.hammock.text), bubble.chair)
+    record('悬浮气泡：篝火 / 未配对物件 / 空格文案区分', bubble.fire.on && /篝火（fire）/.test(bubble.fire.text) && /物件（object）/.test(bubble.object.text) && !/物件/.test(bubble.empty.text) && bubble.hidden, { fire: bubble.fire.text, object: bubble.object.text, empty: bubble.empty.text })
+
     // 4) 中英切换
     const lang = await evalJS(`(() => {
       const out = {}

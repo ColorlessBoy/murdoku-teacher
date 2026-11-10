@@ -51,6 +51,8 @@ dialog{width:min(550px,calc(100vw - 24px));max-height:calc(100dvh - 30px);overfl
 .legend-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:4px 10px;font-size:12px;margin-top:6px}
 .legend-list b{font-weight:800}
 
+.tip{position:fixed;z-index:99;display:none;pointer-events:none;background:#1d1a14;color:#fff;font-size:12px;line-height:1.4;padding:4px 8px;border-radius:6px;box-shadow:0 2px 10px #0006;white-space:nowrap;max-width:90vw;overflow:hidden;text-overflow:ellipsis}
+.tip.on{display:block}
 </style></head>
 <body><div id="game"><aside id="left"><div id="case"><span id="title"></span><span class="casemeta"><select id="lang" aria-label="Language"><option value="en">English</option><option value="zh">简体中文</option></select><time id="clock">0:00</time></span></div><div class="callout" id="intro"></div><div class="callout" id="premise"></div><div id="cards" aria-label="Clue cards"></div><div id="splitter" title="拖动调整人物栏宽度" aria-label="Adjust sidebar width"></div></aside>
 <main id="field"><div id="viewport"><div id="board"><div class="axis r"></div><div class="axis c"></div><div id="grid" aria-label="Treasure Hunt board"></div></div></div><div class="status" id="status" role="status"></div><div id="zoom"><button id="minus" title="Zoom out">−</button><button id="fit" title="Fit board">100%</button><button id="plus" title="Zoom in">+</button></div></main>
@@ -65,9 +67,16 @@ const AREA_NAMES={i:'CABIN C',s:'WATER',g:'CLEARING',b:'BEACH',v:'CAVERN',k:'CLI
 const AREA_ZH={i:'小屋 C',s:'水域',g:'林中空地',b:'海滩',v:'洞穴',k:'悬崖',d:'码头',t:'酒馆',h:'小屋 B',a:'小屋 A',w:'树林',B:'单桅帆船 B',A:'单桅帆船 A',C:'单桅帆船 C',F:'护卫舰 A',G:'大帆船',J:'护卫舰 B'};
 const areaOf=i=>D.areas[Math.floor(i/sz)][i%sz];
 const OBJ_LINK={'Augustus':{type:'fire',cells:[[3,21],[10,4]]},'Linus':{type:'tree',cells:[[23,21]]},'Wilfred':{type:'pig',cells:[[14,23]]},'Quincy':{type:'shark',cells:[[20,1]]}};
+const OBJ_CELLS={"3,4": "chair", "15,13": "chair", "17,15": "chair", "17,22": "chair", "19,21": "chair", "19,22": "chair", "20,22": "chair", "21,16": "chair", "21,24": "chair", "1,5": "bed", "2,5": "bed", "14,15": "bed", "15,15": "bed", "22,14": "bed", "23,14": "bed", "1,23": "hammock", "5,21": "hammock", "10,1": "hammock", "10,2": "hammock", "20,6": "hammock", "3,21": "fire", "10,4": "fire", "23,21": "tree", "14,23": "pig", "20,1": "shark", "1,6": "shelf", "23,10": "flowers", "10,16": "rope", "18,10": "barrel"};
 const OBJ_ZH={fire:'篝火',tree:'树',flowers:'花丛',shark:'鲨鱼',sack:'麻袋',pig:'猪',tombstone:'墓碑',crate:'木箱',rope:'绳索',barrel:'木桶',shelf:'书架',shrub:'灌木',table:'桌子',boulder:'巨石',bed:'床',chair:'椅子',hammock:'吊床',door:'门',ship:'船'};
 const OBJ_AT={};
 for(const name in OBJ_LINK)for(const p of OBJ_LINK[name].cells)OBJ_AT[I(p[0],p[1])]=OBJ_LINK[name].type;
+for(const k in OBJ_CELLS){const [r,c]=k.split(',').map(Number);OBJ_AT[I(r,c)]=OBJ_CELLS[k];}
+const tipEl=document.createElement('div');tipEl.className='tip';document.body.appendChild(tipEl);
+function tipText(i){const [r,c]=rc(i),ar=areaOf(i),an=AREA_NAMES[ar]?AREA_NAMES[ar]+'（'+AREA_ZH[ar]+'）':'',k=getAt(i),t=OBJ_AT[i];let s='R'+r+'C'+c+' 点';if(k!==undefined)s+=' · '+C[k].n;else if(t)s+=' · '+OBJ_ZH[t]+'（'+t+'）';else if(blocked.has(i))s+=' · 物件（object）';if(an)s+=' · '+an;return s}
+$('grid').addEventListener('pointermove',e=>{const el=e.target.closest('.cell');if(!el){tipEl.classList.remove('on');return}tipEl.textContent=tipText(+el.dataset.i);tipEl.classList.add('on');tipEl.style.left=Math.min(innerWidth-230,e.clientX+14)+'px';tipEl.style.top=Math.min(innerHeight-44,e.clientY+16)+'px'});
+$('grid').addEventListener('pointerleave',()=>tipEl.classList.remove('on'));
+$('grid').addEventListener('pointerdown',()=>tipEl.classList.remove('on'));
 let linked=[],cands=[];
 function clearHighlight(){linked.forEach(i=>cells[i].classList.remove('linked'));cands.forEach(i=>cells[i].classList.remove('cand'));linked=[];cands=[]}
 function highlightClue(k){
@@ -171,7 +180,7 @@ function undo(){if(!history.length)return;redoStack.push(clone(S));S=history.pop
 function redo(){if(!redoStack.length)return;history.push(clone(S));S=redoStack.pop();hint=null;pushLog('redo',null);save();render()}
 $('x').onclick=()=>select('x');$('undo').onclick=undo;$('redo').onclick=redo;$('how').onclick=()=>how();
 $('note').onclick=()=>{if(lastCard===null){notify(tr('Select a character first.','先选一个角色。'));return}mode=lastCard;hint=null;render()};
-$('legend').onclick=()=>modal(tr('Legend','图例'),'<img class="legend-img" alt="Map legend" src="'+D.legend+'"><p>'+tr('Objects on the map are labelled in English. ','地图上的物件名是英文，对应中文：')+'</p><div class="legend-list">'+Object.keys(OBJ_ZH).map(k=>'<div><b>'+k+'</b> · '+OBJ_ZH[k]+'</div>').join('')+'</div>');
+$('legend').onclick=()=>modal(tr('Legend','图例'),'<img class="legend-img" alt="Map legend" src="'+D.legend+'"><p>'+tr('Hover a square to see its object name. ','鼠标悬停格子可查看该格物件名。')+'</p><p>'+tr('Paired objects: ','已配对物件：')+'椅子/床/吊床（可占用）+ 篝火/树/猪/鲨鱼/书架/花丛/绳索/木桶；其余物件显示「物件（object）」。</p><div class="legend-list">'+Object.keys(OBJ_ZH).map(k=>'<div><b>'+k+'</b> · '+OBJ_ZH[k]+'</div>').join('')+'</div>');
 $('log').onclick=()=>{const rows=actionLog.slice(-150).reverse().map(e=>'<div class="logrow"><span>'+fmtT(e.t)+'</span><span>'+tr(LOGEN[e.type]||e.type,LOGZH[e.type]||e.type)+(e.i===null?'':' · '+coord(e.i))+'</span></div>').join('');modal(tr('History','操作记录'),rows||'<p>'+tr('No actions yet.','还没有操作记录。')+'</p>')};
 $('hide').onclick=()=>{hideNotes=!hideNotes;$('grid').classList.toggle('hide-notes',hideNotes);render();notify(hideNotes?tr('Notes hidden','笔记已隐藏'):tr('Notes shown','笔记已显示'))};
 $('clear').onclick=()=>{modal(tr('Clear board?','清空棋盘？'),'<p>'+tr('All placements, notes and X marks will be cleared. You can undo this.','所有人物、笔记和叉号都会被清除。可以撤销。')+'</p><button class="action primary" id="clearNow">'+tr('Clear all','清空')+'</button>');$('clearNow').onclick=()=>{pushLog('clear',null);act(()=>{S=empty();mode=null;hint=null});$('dialog').close()}};
