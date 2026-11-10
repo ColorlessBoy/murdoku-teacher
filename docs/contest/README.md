@@ -27,3 +27,17 @@
 - `treasure-hunt-EN.pdf` — 原题 PDF（保留用于对照与署名）
 
 数据文件（棋盘图、线索、PDF）均为原题内容的转换，遵循上述版权说明使用。
+
+## 端到端（E2E）闭环检测
+
+页面带一套无头浏览器 E2E，覆盖：加载与资源、24×24 覆盖层几何对齐、线索完整性与原文一致性、笔记/叉/橡皮/撤销/隐藏/缩放、刷新持久化、答案判对（非法/错误/行对/接近/正确）、提示阶梯与记忆、清空、控制台零报错。
+
+```bash
+# 测仓库内页面（脚本自带静态服务器）
+node scripts/e2e-contest.mjs
+
+# 测线上页面
+node scripts/e2e-contest.mjs --url https://colorlessboy.github.io/murdoku-teacher/contest/
+```
+
+CI：`.github/workflows/e2e-contest.yml` 在推送 `docs/contest/**` 时自动跑；也可在 Actions 里手动触发并填入线上 URL 做线上回归。

@@ -1,0 +1,63 @@
+name: e2e-contest
+
+on:
+  push:
+    paths:
+      - 'docs/contest/**'
+      - 'scripts/e2e-contest.mjs'
+      - '.github/workflows/e2e-contest.yml'
+  pull_request:
+    paths:
+      - 'docs/contest/**'
+      - 'scripts/e2e-contest.mjs'
+  workflow_dispatch:
+    inputs:
+      url:
+        description: '被测页面 URL（留空则测仓库内 docs/contest）'
+        required: false
+        default: ''
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: 探测 Chrome
+        run: |
+          CHROME="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser || true)"
+          if [ -z "$CHROME" ]; then
+            echo "runner 上没有 Chrome，尝试安装" >&2
+            sudo apt-get update -qq && sudo apt-get install -y -qq chromium-browser || true
+            CHROME="$(command -v chromium-browser || command -v chromium || true)"
+          fi
+          echo "CHROME=$CHROME" >> "$GITHUB_ENV"
+          test -n "$CHROME"
+
+      - name: E2E（仓库内页面，自带静态服务器）
+        if: ${{ inputs.url == '' }}
+        run: node scripts/e2e-contest.mjs --chrome "$CHROME" --json e2e-report.json
+
+      - name: E2E（线上页面）
+        if: ${{ inputs.url != '' }}
+        run: node scripts/e2e-contest.mjs --url "${{ inputs.url }}" --chrome "$CHROME" --json e2e-report.json
+
+      - name: 上传报告
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-report
+          path: e2e-report.json
+          if-no-files-found: ignore
+
+      - name: 失败原因摘要
+        if: failure()
+        run: |
+          if [ -f e2e-report.json ]; then
+            node -e "const r=require('./e2e-report.json'); for (const c of r.cases.filter(c=>!c.ok)) console.log('FAIL ·', c.name, JSON.stringify(c.detail))"
+          fi
