@@ -194,7 +194,7 @@ async function main() {
         cells: q('#grid .cell').length,
         cards: q('#cards .card').length,
         portraits: q('#cards .portrait').length,
-        cell0: document.querySelector('.cell[data-i="0"]')?.title || '',
+        cell0: document.querySelector('.cell[data-i="0"]')?.getAttribute('aria-label') || '',
         threeCols: left.right <= field.left + 1 && field.right <= tools.left + 1,
         leftW: Math.round(left.width), fieldW: Math.round(field.width), toolsW: Math.round(tools.width),
         overflow: document.documentElement.scrollWidth - innerWidth,
@@ -214,7 +214,7 @@ async function main() {
     record('顶栏精简：无 logo / 无 back，语言与计时并排', basic.noLogo && basic.noBack && basic.langClockRow, { noLogo: basic.noLogo, noBack: basic.noBack, langClockRow: basic.langClockRow })
     record('右栏重构：笔记/打叉/橡皮/撤销/重做/记录/隐藏/清空 + 提示/提交/玩法', basic.toolsOk && basic.oldToolsGone, { toolsOk: basic.toolsOk, oldToolsGone: basic.oldToolsGone })
     record('侧栏可拖拽：splitter 存在', basic.splitter, null)
-    record('坐标补零：R01 · C01 与轴标 R01/C01 … R24/C24', basic.cell0.startsWith('R01 · C01') && basic.axisFirst === 'R01/C01' && basic.axisLast === 'R24/C24' && basic.submitDisabled === true, { cell0: basic.cell0, axisFirst: basic.axisFirst, axisLast: basic.axisLast })
+    record('坐标补零：R01C01 与轴标 R01/C01 … R24/C24', basic.cell0.startsWith('R01C01') && basic.axisFirst === 'R01/C01' && basic.axisLast === 'R24/C24' && basic.submitDisabled === true, { cell0: basic.cell0, axisFirst: basic.axisFirst, axisLast: basic.axisLast })
 
     // 2) 内嵌数据完整性
     const data = await evalJS(`(() => {
@@ -287,11 +287,11 @@ async function main() {
 
     // 3.7) 悬浮坐标 + 区域/物件名
     const hover = await evalJS(`JSON.stringify({
-      c0: document.querySelector('.cell[data-i="0"]').title,
-      fire: document.querySelector('.cell[data-i="' + ((3-1)*24+21-1) + '"]').title,
-      water: document.querySelector('.cell[data-i="' + ((16-1)*24+16-1) + '"]').title,
+      c0: document.querySelector('.cell[data-i="0"]').getAttribute('aria-label'),
+      fire: document.querySelector('.cell[data-i="' + ((3-1)*24+21-1) + '"]').getAttribute('aria-label'),
+      water: document.querySelector('.cell[data-i="' + ((16-1)*24+16-1) + '"]').getAttribute('aria-label'),
     })`).then(JSON.parse)
-    record('悬浮字：坐标补零 + 区域中英名 + 已知物件名', /^R01 · C01/.test(hover.c0) && /WOODS（树林）/.test(hover.c0) && /篝火（fire）/.test(hover.fire), hover)
+    record('悬浮字：坐标补零 + 区域中英名 + 已知物件名', /^R01C01 点/.test(hover.c0) && /树林（WOODS）/.test(hover.c0) && /篝火（fire）/.test(hover.fire), hover)
 
     // 3.8) 悬浮气泡：坐标 + 物件名（椅子/床/吊床/篝火…）
     const bubble = await evalJS(`(() => {
@@ -326,7 +326,7 @@ async function main() {
     record('人物卡名字不换行（单行显示）', nameWrap.count === 24 && nameWrap.nowrap && nameWrap.oneLine, nameWrap)
 
     record('悬浮气泡：椅子 / 床 / 吊床 显示坐标 + 物件名', bubble.chair.on && /R15C13 点/.test(bubble.chair.text) && /椅子（chair）/.test(bubble.chair.text) && /床（bed）/.test(bubble.bed.text) && /吊床（hammock）/.test(bubble.hammock.text), bubble.chair)
-    record('悬浮气泡：篝火 / 鲨鱼(R13C1) / 花丛 / 木桶 / 未配对 / 空格文案区分', bubble.fire.on && /篝火（fire）/.test(bubble.fire.text) && /R13C1 点/.test(bubble.shark.text) && /鲨鱼（shark）/.test(bubble.shark.text) && /花丛（flowers）/.test(bubble.flowers.text) && /木桶（barrel）/.test(bubble.barrel.text) && /物件（object）/.test(bubble.object.text) && /物件（object）/.test(bubble.notShark.text) && !/物件/.test(bubble.empty.text) && bubble.hidden, { fire: bubble.fire.text, shark: bubble.shark.text, flowers: bubble.flowers.text, barrel: bubble.barrel.text, object: bubble.object.text })
+    record('悬浮气泡：篝火 / 鲨鱼(R13C1) / 花丛 / 木桶 / 未配对 / 空格文案区分', bubble.fire.on && /篝火（fire）/.test(bubble.fire.text) && /R13C01 点/.test(bubble.shark.text) && /鲨鱼（shark）/.test(bubble.shark.text) && /花丛（flowers）/.test(bubble.flowers.text) && /木桶（barrel）/.test(bubble.barrel.text) && /物件（object）/.test(bubble.object.text) && /物件（object）/.test(bubble.notShark.text) && !/物件/.test(bubble.empty.text) && bubble.hidden, { fire: bubble.fire.text, shark: bubble.shark.text, flowers: bubble.flowers.text, barrel: bubble.barrel.text, object: bubble.object.text })
 
     // 3.9) Shift+点击手动标注物件
     const tag = await evalJS(`(() => {
@@ -344,7 +344,32 @@ async function main() {
       out.bubble = document.querySelector('.tip').textContent
       return JSON.stringify(out)
     })()`).then(JSON.parse)
-    record('手动标注：Shift+点击物件格 → 选择图例类型 → 气泡生效并保存', tag.open && /R5C5/.test(tag.title) && tag.buttons === 19 && tag.closed && /木箱（crate）/.test(tag.bubble) && /crate/.test(tag.saved || ''), tag)
+    record('手动标注：Shift+点击物件格 → 选择图例类型 → 气泡生效并保存', tag.open && /R05C05/.test(tag.title) && tag.buttons === 19 && tag.closed && /木箱（crate）/.test(tag.bubble) && /crate/.test(tag.saved || ''), tag)
+
+    // 3.95) 待识别模式：78 个未识别物件高亮编号 + 点击标注 + 导出
+    const unk = await evalJS(`(() => {
+      const out = {}
+      document.getElementById('unknown-btn').click()
+      out.open = document.getElementById('dialog').open
+      out.title = document.getElementById('dialogTitle').textContent
+      out.unknown = document.querySelectorAll('.cell.unknown').length
+      out.badges = document.querySelectorAll('.ubadge').length
+      out.rows = document.querySelectorAll('.unklist .unkrow').length
+      out.hasCopy = !!document.getElementById('unk-copy')
+      out.hasCopyList = !!document.getElementById('unk-copy-list')
+      const el = document.querySelector('.cell.unknown')
+      const b = el.getBoundingClientRect()
+      el.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, button: 0, clientX: b.left + 5, clientY: b.top + 5 }))
+      out.tagOpen = document.getElementById('dialog').open
+      out.tagTitle = document.getElementById('dialogTitle').textContent
+      document.querySelector('#dialogBody .tag[data-t="boulder"]').click()
+      out.afterTag = document.querySelectorAll('.cell.unknown').length
+      out.saved = localStorage.getItem('murdoku-obj-manual-v1')
+      document.getElementById('unknown-btn').click()
+      out.off = document.querySelectorAll('.cell.unknown').length
+      return JSON.stringify(out)
+    })()`).then(JSON.parse)
+    record('待识别模式：未识别物件高亮编号、点击即可标注、可导出', unk.open && unk.unknown >= 76 && unk.badges === unk.unknown && unk.rows >= unk.unknown && unk.hasCopy && unk.hasCopyList && unk.tagOpen && /R\d+C\d+/.test(unk.tagTitle) && unk.afterTag === unk.unknown - 1 && /boulder/.test(unk.saved || '') && unk.off === 0, unk)
 
     // 4) 中英切换
     const lang = await evalJS(`(() => {
@@ -546,7 +571,7 @@ async function main() {
     const win = await dialog()
     await closeDialog()
     const wonState = await state()
-    record('SUBMIT 判对：找到宝藏 R04 · C11、won=true', win.open && /R0?4 · C0?11/.test(win.body) && /Treasure found|找到宝藏/.test(win.title) && wonState && wonState.s.won === true, { title: win.title, body: win.body.slice(0, 120) })
+    record('SUBMIT 判对：找到宝藏 R04 · C11、won=true', win.open && /R0?4C0?11/.test(win.body) && /Treasure found|找到宝藏/.test(win.title) && wonState && wonState.s.won === true, { title: win.title, body: win.body.slice(0, 120) })
 
     // 10) 刷新持久化
     await send('Page.reload'); await ready()
