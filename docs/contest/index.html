@@ -7,188 +7,148 @@
 <title>寻宝 · The Treasure Hunt · 非官方互动版 (Unofficial)</title>
 <style>
   :root {
-    --ink: #2a1f0e;
-    --ink-soft: rgba(60, 42, 16, .65);
-    --ink-dim: rgba(60, 42, 16, .45);
-    --line: rgba(160, 140, 100, .55);
-    --gold: #a8761d;
-    --note: #7a4a12;
-    --xmark: #a52a2a;
-    --sel: #b8860b;
-    --stamp: #f8f7fb;
-    --ok: #1d6b3a;
-    --bad: #8b1d1d;
+    --ink: #2a1f0e; --ink-soft: rgba(60,42,16,.72); --ink-dim: rgba(60,42,16,.48);
+    --line: rgba(160,140,100,.55); --gold: #a8761d; --note: #7a4a12; --xmark: #a52a2a;
+    --sel: #b8860b; --stamp: #f8f7fb; --ok: #1d6b3a; --bad: #8b1d1d; --paper: #eee7db;
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; height: 100%; }
   body {
-    color: var(--ink);
+    color: var(--ink); background: var(--paper) repeating-linear-gradient(2deg, rgba(0,0,0,0), rgba(0,0,0,0) 11px, rgba(120,80,40,.02) 11px, rgba(120,80,40,.02) 12px);
     font-family: Inter, -apple-system, "system-ui", "Segoe UI", Roboto, "PingFang SC", sans-serif;
     font-size: 14px; line-height: 1.55;
-    background: #eee7db repeating-linear-gradient(2deg, rgba(0,0,0,0), rgba(0,0,0,0) 11px, rgba(120,80,40,.02) 11px, rgba(120,80,40,.02) 12px);
   }
   .app { display: flex; flex-direction: column; height: 100%; }
   .topbar {
-    display: flex; align-items: center; gap: 10px; padding: 10px 14px;
-    background: linear-gradient(155deg, #f3ede2 0%, #eee8dc 55%, #e8e1d4 100%);
-    border-bottom: 2px solid var(--line);
-    box-shadow: 0 3px 0 rgba(0,0,0,.08);
-    flex-wrap: wrap;
+    display: flex; align-items: center; gap: 10px; padding: 8px 14px;
+    background: linear-gradient(155deg,#f3ede2 0%,#eee8dc 55%,#e8e1d4 100%);
+    border-bottom: 2px solid var(--line); flex-wrap: wrap; flex: 0 0 auto;
   }
-  .back {
-    width: 34px; height: 34px; display: grid; place-items: center; text-decoration: none;
-    color: var(--ink); background: var(--stamp); border: 2px solid #000; border-radius: 10px;
-    box-shadow: 3px 3px 0 rgba(0,0,0,.35); font-size: 18px; font-weight: 900; flex: 0 0 auto;
-  }
-  .topbar .titles { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
-  .topbar h1 { font-size: 16px; margin: 0; font-weight: 900; letter-spacing: .2px; }
-  .topbar .meta { font-size: 12px; color: var(--ink-soft); }
+  .back { width: 32px; height: 32px; display: grid; place-items: center; text-decoration: none; color: var(--ink);
+    background: var(--stamp); border: 2px solid #000; border-radius: 9px; box-shadow: 3px 3px 0 rgba(0,0,0,.35); font-size: 17px; font-weight: 900; }
+  .topbar .titles { display: flex; flex-direction: column; gap: 0; min-width: 0; }
+  .topbar h1 { font-size: 16px; margin: 0; font-weight: 900; }
+  .topbar .meta { font-size: 11.5px; color: var(--ink-soft); }
   .topbar .spacer { flex: 1; }
-  .pill {
-    font-size: 11px; font-weight: 800; padding: 3px 9px; border-radius: 9px;
-    border: 2px solid #000; background: var(--stamp); box-shadow: 2px 2px 0 rgba(0,0,0,.3);
-    color: var(--ink); text-decoration: none; white-space: nowrap;
+  .pill { font-size: 11px; font-weight: 800; padding: 3px 9px; border-radius: 9px; border: 2px solid #000;
+    background: var(--stamp); box-shadow: 2px 2px 0 rgba(0,0,0,.3); color: var(--ink); text-decoration: none; }
+  .main {
+    flex: 1; min-height: 0; display: grid; gap: 10px; padding: 10px 12px;
+    grid-template-columns: 236px minmax(0, 1fr) 300px;
   }
-  .pill:hover { background: #fffbea; }
-  .main { flex: 1; display: flex; min-height: 0; }
-  .left { flex: 1 1 60%; min-width: 0; display: flex; flex-direction: column; }
-  .right { flex: 1 1 40%; min-width: 260px; max-width: 420px; border-left: 2px solid var(--line); display: flex; flex-direction: column; min-height: 0; background: rgba(243,237,226,.55); }
-  .toolbar { display: flex; gap: 7px; padding: 9px 12px; flex-wrap: wrap; align-items: center; border-bottom: 1px solid rgba(160,140,100,.35); }
-  .stamp-btn {
-    border: 2px solid #000; background: var(--stamp); color: #191922; font-weight: 900; font-size: 13.5px;
-    padding: 6px 13px; border-radius: 11px; cursor: pointer; box-shadow: 3px 3px 0 rgba(0,0,0,.35);
-    transition: transform .06s ease; white-space: nowrap;
+  .panel {
+    background: linear-gradient(160deg,#f6f0e4,#eee6d6); border: 2px solid var(--line); border-radius: 12px;
+    box-shadow: 4px 4px 0 rgba(0,0,0,.16); display: flex; flex-direction: column; min-height: 0; overflow: hidden;
   }
-  .stamp-btn:hover { background: #fffbea; }
-  .stamp-btn:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 rgba(0,0,0,.35); }
-  .stamp-btn.on { background: #ffe9a8; }
-  .stamp-btn:disabled { opacity: .45; cursor: default; }
-  .stamp-btn.danger { color: var(--bad); }
-  .stamp-btn.small { padding: 3px 8px; font-size: 12px; border-radius: 9px; }
-  .state { font-size: 12px; color: var(--ink-dim); font-weight: 600; }
-  .spacer-grow { flex: 1; }
-  .zoom { display: flex; align-items: center; gap: 5px; }
-  .zoom .state { min-width: 38px; text-align: center; }
-  .board-wrap { flex: 1; overflow: auto; padding: 12px 14px 18px; }
-  .board-plate {
-    background: #fffdf6; border: 2px solid rgba(160,140,100,.55); border-radius: 12px;
-    box-shadow: 6px 6px 0 rgba(0,0,0,.25); padding: 8px; max-width: none; margin: 0 auto;
-  }
+  .panel-head { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-bottom: 1.5px solid rgba(160,140,100,.4); font-weight: 900; font-size: 13px; }
+  .panel-head .state { margin-left: auto; }
+  .state { font-size: 11.5px; color: var(--ink-dim); font-weight: 600; }
+
+  /* 左栏：选中线索 + 人物网格 */
+  .selected-clue { display: flex; gap: 8px; padding: 9px 10px; border-bottom: 1.5px solid rgba(160,140,100,.4); background: #fffdf6; min-height: 92px; }
+  .selected-clue .avatar { width: 46px; height: 46px; object-fit: cover; object-position: top center; flex: 0 0 auto;
+    border: 2px solid rgba(42,31,14,.55); border-radius: 8px; background: #fffdf6; }
+  .sc-body { min-width: 0; flex: 1; }
+  .sc-name { font-weight: 900; font-size: 13.5px; }
+  .sc-zh { font-size: 13px; font-weight: 700; color: var(--ink); line-height: 1.5; margin-top: 2px; }
+  .sc-en { font-size: 12.5px; color: rgba(60,42,16,.85); line-height: 1.5; margin-top: 2px; }
+  .sc-en::before { content: 'EN '; color: var(--gold); font-weight: 800; font-size: 10px; }
+  .char-grid { flex: 1; overflow: auto; padding: 8px; display: grid; gap: 6px; align-content: start;
+    grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .char-card { border: 2px solid rgba(160,140,100,.55); border-radius: 8px; background: #fffdf6; padding: 2px;
+    cursor: pointer; display: flex; flex-direction: column; align-items: stretch; gap: 1px; }
+  .char-card .avatar { width: 100%; height: 50px; object-fit: cover; object-position: top center; border-radius: 6px; display: block; }
+  .char-card .cname { font-size: 10px; font-weight: 800; text-align: center; line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--ink-soft); }
+  .char-card:hover { border-color: rgba(120,80,20,.8); }
+  .char-card.on { border-color: var(--sel); box-shadow: 0 0 0 2px rgba(184,134,11,.4); background: #fff7e2; }
+
+  /* 中栏：棋盘 */
+  .center { min-width: 0; min-height: 0; display: flex; flex-direction: column; }
+  .board-wrap { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; overflow: auto; padding: 8px; }
+  .board-plate { background: #fffdf6; border: 2px solid rgba(160,140,100,.55); border-radius: 12px;
+    box-shadow: 6px 6px 0 rgba(0,0,0,.22); padding: 6px; }
   .board { position: relative; width: 100%; }
   .board img { width: 100%; display: block; border-radius: 6px; }
   .cells { position: absolute; inset: 0; }
   .cell { position: absolute; border: 1px solid rgba(42,31,14,.05); cursor: pointer; display: flex; align-items: center; justify-content: center; overflow: hidden; }
   .cell:hover { background: rgba(184,134,11,.22); border-color: rgba(120,80,20,.5); }
+  .cell.flash { background: rgba(184,134,11,.6) !important; border-color: #8a6508 !important; }
   .cell .notes { display: flex; flex-wrap: wrap; align-content: center; justify-content: center; line-height: 1; pointer-events: none; }
-  .cell .notes span { font-size: 9px; font-weight: 900; color: var(--note); text-shadow: 0 0 2px #fff; }
-  .cell .x { font-size: 15px; font-weight: 900; color: var(--xmark); text-shadow: 0 0 2px #fff; pointer-events: none; }
-  .hint-row { padding: 0 14px 9px; color: var(--ink-dim); font-size: 11.5px; line-height: 1.65; }
-  .hint-row b { color: var(--ink-soft); }
-  .right h2 { margin: 0; font-size: 13px; padding: 9px 12px 3px; font-weight: 900; letter-spacing: .5px; }
-  .howto { margin: 4px 8px 6px; border: 1.5px solid rgba(160,140,100,.5); border-radius: 9px; background: linear-gradient(160deg,#f7f1e6,#efe7d8); font-size: 12.5px; }
-  .howto summary { list-style: none; cursor: pointer; padding: 7px 10px; font-weight: 900; font-size: 12.5px; display: flex; align-items: center; gap: 6px; }
+  .cell .notes span { font-size: clamp(6px, 1.1vw, 10px); font-weight: 900; color: var(--note); text-shadow: 0 0 2px #fff; }
+  .cell .x { font-size: clamp(10px, 1.9vw, 16px); font-weight: 900; color: var(--xmark); text-shadow: 0 0 2px #fff; pointer-events: none; }
+  .hint-row { padding: 0 4px 6px; color: var(--ink-dim); font-size: 11px; }
+
+  /* 右栏：动作 + 规则 + 答案 */
+  .right-panel { overflow: auto; }
+  .actions { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 6px; padding: 9px 9px 6px; }
+  .stamp-btn {
+    border: 2px solid #000; background: var(--stamp); color: #191922; font-weight: 900; font-size: 13px;
+    padding: 6px 8px; border-radius: 10px; cursor: pointer; box-shadow: 3px 3px 0 rgba(0,0,0,.32); white-space: nowrap;
+    transition: transform .06s ease;
+  }
+  .stamp-btn:hover { background: #fffbea; }
+  .stamp-btn:active { transform: translate(2px,2px); box-shadow: 1px 1px 0 rgba(0,0,0,.32); }
+  .stamp-btn.on { background: #ffe9a8; }
+  .stamp-btn:disabled { opacity: .45; cursor: default; }
+  .stamp-btn.danger { color: var(--bad); }
+  .stamp-btn.small { padding: 4px 6px; font-size: 12px; border-radius: 8px; }
+  .zoom-row { display: flex; align-items: center; gap: 6px; padding: 0 9px 6px; }
+  .zoom-row .state { min-width: 40px; text-align: center; }
+  .panel .state-row { display: flex; gap: 8px; padding: 0 10px 8px; flex-wrap: wrap; }
+  .howto { margin: 2px 8px 6px; border: 1.5px solid rgba(160,140,100,.5); border-radius: 9px; background: #fffdf6; font-size: 12px; }
+  .howto summary { list-style: none; cursor: pointer; padding: 7px 9px; font-weight: 900; font-size: 12.5px; display: flex; align-items: center; gap: 6px; }
   .howto summary::-webkit-details-marker { display: none; }
   .howto summary::before { content: '▸'; color: var(--gold); font-weight: 900; }
   .howto[open] summary::before { content: '▾'; }
-  .howto .body { padding: 0 10px 8px; color: var(--ink-soft); line-height: 1.65; }
+  .howto .body { padding: 0 9px 8px; color: var(--ink-soft); line-height: 1.65; font-size: 12px; }
   .howto .body b { color: var(--ink); }
-  .clues-head { display: flex; align-items: center; gap: 8px; padding: 9px 12px 3px; }
-  .clues-head h2 { padding: 0; margin: 0; }
-  .clues-head .stamp-btn { margin-left: auto; }
-  body.zh-only .clue .txt { display: none; }
-  .clues {
-    flex: 1; overflow: auto; padding: 2px 8px 12px;
-    display: grid; grid-template-columns: repeat(auto-fill, minmax(178px, 1fr)); gap: 8px; align-content: start;
-  }
-  .clue {
-    border: 1.5px solid rgba(160,140,100,.5); border-radius: 10px; padding: 8px 9px; margin: 0;
-    background: linear-gradient(160deg, #f7f1e6, #efe7d8); cursor: pointer;
-    display: flex; gap: 8px; align-items: flex-start; min-width: 0;
-  }
-  .clue .avatar {
-    width: 44px; height: 40px; object-fit: cover; object-position: top center; flex: 0 0 auto;
-    border: 2px solid rgba(42,31,14,.55); border-radius: 8px; background: #fffdf6;
-  }
-  .clue .body { min-width: 0; flex: 1; }
-  .clue:hover { border-color: rgba(120,80,20,.75); }
-  .clue.on { border-color: var(--sel); box-shadow: 0 0 0 2px rgba(184,134,11,.35); background: #fff7e2; }
-  .clue .name { font-weight: 900; font-size: 13.5px; display: flex; gap: 6px; align-items: baseline; }
-  .clue .name .ini { font-weight: 800; font-size: 10.5px; color: var(--ink-dim); }
-  .clue .txt-zh { color: var(--ink); font-size: 13.5px; font-weight: 700; margin-top: 3px; line-height: 1.55; }
-  .clue .txt { color: var(--ink-dim); font-size: 11.5px; margin-top: 2px; line-height: 1.5; }
-  .clue .txt::before { content: 'EN '; color: var(--gold); font-weight: 800; font-size: 9px; }
-  .clue.treasure { border-style: dashed; }
-  .answer { border-top: 2px solid var(--line); padding: 8px 12px; background: rgba(243,237,226,.8); }
+  .answer { border-top: 2px solid var(--line); padding: 9px 10px 12px; margin-top: auto; }
   .answer .row1 { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
-  .answer label { font-size: 12.5px; font-weight: 800; color: var(--ink-soft); }
-  .answer input {
-    width: 58px; background: #fffdf6; border: 2px solid #000; color: var(--ink);
-    border-radius: 8px; padding: 3px 7px; font-size: 12.5px; font-weight: 800; box-shadow: 2px 2px 0 rgba(0,0,0,.25);
-  }
+  .answer label { font-size: 12px; font-weight: 800; color: var(--ink-soft); }
+  .answer input { width: 62px; background: #fffdf6; border: 2px solid #000; color: var(--ink); border-radius: 8px;
+    padding: 4px 8px; font-size: 14px; font-weight: 800; box-shadow: 2px 2px 0 rgba(0,0,0,.22); }
   .answer .feedback { margin-top: 6px; font-size: 12.5px; line-height: 1.55; font-weight: 700; min-height: 18px; }
-  .answer .hintbox { margin-top: 6px; font-size: 12px; line-height: 1.6; color: var(--ink-soft); background: #fff7e2; border: 1.5px dashed rgba(160,140,100,.6); border-radius: 8px; padding: 6px 9px; display: none; }
+  .answer .hintbox { margin-top: 6px; font-size: 12px; line-height: 1.6; color: var(--ink-soft); background: #fff7e2;
+    border: 1.5px dashed rgba(160,140,100,.6); border-radius: 8px; padding: 6px 9px; display: none; }
   .answer .hintbox.on { display: block; }
-  .cell.flash { background: rgba(184,134,11,.6) !important; border-color: #8a6508 !important; }
+  .credit { flex: 0 0 auto; padding: 6px 14px; border-top: 2px solid var(--line); background: rgba(243,237,226,.95);
+    font-size: 11px; color: var(--ink-soft); line-height: 1.55; }
+  .credit b { color: var(--ink); } .credit a { color: #7a4a12; text-decoration: underline; } .credit .sep { color: var(--ink-dim); margin: 0 4px; }
+
+  /* 记录弹层 */
   .log-modal { position: fixed; inset: 0; background: rgba(24,16,8,.45); display: none; place-items: center; z-index: 60; }
   .log-modal.on { display: grid; }
-  .log-box {
-    width: min(540px, 92vw); max-height: 74vh; display: flex; flex-direction: column;
-    background: linear-gradient(160deg,#f7f1e6,#eee6d6); border: 2px solid #000; border-radius: 12px;
-    box-shadow: 6px 6px 0 rgba(0,0,0,.35);
-  }
+  .log-box { width: min(540px,92vw); max-height: 74vh; display: flex; flex-direction: column;
+    background: linear-gradient(160deg,#f7f1e6,#eee6d6); border: 2px solid #000; border-radius: 12px; box-shadow: 6px 6px 0 rgba(0,0,0,.35); }
   .log-head { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-bottom: 2px solid var(--line); font-weight: 900; font-size: 13px; }
   .log-head .state { margin-left: auto; }
   .log-list { overflow: auto; padding: 6px 8px 10px; }
-  .log-item { display: flex; gap: 8px; align-items: baseline; padding: 4px 5px; border-bottom: 1px dashed rgba(160,140,100,.35); cursor: pointer; font-size: 11.5px; }
+  .log-item { display: flex; gap: 8px; align-items: baseline; padding: 4px 5px; border-bottom: 1px dashed rgba(160,140,100,.35); cursor: pointer; font-size: 12px; }
   .log-item:hover { background: #fff7e2; }
   .log-item .lt { color: var(--ink-dim); font-variant-numeric: tabular-nums; min-width: 62px; font-weight: 600; }
-  .log-item .lm { flex: 1; color: var(--ink); font-weight: 700; }
-  .log-item .lc { color: var(--gold); font-weight: 800; min-width: 52px; text-align: right; }
-  .log-empty { color: var(--ink-dim); padding: 16px 6px; text-align: center; font-size: 11.5px; }
-  .credit {
-    padding: 8px 12px; border-top: 2px solid var(--line);
-    background: rgba(243,237,226,.92); font-size: 11px; color: var(--ink-soft); line-height: 1.6;
-  }
-  .credit b { color: var(--ink); }
-  .credit a { color: #7a4a12; text-decoration: underline; }
-  .credit .sep { color: var(--ink-dim); margin: 0 4px; }
-  @media (max-width: 760px) {
+  .log-item .lm { flex: 1; font-weight: 700; } .log-item .lc { color: var(--gold); font-weight: 800; min-width: 52px; text-align: right; }
+  .log-empty { color: var(--ink-dim); padding: 16px 6px; text-align: center; font-size: 12px; }
+
+  /* 手机端：棋盘吸顶，下边依次人物 / 动作+答案 */
+  @media (max-width: 900px) {
     html, body { height: auto; min-height: 100%; }
     .app { height: auto; min-height: 100%; }
-    .topbar { padding: 8px 10px; gap: 8px; position: static; }
+    .topbar { position: static; padding: 8px 10px; }
     .topbar .meta { display: none; }
-    .topbar h1 { font-size: 14px; }
-    .topbar .back { width: 30px; height: 30px; font-size: 16px; border-radius: 9px; }
-    .pill { font-size: 10px; padding: 2px 7px; }
-    .main { flex-direction: column; min-height: 0; }
-    .left {
-      flex: 0 0 auto; min-height: 0;
-      position: sticky; top: 0; z-index: 25; background: #eee7db;
-      box-shadow: 0 4px 10px rgba(0,0,0,.12);
-    }
-    .toolbar { flex-wrap: nowrap; overflow-x: auto; padding: 6px 8px; gap: 5px; -webkit-overflow-scrolling: touch; }
-    .toolbar .stamp-btn { padding: 5px 10px; font-size: 12px; }
-    .toolbar .state { display: none; }
-        .board-wrap { flex: 0 0 auto; overflow: visible; padding: 8px 10px 10px; }
-    .board-plate { padding: 4px; border-radius: 10px; box-shadow: 4px 4px 0 rgba(0,0,0,.22); }
-    .cell .notes span { font-size: clamp(5px, 1.6vw, 9px); }
-    .cell .x { font-size: clamp(9px, 2.8vw, 15px); }
-    .hint-row { display: none; }
-    .right { max-width: none; border-left: 0; border-top: 2px solid var(--line); flex: 0 0 auto; min-height: 0; }
-    .howto { margin: 8px 8px 4px; }
-    .right h2 { padding: 10px 12px 2px; }
-    .clues { overflow: visible; padding: 8px 8px 12px; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
-    .clue { margin: 0; padding: 7px 8px; flex-direction: column; align-items: stretch; gap: 5px; }
-    .clue .avatar { width: 100%; height: 64px; object-position: top center; }
-    .clue .txt-zh { font-size: 12.5px; }
-    .clue .txt { font-size: 10.5px; }
-    .answer { padding: 10px 12px 16px; }
-    .answer input { width: 76px; font-size: 16px; padding: 8px 10px; min-height: 42px; border-radius: 9px; }
-    .answer .row1 { gap: 8px; }
-    .answer .stamp-btn { padding: 8px 14px; font-size: 13.5px; }
-    .credit { font-size: 10px; padding: 8px 10px; }
-  }
-  .credit { font-size: 10px; padding: 8px 10px; }
+    .topbar h1 { font-size: 15px; }
+    .main { display: flex; flex-direction: column; padding: 8px; gap: 8px; min-height: 0; }
+    .center { position: sticky; top: 0; z-index: 25; background: var(--paper); padding: 4px 0 6px; box-shadow: 0 4px 10px rgba(0,0,0,.12); }
+    .board-wrap { overflow: visible; padding: 0; }
+    .panel { overflow: visible; }
+    .char-grid { grid-template-columns: repeat(4, minmax(0,1fr)); overflow: visible; padding: 8px; }
+    .char-card .avatar { height: 62px; }
+    .selected-clue { min-height: 0; }
+    .right-panel { overflow: visible; }
+    .actions { grid-template-columns: repeat(4, minmax(0,1fr)); }
+    .answer { padding-bottom: 16px; }
+    .answer input { width: 74px; font-size: 16px; padding: 7px 9px; min-height: 42px; }
+    .answer .stamp-btn { padding: 8px 12px; }
+    .credit { font-size: 10.5px; }
   }
 </style>
 </head>
@@ -204,26 +164,20 @@
     <a class="pill" href="treasure-hunt-EN.pdf" target="_blank" rel="noreferrer">PDF 原题</a>
   </div>
   <div class="main">
-    <div class="left">
-      <div class="toolbar">
-        <button class="stamp-btn on" id="mode-note">笔记</button>
-        <button class="stamp-btn" id="mode-x">打叉</button>
-        <button class="stamp-btn" id="mode-erase">橡皮</button>
-        <button class="stamp-btn" id="undo">撤销</button>
-        <button class="stamp-btn" id="redo">重做</button>
-        <button class="stamp-btn" id="log-btn">记录</button>
-        <button class="stamp-btn" id="toggle-hide">隐藏标记</button>
-        <button class="stamp-btn danger" id="reset">清空</button>
-        <span class="state" id="state"></span>
-        <span class="spacer-grow"></span>
-        <span class="zoom">
-          <button class="stamp-btn small" id="zoom-fit" title="适应窗口">适应</button>
-          <button class="stamp-btn small" id="zoom-out" title="缩小">－</button>
-          <span class="state" id="zoom-level">适应</span>
-          <button class="stamp-btn small" id="zoom-in" title="放大">＋</button>
-        </span>
+    <aside class="panel left-panel">
+      <div class="panel-head">人物 <span class="state" id="char-count"></span></div>
+      <div class="selected-clue">
+        <img class="avatar" id="sel-avatar" alt="" src="">
+        <div class="sc-body">
+          <div class="sc-name" id="sel-name">点一个立绘选择角色</div>
+          <div class="sc-zh" id="sel-zh">选中后这里显示完整中文线索。</div>
+          <div class="sc-en" id="sel-en"></div>
+        </div>
       </div>
-      <div class="board-wrap">
+      <div class="char-grid" id="char-grid"></div>
+    </aside>
+    <section class="center">
+      <div class="board-wrap" id="board-wrap">
         <div class="board-plate" id="board-plate">
           <div class="board">
             <img id="boardimg" src="board.png" alt="The Treasure Hunt 24x24 board">
@@ -231,41 +185,50 @@
           </div>
         </div>
       </div>
-      <div class="hint-row">
-        原题规则：基础 Murdoku 规则 · 这次没有凶手——找出宝藏坐标（ROW / COLUMN）即破案。
-        更多规则与图例见右侧「怎么玩」。<span class="state" id="save-state" style="margin-left:8px;"></span>
+      <div class="hint-row">点人物立绘 → 点棋盘格子做笔记；全部线索与规则在右栏。</div>
+    </section>
+    <aside class="panel right-panel">
+      <div class="actions">
+        <button class="stamp-btn on" id="mode-note">笔记</button>
+        <button class="stamp-btn" id="mode-x">打叉</button>
+        <button class="stamp-btn" id="mode-erase">橡皮</button>
+        <button class="stamp-btn" id="undo">撤销</button>
+        <button class="stamp-btn" id="redo">重做</button>
+        <button class="stamp-btn" id="log-btn">记录</button>
+        <button class="stamp-btn" id="toggle-hide">隐藏</button>
+        <button class="stamp-btn danger" id="reset">清空</button>
       </div>
-    </div>
-    <div class="right">
+      <div class="zoom-row">
+        <button class="stamp-btn small" id="zoom-fit" title="适应窗口">适应</button>
+        <button class="stamp-btn small" id="zoom-out" title="缩小">－</button>
+        <span class="state" id="zoom-level">适应</span>
+        <button class="stamp-btn small" id="zoom-in" title="放大">＋</button>
+      </div>
+      <div class="state-row"><span class="state" id="state"></span><span class="state" id="save-state"></span></div>
       <details class="howto">
-        <summary>怎么玩 · 规则与图例</summary>
+        <summary>规则与图例</summary>
         <div class="body">
-          <b>目标</b>：和普通 Murdoku 一样，每行每列各放一个人；但这次不找凶手，而是找出<b>宝藏的坐标</b>（ROW / COLUMN）。<br>
-          <b>原题提示</b>：宝藏就在最后一格（The Treasure is in the very last square）；有两个格子就在门前。<br>
-          <b>船</b>：Sloop、Frigate、Galleon 都算 ship，并且各自算独立区域。<br>
-          <b>可占用</b>：ships（Sloop / Frigate / Galleon）、bed、chair、hammock<br>
+          <b>目标</b>：每行每列各放一个人；不找凶手，找出<b>宝藏坐标</b>（ROW / COLUMN）。<br>
+          <b>原题提示</b>：宝藏就在最后一格；有两个格子就在门前。<br>
+          <b>船</b>：Sloop、Frigate、Galleon 都算 ship，各自算独立区域。<br>
+          <b>可占用</b>：ships、bed、chair、hammock<br>
           <b>不可占用</b>：fire · tree · flowers · shark · sack · pig · tombstone · crate · rope · barrel · shelf · shrub · table · boulder<br>
-          <b>地名对照</b>：Cabin 小屋 · Cavern 洞穴 · Woods 树林 · Beach 海滩 · Cliff 悬崖 · Clearing 林中空地 · Water 水域 · Dock 码头 · Tavern 酒馆 · Galleon 大帆船 · Sloop 单桅帆船 · Frigate 护卫舰
+          <b>地名</b>：Cabin 小屋 · Cavern 洞穴 · Woods 树林 · Beach 海滩 · Cliff 悬崖 · Clearing 林中空地 · Water 水域 · Dock 码头 · Tavern 酒馆 · Galleon 大帆船 · Sloop 单桅帆船 · Frigate 护卫舰
         </div>
       </details>
-      <div class="clues-head">
-        <h2>线索 CLUES</h2>
-        <button class="stamp-btn small" id="lang-toggle" title="切换中英显示">中英对照</button>
-      </div>
-      <div class="clues" id="clues"></div>
       <div class="answer">
         <div class="row1">
-          <label>我的答案 ROW</label>
+          <label>答案 ROW</label>
           <input id="ans-row" inputmode="numeric" placeholder="行">
           <label>COLUMN</label>
           <input id="ans-col" inputmode="numeric" placeholder="列">
           <button class="stamp-btn" id="ans-check">判对</button>
-          <button class="stamp-btn" id="ans-hint">💡 提示</button>
+          <button class="stamp-btn" id="ans-hint">提示</button>
         </div>
         <div class="feedback" id="ans-result"></div>
         <div class="hintbox" id="hintbox"></div>
       </div>
-    </div>
+    </aside>
   </div>
   <div class="log-modal" id="log-modal">
     <div class="log-box">
@@ -277,12 +240,9 @@
     <b>非官方互动版 · Unofficial interactive adaptation</b>
     <span class="sep">|</span>
     原题《The Treasure Hunt》by <a href="https://murdoku.com/contest/" target="_blank" rel="noreferrer">Manuel Garand</a>（murdoku.com · Murdoku Contest #1）
-    <span class="sep">|</span>
-    美术 by Valentyna Bezdushna &amp; Manuel Garand
-    <span class="sep">|</span>
-    原题 PDF：<a href="treasure-hunt-EN.pdf" target="_blank" rel="noreferrer">treasure-hunt-EN.pdf</a>
-    <span class="sep">|</span>
-    本页只做棋盘展示、笔记与答案核对；线索文字按原题 PDF 转录（保留原文拼写，如“siting”）；题目与美术版权归原作者所有，与 murdoku.com 无隶属关系。
+    <span class="sep">|</span> 美术 by Valentyna Bezdushna &amp; Manuel Garand
+    <span class="sep">|</span> 原题 PDF：<a href="treasure-hunt-EN.pdf" target="_blank" rel="noreferrer">treasure-hunt-EN.pdf</a>
+    <span class="sep">|</span> 本页只做棋盘展示、笔记与答案核对；线索文字按原题 PDF 转录（保留原文拼写，如“siting”）；题目与美术版权归原作者所有，与 murdoku.com 无隶属关系。
   </div>
 </div>
 <script>
@@ -292,14 +252,9 @@
   const GRID_Y0 = (29.5 - 22) * 3.472;
   const CELL = 16.7458 * 3.472;
   const N = 24;
-  const KEY = 'mrdc1_marks_v1';
-  const ANS_KEY = 'mrdc1_answer_v1';
-  const ANS_TRIES_KEY = 'mrdc1_tries_v1';
-  const HINT_KEY = 'mrdc1_hint_v1';
-  const LOG_KEY = 'mrdc1_log_v1';
-  const LANG_KEY = 'mrdc1_lang_v1';
-  const TREASURE = { row: 4, col: 11 };   // 官方公布：row 4, column 11（murdoku.com/contest/stats）
-
+  const KEY = 'mrdc1_marks_v1', ANS_KEY = 'mrdc1_answer_v1', ANS_TRIES_KEY = 'mrdc1_tries_v1';
+  const HINT_KEY = 'mrdc1_hint_v1', LOG_KEY = 'mrdc1_log_v1';
+  const TREASURE = { row: 4, col: 11 };
   const HINTS = [
     '原题提示：宝藏就在最后一格（The Treasure is in the very last square）。想想「最后一格」指的是什么。',
     '原题提示：有两个格子就在门前（看原图那个门的标记）。',
@@ -310,16 +265,19 @@
   ];
 
   const state = { mode: 'note', selected: null, hide: false, marks: {}, answer: { row: '', col: '' }, zoom: 1, zoomMode: 'fit' };
-  let hintLevel = 0;
+  let hintLevel = 0, actionLog = [];
   try { state.marks = JSON.parse(localStorage.getItem(KEY) || '{}') || {} } catch {}
   try { state.answer = Object.assign({ row: '', col: '' }, JSON.parse(localStorage.getItem(ANS_KEY) || '{}')) } catch {}
   try { hintLevel = Number(localStorage.getItem(HINT_KEY) || 0) || 0 } catch {}
-
-  const undoStack = [];   // 撤销栈（本次打开页面内）
-  const redoStack = [];   // 重做栈
-  let actionLog = [];
   try { actionLog = JSON.parse(localStorage.getItem(LOG_KEY) || '[]') || [] } catch { actionLog = [] }
-  const cluesEl = document.getElementById('clues');
+
+  const undoStack = [], redoStack = [];
+  let clues = [];
+  const gridEl = document.getElementById('char-grid');
+  const selAvatar = document.getElementById('sel-avatar');
+  const selName = document.getElementById('sel-name');
+  const selZh = document.getElementById('sel-zh');
+  const selEn = document.getElementById('sel-en');
   const cellsEl = document.getElementById('cells');
   const stateEl = document.getElementById('state');
   const ansResult = document.getElementById('ans-result');
@@ -327,98 +285,64 @@
   const saveState = document.getElementById('save-state');
   const zoomLevel = document.getElementById('zoom-level');
   const plate = document.getElementById('board-plate');
+  const wrapEl = document.getElementById('board-wrap');
 
-  let clues = [];
   const pct = (v, total) => (v / total * 100) + '%';
+  const fmtTime = (ts) => { const d = new Date(ts); return [d.getHours(), d.getMinutes(), d.getSeconds()].map(v => String(v).padStart(2, '0')).join(':'); };
   const readTries = () => { try { return Number(localStorage.getItem(ANS_TRIES_KEY) || 0) || 0 } catch { return 0 } };
   const bumpTries = () => { const n = readTries() + 1; try { localStorage.setItem(ANS_TRIES_KEY, String(n)) } catch {} return n };
-  const fmtTime = (ts) => { const d = new Date(ts); return [d.getHours(), d.getMinutes(), d.getSeconds()].map(v => String(v).padStart(2, '0')).join(':') };
   const save = () => {
     try { localStorage.setItem(KEY, JSON.stringify(state.marks)); localStorage.setItem(KEY + '_saved', String(Date.now())) } catch {}
-    try { saveState.textContent = '已自动保存 · ' + fmtTime(Date.now()) } catch {}
+    saveState.textContent = '已保存 · ' + fmtTime(Date.now());
   };
   const saveAns = () => { try { localStorage.setItem(ANS_KEY, JSON.stringify(state.answer)) } catch {} };
-
-  /* ---------- 线索中英显示切换（both / zh） ---------- */
-  let langMode = 'both';
-  try { langMode = localStorage.getItem(LANG_KEY) === 'zh' ? 'zh' : 'both' } catch {}
-  const applyLang = () => {
-    document.body.classList.toggle('zh-only', langMode === 'zh');
-    const btn = document.getElementById('lang-toggle');
-    if (btn) btn.textContent = langMode === 'zh' ? '中英对照' : '只看中文';
-  };
-  const toggleLang = () => {
-    langMode = langMode === 'zh' ? 'both' : 'zh';
-    try { localStorage.setItem(LANG_KEY, langMode) } catch {}
-    applyLang();
-  };
-
-  const renderClues = () => {
-    cluesEl.innerHTML = '';
-    for (const c of clues) {
-      const el = document.createElement('div');
-      el.className = 'clue' + (state.selected === c.name ? ' on' : '') + (c.name === 'Treasure' ? ' treasure' : '');
-      el.dataset.name = c.name;
-      el.innerHTML = '<img class="avatar" alt="" src="' + (c.img || '') + '">' +
-        '<div class="body"><div class="name">' + c.name + ' <span class="ini">' + c.name[0] + '</span></div>' +
-        '<div class="txt-zh"></div><div class="txt"></div></div>';
-      el.querySelector('.txt-zh').textContent = c.clue_zh || '';
-      el.querySelector('.txt').textContent = c.clue;
-      el.onclick = () => { state.selected = c.name; renderClues(); flash('已选中 ' + c.name + '，点棋盘格子标记 ' + c.name[0]); };
-      cluesEl.appendChild(el);
-    }
-  };
-
   const saveLog = () => { try { localStorage.setItem(LOG_KEY, JSON.stringify(actionLog.slice(-300))) } catch {} };
+  const LOG_LABEL = { note: '笔记', x: '打叉', erase: '橡皮', undo: '撤销', redo: '重做', reset: '清空' };
   const logAction = (type, r, c, detail) => {
     actionLog.push({ at: Date.now(), type, r, c, detail: detail || '' });
     if (actionLog.length > 300) actionLog = actionLog.slice(-300);
     saveLog();
   };
-  const LOG_LABEL = { note: '笔记', x: '打叉', erase: '橡皮', undo: '撤销', redo: '重做', reset: '清空' };
-  const LOG_DETAIL = { note: '加/减', x: '切换 ✕', erase: '清空格', undo: '回退一步', redo: '重做一步', reset: '全部清除' };
-  const renderLog = () => {
-    const list = document.getElementById('log-list');
-    const count = document.getElementById('log-count');
-    if (!list) return;
-    if (count) count.textContent = actionLog.length ? actionLog.length + ' 条' : '';
-    if (actionLog.length === 0) {
-      list.innerHTML = '<div class="log-empty">还没有操作记录。点格子做笔记/打叉，这里会按时间记下来。</div>';
+
+  /* ---------- 人物：网格 + 选中线索（中英同时显示） ---------- */
+  const renderSelected = () => {
+    const c = clues.find((x) => x.name === state.selected);
+    if (!c) {
+      selAvatar.removeAttribute('src');
+      selName.textContent = '点一个立绘选择角色';
+      selZh.textContent = '选中后这里显示完整中文线索。';
+      selEn.textContent = '';
       return;
     }
-    list.innerHTML = '';
-    for (let i = actionLog.length - 1; i >= 0; i -= 1) {
-      const e = actionLog[i];
-      const item = document.createElement('div');
-      item.className = 'log-item';
-      item.title = '点击定位到该格';
-      const where = e.r === null || e.r === undefined ? '' : 'R' + (e.r + 1) + 'C' + (e.c + 1);
-      item.innerHTML = '<span class="lt">' + fmtTime(e.at) + '</span>' +
-        '<span class="lm">' + (LOG_LABEL[e.type] || e.type) + (e.detail ? ' · ' + e.detail : '') + '</span>' +
-        '<span class="lc">' + where + '</span>';
-      item.onclick = () => {
-        closeLog();
-        if (e.r !== null && e.r !== undefined) flashCell(e.r, e.c);
+    selAvatar.src = c.img || '';
+    selAvatar.alt = c.name;
+    selName.textContent = c.name;
+    selZh.textContent = c.clue_zh || '';
+    selEn.textContent = c.clue || '';
+  };
+  const renderChars = () => {
+    gridEl.innerHTML = '';
+    const countEl = document.getElementById('char-count');
+    if (countEl) countEl.textContent = clues.length + ' 人';
+    for (const c of clues) {
+      const el = document.createElement('div');
+      el.className = 'char-card' + (state.selected === c.name ? ' on' : '');
+      el.dataset.name = c.name;
+      el.title = c.name;
+      el.innerHTML = '<img class="avatar" alt="" src="' + (c.img || '') + '"><div class="cname"></div>';
+      el.querySelector('.cname').textContent = c.name;
+      el.onclick = () => {
+        state.selected = c.name;
+        renderChars(); renderSelected();
+        flash('已选中 ' + c.name + '，点棋盘格子标记 ' + c.name[0]);
       };
-      list.appendChild(item);
+      gridEl.appendChild(el);
     }
   };
-  const flashCell = (r, c) => {
-    const el = cellEl(r, c);
-    if (!el) return;
-    el.classList.add('flash');
-    setTimeout(() => el.classList.remove('flash'), 900);
-  };
-  const openLog = () => { renderLog(); document.getElementById('log-modal').classList.add('on') };
-  const closeLog = () => document.getElementById('log-modal').classList.remove('on');
-  const updateUndoRedo = () => {
-    const u = document.getElementById('undo'), rd = document.getElementById('redo');
-    if (u) u.disabled = undoStack.length === 0;
-    if (rd) rd.disabled = redoStack.length === 0;
-  };
 
+  /* ---------- 棋盘 ---------- */
   const hit = (r, c) => state.marks[r * N + c] || (state.marks[r * N + c] = { notes: [], x: false });
-
+  const cellEl = (r, c) => cellsEl.children[r * N + c];
   const renderCell = (r, c, el) => {
     const m = state.marks[r * N + c];
     el.innerHTML = '';
@@ -430,8 +354,13 @@
       el.appendChild(box);
     }
   };
-  const cellEl = (r, c) => cellsEl.children[r * N + c];
-
+  const updateState = () => {
+    let notes = 0, xs = 0;
+    for (const k in state.marks) { const m = state.marks[k]; if (m.x) xs += 1; else if (m.notes && m.notes.length) notes += 1; }
+    stateEl.textContent = '笔记 ' + notes + ' 格 · 叉 ' + xs + ' 格';
+  };
+  let flashTimer = null;
+  const flash = (msg) => { stateEl.textContent = msg; clearTimeout(flashTimer); flashTimer = setTimeout(updateState, 2200); };
   const buildGrid = () => {
     cellsEl.innerHTML = '';
     for (let r = 0; r < N; r += 1) {
@@ -448,21 +377,18 @@
           const before = state.marks[idx] ? JSON.parse(JSON.stringify(state.marks[idx])) : null;
           const m = hit(r, c);
           if (state.mode === 'note') {
-            if (!state.selected) { flash('先点一张线索卡选角色，再点格子标记'); return; }
+            if (!state.selected) { flash('先在左栏点一个立绘选角色'); return; }
             if (m.x) m.x = false;
             const i = m.notes.indexOf(state.selected);
             if (i >= 0) m.notes.splice(i, 1); else m.notes.push(state.selected);
           } else if (state.mode === 'x') {
             m.x = !m.x; if (m.x) m.notes = [];
-          } else {
-            delete state.marks[idx];
-          }
+          } else { delete state.marks[idx]; }
           const after = state.marks[idx] ? JSON.parse(JSON.stringify(state.marks[idx])) : null;
-          const type = state.mode === 'note' ? 'note' : state.mode === 'x' ? 'x' : 'erase';
           undoStack.push({ r, c, before, after });
           if (undoStack.length > 200) undoStack.shift();
           redoStack.length = 0;
-          logAction(type, r, c, LOG_DETAIL[type] + (type === 'note' && state.selected ? ' · ' + state.selected[0] : ''));
+          logAction(state.mode, r, c);
           save(); renderCell(r, c, el); updateState(); updateUndoRedo();
         };
         el.oncontextmenu = (e) => {
@@ -474,7 +400,7 @@
           undoStack.push({ r, c, before, after });
           if (undoStack.length > 200) undoStack.shift();
           redoStack.length = 0;
-          logAction(m.x ? 'x' : 'erase', r, c, m.x ? '右键打叉' : '右键清除');
+          logAction('x', r, c, '右键');
           save(); renderCell(r, c, el); updateState(); updateUndoRedo();
         };
         cellsEl.appendChild(el);
@@ -490,51 +416,27 @@
     save(); renderCell(h.r, h.c, cellEl(h.r, h.c)); updateState(); updateUndoRedo();
   };
   const undo = () => {
-    const h = undoStack.pop();
-    if (!h) { flash('没有可撤销的操作'); return; }
-    applyMarks(h, h.before);
-    redoStack.push(h);
-    logAction('undo', h.r, h.c, '回退一步');
-    updateUndoRedo();
+    const h = undoStack.pop(); if (!h) { flash('没有可撤销的操作'); return; }
+    applyMarks(h, h.before); redoStack.push(h); logAction('undo', h.r, h.c); updateUndoRedo();
     flash('已撤销 R' + (h.r + 1) + 'C' + (h.c + 1) + ' 的上一步');
   };
   const redo = () => {
-    const h = redoStack.pop();
-    if (!h) { flash('没有可重做的操作'); return; }
-    applyMarks(h, h.after);
-    undoStack.push(h);
-    logAction('redo', h.r, h.c, '重做一步');
-    updateUndoRedo();
+    const h = redoStack.pop(); if (!h) { flash('没有可重做的操作'); return; }
+    applyMarks(h, h.after); undoStack.push(h); logAction('redo', h.r, h.c); updateUndoRedo();
     flash('已重做 R' + (h.r + 1) + 'C' + (h.c + 1) + ' 的修改');
   };
 
-  const updateState = () => {
-    let notes = 0, xs = 0;
-    for (const k in state.marks) { const m = state.marks[k]; if (m.x) xs += 1; else if (m.notes && m.notes.length) notes += 1; }
-    stateEl.textContent = '笔记 ' + notes + ' 格 · 叉 ' + xs + ' 格';
-  };
-  let flashTimer = null;
-  const flash = (msg) => { stateEl.textContent = msg; clearTimeout(flashTimer); flashTimer = setTimeout(updateState, 2200); };
-
-  /* ---------- 缩放：适应窗口（默认） + 手动 30%~200% ---------- */
+  /* ---------- 缩放 ---------- */
   const ZOOM_MIN = 0.3, ZOOM_MAX = 2;
-  const wrapEl = document.querySelector('.board-wrap');
-  const availSize = () => ({
-    w: Math.max(140, wrapEl.clientWidth - 28),
-    h: Math.max(120, wrapEl.clientHeight - 28),
-  });
-  const isNarrow = () => window.matchMedia('(max-width: 760px)').matches;
+  const isNarrow = () => window.matchMedia('(max-width: 900px)').matches;
+  const availSize = () => ({ w: Math.max(160, wrapEl.clientWidth - 24), h: Math.max(120, wrapEl.clientHeight - 24) });
   const applyZoom = () => {
     const { w: aw, h: ah } = availSize();
-    let widthPx;
-    let label;
+    let widthPx, label;
     if (state.zoomMode === 'fit') {
-      const byHeight = ah * (BOARD_W / BOARD_H);
+      let byHeight = ah * (BOARD_W / BOARD_H);
+      if (isNarrow()) byHeight = Math.max(160, window.innerHeight * 0.46 * (BOARD_W / BOARD_H));
       widthPx = Math.min(aw, byHeight);
-      if (isNarrow()) widthPx = Math.min(aw, Math.max(160, window.innerHeight * 0.42 * (BOARD_W / BOARD_H)));
-      label = '适应';
-    } else if (isNarrow()) {
-      widthPx = Math.min(aw, Math.max(160, window.innerHeight * 0.42 * (BOARD_W / BOARD_H)));
       label = '适应';
     } else {
       widthPx = Math.max(80, aw * state.zoom);
@@ -542,12 +444,9 @@
     }
     plate.style.width = Math.round(widthPx) + 'px';
     zoomLevel.textContent = label;
-    const out = document.getElementById('zoom-out');
-    const inn = document.getElementById('zoom-in');
-    const fitBtn = document.getElementById('zoom-fit');
-    if (out) out.disabled = state.zoomMode === 'manual' && state.zoom <= ZOOM_MIN + 1e-6;
-    if (inn) inn.disabled = state.zoomMode === 'manual' && state.zoom >= ZOOM_MAX - 1e-6;
-    if (fitBtn) fitBtn.classList.toggle('on', state.zoomMode === 'fit');
+    document.getElementById('zoom-out').disabled = state.zoomMode === 'manual' && state.zoom <= ZOOM_MIN + 1e-6;
+    document.getElementById('zoom-in').disabled = state.zoomMode === 'manual' && state.zoom >= ZOOM_MAX - 1e-6;
+    document.getElementById('zoom-fit').classList.toggle('on', state.zoomMode === 'fit');
   };
   const zoomStep = (dir) => {
     if (state.zoomMode === 'fit') {
@@ -563,19 +462,17 @@
   const setFit = () => { state.zoomMode = 'fit'; applyZoom(); };
   window.addEventListener('resize', () => applyZoom());
 
+  /* ---------- 答案 / 提示 ---------- */
   const showHint = () => {
+    hintBox.classList.add('on');
     if (hintLevel >= HINTS.length) {
-      hintBox.classList.add('on');
       hintBox.innerHTML = '提示用完了 ✅ 答案：<b>ROW 4 · COLUMN 11</b>（宝藏就在最后一格、门前两格之一）。';
       return;
     }
-    const text = HINTS[hintLevel];
-    hintLevel += 1;
+    const text = HINTS[hintLevel]; hintLevel += 1;
     try { localStorage.setItem(HINT_KEY, String(hintLevel)) } catch {}
-    hintBox.classList.add('on');
     hintBox.innerHTML = '💡 <b>提示 ' + hintLevel + ' / ' + HINTS.length + '</b>：' + text + (hintLevel < HINTS.length ? '（再点一次「提示」继续）' : '');
   };
-
   const checkAnswer = () => {
     const row = Number(document.getElementById('ans-row').value.trim());
     const col = Number(document.getElementById('ans-col').value.trim());
@@ -586,8 +483,7 @@
     }
     state.answer.row = String(row); state.answer.col = String(col); saveAns();
     const tries = bumpTries();
-    const right = row === TREASURE.row && col === TREASURE.col;
-    if (right) {
+    if (row === TREASURE.row && col === TREASURE.col) {
       ansResult.style.color = 'var(--ok)';
       ansResult.innerHTML = '🎉 对了！宝藏就在 <b>R' + row + ' C' + col + '</b> —— 第 ' + tries + ' 次猜中。<br>' +
         '<span style="font-weight:600">原竞赛提交入口：<a href="https://murdoku.com/contest/" target="_blank" rel="noreferrer">murdoku.com/contest</a></span>';
@@ -598,74 +494,95 @@
     else if (col === TREASURE.col) msg = '❌ 不对——列已经对了，行再想想。';
     else if (Math.abs(row - TREASURE.row) <= 2 && Math.abs(col - TREASURE.col) <= 2) msg = '❌ 非常接近了：行列都只差一点点。';
     else if (tries === 1) msg = '❌ 不对。先从原题的两句提示入手：「宝藏就在最后一格」「有两个格子就在门前」。';
-    else if (tries >= 4) msg = '❌ 还不对。点「💡 提示」可以拿原题线索，一步步来。';
+    else if (tries >= 4) msg = '❌ 还不对。点「提示」可以拿原题线索，一步步来。';
     else msg = '❌ 不对，再翻翻线索里「最后一格」和「门前两格」的说法。';
     ansResult.style.color = 'var(--bad)';
     ansResult.textContent = msg + '（已猜 ' + tries + ' 次）';
   };
 
-  const bindToolbar = () => {
+  /* ---------- 操作记录 ---------- */
+  const renderLog = () => {
+    const list = document.getElementById('log-list');
+    const count = document.getElementById('log-count');
+    if (count) count.textContent = actionLog.length ? actionLog.length + ' 条' : '';
+    if (!actionLog.length) { list.innerHTML = '<div class="log-empty">还没有操作记录。</div>'; return; }
+    list.innerHTML = '';
+    for (let i = actionLog.length - 1; i >= 0; i -= 1) {
+      const e = actionLog[i];
+      const item = document.createElement('div');
+      item.className = 'log-item';
+      const where = (e.r === null || e.r === undefined) ? '' : 'R' + (e.r + 1) + 'C' + (e.c + 1);
+      item.innerHTML = '<span class="lt">' + fmtTime(e.at) + '</span><span class="lm">' + (LOG_LABEL[e.type] || e.type) + (e.detail ? ' · ' + e.detail : '') + '</span><span class="lc">' + where + '</span>';
+      item.onclick = () => {
+        document.getElementById('log-modal').classList.remove('on');
+        if (e.r !== null && e.r !== undefined) {
+          const el = cellEl(e.r, e.c);
+          if (el) { el.classList.add('flash'); setTimeout(() => el.classList.remove('flash'), 900); }
+        }
+      };
+      list.appendChild(item);
+    }
+  };
+
+  /* ---------- 绑定 ---------- */
+  const bind = () => {
     const modes = { note: 'mode-note', x: 'mode-x', erase: 'mode-erase' };
     for (const [mode, id] of Object.entries(modes)) {
       document.getElementById(id).onclick = () => {
         state.mode = mode;
-        for (const [, otherId] of Object.entries(modes)) document.getElementById(otherId).classList.toggle('on', otherId === id);
-        flash(mode === 'note' ? '笔记模式：点格子加/减当前选中的人' : mode === 'x' ? '打叉模式：点格子切换 ✕' : '橡皮模式：点格子清空');
+        for (const [, other] of Object.entries(modes)) document.getElementById(other).classList.toggle('on', other === id);
+        flash(mode === 'note' ? '笔记模式：点格子加/减当前角色' : mode === 'x' ? '打叉模式：点格子切换 ✕' : '橡皮模式：点格子清空');
       };
     }
     document.getElementById('undo').onclick = undo;
     document.getElementById('redo').onclick = redo;
-    document.getElementById('log-btn').onclick = openLog;
-    document.getElementById('log-close').onclick = closeLog;
-    document.getElementById('lang-toggle').onclick = toggleLang;
-    document.getElementById('log-modal').addEventListener('click', (e) => { if (e.target.id === 'log-modal') closeLog() });
+    document.getElementById('log-btn').onclick = () => { renderLog(); document.getElementById('log-modal').classList.add('on') };
+    document.getElementById('log-close').onclick = () => document.getElementById('log-modal').classList.remove('on');
+    document.getElementById('log-modal').addEventListener('click', (e) => { if (e.target.id === 'log-modal') e.currentTarget.classList.remove('on') });
     document.getElementById('toggle-hide').onclick = (e) => {
       state.hide = !state.hide;
       e.currentTarget.classList.toggle('on', state.hide);
-      e.currentTarget.textContent = state.hide ? '显示标记' : '隐藏标记';
+      e.currentTarget.textContent = state.hide ? '显示' : '隐藏';
       buildGrid();
     };
     document.getElementById('reset').onclick = () => {
       if (!confirm('清空所有笔记和叉？这个操作不能撤销。')) return;
       undoStack.length = 0; redoStack.length = 0;
       state.marks = {}; save(); buildGrid(); updateState(); updateUndoRedo();
-      actionLog = []; logAction('reset', null, null, '全部清除');
-      flash('已清空所有标记（记录里保留“清空”这一条）');
+      actionLog = []; logAction('reset', null, null); flash('已清空所有标记');
     };
     document.getElementById('zoom-in').onclick = () => zoomStep(1);
     document.getElementById('zoom-out').onclick = () => zoomStep(-1);
     document.getElementById('zoom-fit').onclick = setFit;
     document.getElementById('ans-hint').onclick = showHint;
     document.getElementById('ans-check').onclick = checkAnswer;
-    for (const id of ['ans-row', 'ans-col']) {
-      document.getElementById(id).addEventListener('keydown', (e) => { if (e.key === 'Enter') checkAnswer(); });
-    }
+    for (const id of ['ans-row', 'ans-col']) document.getElementById(id).addEventListener('keydown', (e) => { if (e.key === 'Enter') checkAnswer() });
+    const back = document.getElementById('back-link');
+    if (back) back.href = location.pathname.startsWith('/play_puzzles/') ? '/play/?lang=zh_hans' : 'https://murdoku.com/play/';
   };
-
+  const updateUndoRedo = () => {
+    document.getElementById('undo').disabled = undoStack.length === 0;
+    document.getElementById('redo').disabled = redoStack.length === 0;
+  };
   const initAnswer = () => {
     document.getElementById('ans-row').value = state.answer.row || '';
     document.getElementById('ans-col').value = state.answer.col || '';
     const tries = readTries();
     if (tries > 0) { ansResult.style.color = 'var(--ink-dim)'; ansResult.textContent = '已猜 ' + tries + ' 次'; }
-    if (hintLevel > 0) {
-      hintBox.classList.add('on');
-      hintBox.innerHTML = '已解锁 ' + hintLevel + ' / ' + HINTS.length + ' 条提示（点「💡 提示」继续）';
-    }
+    if (hintLevel > 0) { hintBox.classList.add('on'); hintBox.innerHTML = '已解锁 ' + hintLevel + ' / ' + HINTS.length + ' 条提示（点「提示」继续）'; }
     try { const ts = Number(localStorage.getItem(KEY + '_saved') || 0); if (ts) saveState.textContent = '上次保存 · ' + fmtTime(ts) } catch {}
   };
 
-  const backLink = document.getElementById('back-link');
-  if (backLink) backLink.href = location.pathname.startsWith('/play_puzzles/') ? '/play/?lang=zh_hans' : 'https://murdoku.com/play/';
-
   fetch('clues.json?t=' + Date.now()).then(r => r.json()).then((rows) => {
     clues = rows;
-    renderClues(); buildGrid(); updateState();
+    renderChars(); renderSelected(); buildGrid(); updateState(); updateUndoRedo(); initAnswer();
     applyZoom();
-    window.addEventListener('orientationchange', () => setTimeout(applyZoom, 150));
-    bindToolbar(); initAnswer(); updateUndoRedo(); applyLang();
-  }).catch((error) => {
-    document.body.innerHTML = '<pre style="color:#8b1d1d;padding:20px">clues.json 加载失败: ' + error + '</pre>';
+    setTimeout(applyZoom, 60);
+    window.addEventListener('load', applyZoom);
+  }).catch((err) => {
+    document.body.innerHTML = '<pre style="color:#8b1d1d;padding:20px">clues.json 加载失败: ' + err + '</pre>';
   });
+  bind();
 })();
 </script>
 </body>
