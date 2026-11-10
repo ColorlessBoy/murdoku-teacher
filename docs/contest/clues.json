@@ -1,146 +1,98 @@
 [
  {
   "name": "Augustus",
-  "clue": "He was beside a fire.",
-  "row": 0,
-  "col": 0
+  "clue": "He was beside a fire."
  },
  {
   "name": "Bart",
-  "clue": "He was on a hammock There was no sack anywhere in his column.",
-  "row": 0,
-  "col": 1
+  "clue": "He was on a hammock. There was no sack anywhere in his column."
  },
  {
   "name": "Cedric",
-  "clue": ". Someone exactly eight rows north of him beside the tombstone.",
-  "row": 0,
-  "col": 2
+  "clue": "Someone exactly eight rows north of him was beside the tombstone."
  },
  {
   "name": "Dudley",
-  "clue": "was He was east of Griselda and west of Linus.",
-  "row": 0,
-  "col": 3
+  "clue": "He was east of Griselda and west of Linus."
  },
  {
   "name": "Eiko",
-  "clue": "She was beside a shelf.",
-  "row": 1,
-  "col": 0
+  "clue": "She was beside a shelf."
  },
  {
   "name": "Fleur",
-  "clue": "She was beside some flowers.",
-  "row": 1,
-  "col": 1
+  "clue": "She was beside some flowers."
  },
  {
   "name": "Griselda",
-  "clue": "She was in the top row of her area.",
-  "row": 1,
-  "col": 2
+  "clue": "She was in the top row of her area."
  },
  {
   "name": "Hyacinth",
-  "clue": "She was on the Cliff. No one in an adjacent column wore a hat.",
-  "row": 1,
-  "col": 3
+  "clue": "She was on the Cliff. No one in an adjacent column wore a hat."
  },
  {
   "name": "Isolde",
-  "clue": "She was siting in a chair She was in a Cabin with someone wearing an eyepatch.",
-  "row": 2,
-  "col": 0
+  "clue": "She was siting in a chair. She was in a Cabin with someone wearing an eyepatch."
  },
  {
   "name": "Julius",
-  "clue": ". He was beside a barrel.",
-  "row": 2,
-  "col": 1
+  "clue": "He was beside a barrel."
  },
  {
   "name": "Kathleen",
-  "clue": "She was on a Sloop.",
-  "row": 2,
-  "col": 2
+  "clue": "She was on a Sloop."
  },
  {
   "name": "Linus",
-  "clue": "He was beside a tree.",
-  "row": 2,
-  "col": 3
+  "clue": "He was beside a tree."
  },
  {
   "name": "Mortimer",
-  "clue": "He was on a ship beside some rope",
-  "row": 3,
-  "col": 0
+  "clue": "He was on a ship, beside some rope."
  },
  {
   "name": "Nehemiah",
-  "clue": ",He was in the Water, .beside a ship",
-  "row": 3,
-  "col": 1
+  "clue": "He was in the Water, beside a ship."
  },
  {
   "name": "Orville",
-  "clue": "He was on a ship. .",
-  "row": 3,
-  "col": 2
+  "clue": "He was on a ship."
  },
  {
   "name": "Pedro",
-  "clue": "He was on a bed.",
-  "row": 3,
-  "col": 3
+  "clue": "He was on a bed."
  },
  {
   "name": "Quincy",
-  "clue": "He was in the Water, beside a shark.",
-  "row": 4,
-  "col": 0
+  "clue": "He was in the Water, beside a shark."
  },
  {
   "name": "Rosalind",
-  "clue": "She was siting in a chair.",
-  "row": 4,
-  "col": 1
+  "clue": "She was siting in a chair."
  },
  {
   "name": "Seraphina",
-  "clue": "She was at least six rows north of Linus.",
-  "row": 4,
-  "col": 2
+  "clue": "She was at least six rows north of Linus."
  },
  {
   "name": "Ursula",
-  "clue": "She was in front of a door.",
-  "row": 4,
-  "col": 3
+  "clue": "She was in front of a door."
  },
  {
   "name": "Wilfred",
-  "clue": "He was beside a pig.",
-  "row": 5,
-  "col": 0
+  "clue": "He was beside a pig."
  },
  {
   "name": "Yannis",
-  "clue": "He was in the Woods. He was not beside a tree.",
-  "row": 5,
-  "col": 1
+  "clue": "He was in the Woods. He was not beside a tree."
  },
  {
   "name": "Zoe",
-  "clue": "She was beside a shrub.",
-  "row": 5,
-  "col": 2
+  "clue": "She was beside a shrub."
  },
  {
   "name": "Treasure",
-  "clue": "In the last square. It can be buried beneath an object that cannot otherwise be occupied.",
-  "row": 5,
-  "col": 3
+  "clue": "In the last square. It can be buried beneath an object that cannot otherwise be occupied."
  }
 ]

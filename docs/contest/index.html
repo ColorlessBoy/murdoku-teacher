@@ -87,7 +87,8 @@
   .cell .notes { display: flex; flex-wrap: wrap; align-content: center; justify-content: center; line-height: 1; pointer-events: none; }
   .cell .notes span { font-size: 9px; font-weight: 900; color: var(--note); text-shadow: 0 0 2px #fff; }
   .cell .x { font-size: 15px; font-weight: 900; color: var(--xmark); text-shadow: 0 0 2px #fff; pointer-events: none; }
-  .hint-row { padding: 0 14px 8px; color: var(--ink-dim); font-size: 10.5px; }
+  .hint-row { padding: 0 14px 8px; color: var(--ink-dim); font-size: 10.5px; line-height: 1.6; }
+  .hint-row b { color: var(--ink-soft); }
   .right h2 { margin: 0; font-size: 12px; padding: 9px 12px 3px; font-weight: 900; letter-spacing: .5px; }
   .clues { flex: 1; overflow: auto; padding: 0 8px 10px; }
   .clue {
@@ -113,6 +114,7 @@
   .credit b { color: var(--ink); }
   .credit a { color: #7a4a12; text-decoration: underline; }
   .credit .sep { color: var(--ink-dim); margin: 0 4px; }
+  .credit-sep { color: var(--ink-dim); margin: 0 4px; }
   @media (max-width: 760px) {
     .main { flex-direction: column; }
     .right { max-width: none; border-left: 0; border-top: 2px solid var(--line); max-height: 40vh; }
@@ -125,7 +127,7 @@
     <a class="back" id="back-link" href="https://murdoku.com/play/" title="返回">←</a>
     <div class="titles">
       <h1>寻宝 · The Treasure Hunt</h1>
-      <div class="meta">Murdoku Contest #1 · 24×24 · 23 名嫌疑人 + 1 处宝藏 · 无凶手</div>
+      <div class="meta">Murdoku Contest #1 · 24×24 · 23 名嫌疑人 + 宝藏 · 这次没有凶手</div>
     </div>
     <div class="spacer"></div>
     <a class="pill" href="treasure-hunt-EN.pdf" target="_blank" rel="noreferrer">PDF 原题</a>
@@ -149,7 +151,14 @@
           </div>
         </div>
       </div>
-      <div class="hint-row">规则：基础 Murdoku 规则；这次没有凶手——找出宝藏坐标即破案。图例：fire · tree · flowers · shark · sack · pig · tombstone · crate · rope · barrel · shelf · shrub · table · boulder · bed · chair · hammock</div>
+      <div class="hint-row">
+        规则（与 PDF 一致）：基础 Murdoku 规则；这次没有凶手——找出宝藏坐标即破案。
+        宝藏就在最后一格（The Treasure is in the very last square）；Sloop / Frigate / Galleon 都算 ship，并且各自算独立区域；门前有两格（见原图标注）。
+        <br>
+        <b>可占用：</b>ships（Sloop / Frigate / Galleon）、bed、chair、hammock
+        <span class="credit-sep">|</span>
+        <b>不可占用：</b>fire · tree · flowers · shark · sack · pig · tombstone · crate · rope · barrel · shelf · shrub · table · boulder
+      </div>
     </div>
     <div class="right">
       <h2>线索 CLUES</h2>
@@ -173,7 +182,7 @@
     <span class="sep">|</span>
     原题 PDF：<a href="treasure-hunt-EN.pdf" target="_blank" rel="noreferrer">treasure-hunt-EN.pdf</a>
     <span class="sep">|</span>
-    本页只做棋盘展示、笔记与答案核对，题目与美术版权归原作者所有，与 murdoku.com 无隶属关系。
+    本页只做棋盘展示、笔记与答案核对；线索文字按原题 PDF 转录（保留原文拼写，如“siting”）；题目与美术版权归原作者所有，与 murdoku.com 无隶属关系。
   </div>
 </div>
 <script>
@@ -328,7 +337,7 @@
   const backLink = document.getElementById('back-link')
   if (backLink) backLink.href = location.pathname.startsWith('/play_puzzles/') ? '/play/?lang=zh_hans' : 'https://murdoku.com/play/'
 
-  fetch('clues.json').then(r => r.json()).then((rows) => {
+  fetch('clues.json?t=' + Date.now()).then(r => r.json()).then((rows) => {
     clues = rows;
     renderChips(); renderClues(); buildGrid(); updateState();
     bindToolbar(); initAnswer();
