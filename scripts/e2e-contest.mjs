@@ -259,6 +259,15 @@ async function main() {
       return i >= 0 && clueData.texts[i] === frag
     })
     record('关键线索与 PDF 原文逐字一致（含 siting 原拼写）', clueOk, null)
+    const zhData = await evalJS(`(() => {
+      const zh = [...document.querySelectorAll('.clue .txt-zh')].map((e) => e.textContent.trim())
+      const en = [...document.querySelectorAll('.clue .txt')].map((e) => e.textContent.trim())
+      return JSON.stringify({ zh, en })
+    })()`).then(JSON.parse)
+    const zhMissing = zhData.zh.filter((t) => !t).length
+    record('中文线索：24 条全部有中文翻译', zhMissing === 0 && zhData.zh.length === 24, { missing: zhMissing })
+    const zhSpot = zhData.zh[0] === '他身旁有一堆篝火。' && zhData.zh[23] === '在最后一格。它可以被埋在一个本来无法被占用的物件下面。'
+    record('中文线索抽查（Augustus / Treasure）与译文一致', zhSpot, { a: zhData.zh[0], t: zhData.zh[23] })
 
     // 4) 标记闭环：笔记 / 撤销 / 打叉 / 橡皮
     const mark = await evalJS(`(() => {
@@ -398,48 +407,54 @@ async function main() {
     const logAfterReset = await evalJS(`JSON.stringify({ stored: JSON.parse(localStorage.getItem('mrdc1_log_v1') || '[]').length, lastType: (JSON.parse(localStorage.getItem('mrdc1_log_v1') || '[]').slice(-1)[0] || {}).type })`).then(JSON.parse)
     record('清空后记录只保留 reset 一条', logAfterReset.stored === 1 && logAfterReset.lastType === 'reset', logAfterReset)
 
-    // 9.5) 手机端排版（390×844）
+    // 9.5) 手机端：棋盘与线索同页排布（390×844）
     await send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 2, mobile: true })
     await send('Page.reload')
     await ready()
     const mobile = await evalJS(`(() => {
-      const tabs = [...document.querySelectorAll('#mobile-tabs .stamp-btn')]
       const out = {}
-      out.tabsVisible = getComputedStyle(document.getElementById('mobile-tabs')).display !== 'none'
-      out.tabCount = tabs.length
-      out.rightHidden = getComputedStyle(document.querySelector('.right')).display === 'none'
-      out.imgW = Math.round(document.getElementById('boardimg').getBoundingClientRect().width)
+      out.hasTabs = !!document.getElementById('mobile-tabs')
+      const left = document.querySelector('.left').getBoundingClientRect()
+      const right = document.querySelector('.right').getBoundingClientRect()
+      const board = document.getElementById('boardimg').getBoundingClientRect()
+      const clues = document.querySelector('.clues')
+      const clueRect = clues.getBoundingClientRect()
+      out.boardVisible = board.width > 0
+      out.cluesVisible = getComputedStyle(clues).display !== 'none'
+      out.samePage = right.top >= left.bottom - 2
+      out.boardWidth = Math.round(board.width)
       out.vw = innerWidth
       out.overflow = document.documentElement.scrollWidth - innerWidth
-      tabs[1].click()
-      out.cluesPane = document.body.classList.contains('mt-clues')
-      out.cluesVisible = getComputedStyle(document.querySelector('.clues')).display !== 'none'
-      out.leftHidden = getComputedStyle(document.querySelector('.left')).display === 'none'
-      tabs[2].click()
-      out.answerPane = document.body.classList.contains('mt-answer')
-      out.answerVisible = getComputedStyle(document.querySelector('.answer')).display !== 'none'
-      out.cluesHiddenOnAnswer = getComputedStyle(document.querySelector('.clues')).display === 'none'
+      out.pageScrollable = document.documentElement.scrollHeight > innerHeight + 40
+      out.clueVisibleInViewportAfterScroll = (() => { clues.scrollIntoView(); const r = clues.getBoundingClientRect(); return r.top >= -10 })()
       const inp = document.getElementById('ans-row').getBoundingClientRect()
       out.inputSize = [Math.round(inp.width), Math.round(inp.height)]
-      tabs[1].click()
-      document.querySelector('.clue').click()
-      out.autoBack = document.body.classList.contains('mt-board')
-      out.tabsStillVisible = getComputedStyle(document.getElementById('mobile-tabs')).display !== 'none'
+      const zh = [...document.querySelectorAll('.clue .txt-zh')].map((e) => e.textContent.trim()).filter(Boolean)
+      const en = [...document.querySelectorAll('.clue .txt')].map((e) => e.textContent.trim()).filter(Boolean)
+      out.zhCount = zh.length
+      out.enCount = en.length
+      out.clueCount = document.querySelectorAll('.clue').length
       return JSON.stringify(out)
     })()`).then(JSON.parse)
-    record('手机端：三页标签可见、棋盘自适应宽度、无横向溢出', mobile.tabsVisible && mobile.tabCount === 3 && mobile.rightHidden && mobile.imgW > 0 && mobile.imgW <= mobile.vw && Math.abs(mobile.overflow) <= 2, mobile)
-    record('手机端：线索/答案页切换 + 选人后自动回棋盘', mobile.cluesPane && mobile.cluesVisible && mobile.leftHidden && mobile.answerPane && mobile.answerVisible && mobile.cluesHiddenOnAnswer && mobile.autoBack && mobile.tabsStillVisible, mobile)
-    record('手机端：答案输入框触控尺寸足够（≥44 高宽 60+）', mobile.inputSize[1] >= 36 && mobile.inputSize[0] >= 60, mobile.inputSize)
+    record('手机端：棋盘与线索同一页、纵向堆叠、无横向溢出', !mobile.hasTabs && mobile.boardVisible && mobile.cluesVisible && mobile.samePage && mobile.boardWidth <= mobile.vw && Math.abs(mobile.overflow) <= 2, mobile)
+    record('手机端：页面可滚动、线索在棋盘下方可见', mobile.pageScrollable && mobile.clueVisibleInViewportAfterScroll, { scrollable: mobile.pageScrollable })
+    record('手机端：双语线索齐全（24 中 + 24 英）、输入框触控尺寸足够', mobile.clueCount === 24 && mobile.zhCount === 24 && mobile.enCount === 24 && mobile.inputSize[1] >= 36 && mobile.inputSize[0] >= 60, mobile.inputSize)
+
+    // 9.6) 桌面端：双栏同屏
     await send('Emulation.setDeviceMetricsOverride', { width: 1280, height: 900, deviceScaleFactor: 1, mobile: false })
     await send('Page.reload')
     await ready()
-    const desktop = await evalJS(`JSON.stringify({
-      tabsHidden: getComputedStyle(document.getElementById('mobile-tabs')).display === 'none',
-      leftVisible: getComputedStyle(document.querySelector('.left')).display !== 'none',
-      rightVisible: getComputedStyle(document.querySelector('.right')).display !== 'none',
-      overflow: document.documentElement.scrollWidth - innerWidth,
-    })`).then(JSON.parse)
-    record('切回桌面端：双栏恢复、手机标签隐藏', desktop.tabsHidden && desktop.leftVisible && desktop.rightVisible && Math.abs(desktop.overflow) <= 2, desktop)
+    const desktop = await evalJS(`JSON.stringify((() => {
+      const left = document.querySelector('.left').getBoundingClientRect()
+      const right = document.querySelector('.right').getBoundingClientRect()
+      return {
+        hasTabs: !!document.getElementById('mobile-tabs'),
+        sideBySide: right.left >= left.right - 2,
+        cluesVisible: getComputedStyle(document.querySelector('.clues')).display !== 'none',
+        overflow: document.documentElement.scrollWidth - innerWidth,
+      }
+    })())`).then(JSON.parse)
+    record('桌面端：棋盘与线索左右同屏、无横向溢出', !desktop.hasTabs && desktop.sideBySide && desktop.cluesVisible && Math.abs(desktop.overflow) <= 2, desktop)
 
     // 10) 控制台与网络
     const errs = consoleErrors()

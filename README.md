@@ -11,7 +11,8 @@
 ### 👉 <https://colorlessboy.github.io/murdoku-teacher/>
 
 - 原题棋盘高清图 + 24×24 可点格子：笔记 / 打叉 / 橡皮 / 撤销 / 重做 / 操作记录
-- 24 条线索侧栏、答案判对（四档反馈）、6 级提示阶梯、进度自动保存
+- 24 条线索侧栏（中英双语）、答案判对（四档反馈）、6 级提示阶梯、进度自动保存
+- 手机端与电脑端同页排版：棋盘在上、线索/答案在下（手机）或左右（桌面）
 - 非官方互动版：原题 by Manuel Garand（murdoku.com），美术 by Valentyna Bezdushna & Manuel Garand，署名与说明见页面底部
 - 源码在 `docs/contest/`；26 项 E2E 检测（`scripts/e2e-contest.mjs`），CI 每次推送自动跑
 

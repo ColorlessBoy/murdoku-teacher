@@ -1,98 +1,122 @@
 [
  {
   "name": "Augustus",
-  "clue": "He was beside a fire."
+  "clue": "He was beside a fire.",
+  "clue_zh": "他身旁有一堆篝火。"
  },
  {
   "name": "Bart",
-  "clue": "He was on a hammock. There was no sack anywhere in his column."
+  "clue": "He was on a hammock. There was no sack anywhere in his column.",
+  "clue_zh": "他躺在一张吊床上。他所在的那一列里没有任何麻袋。"
  },
  {
   "name": "Cedric",
-  "clue": "Someone exactly eight rows north of him was beside the tombstone."
+  "clue": "Someone exactly eight rows north of him was beside the tombstone.",
+  "clue_zh": "在他正北方恰好八行的位置，有人紧挨着墓碑。"
  },
  {
   "name": "Dudley",
-  "clue": "He was east of Griselda and west of Linus."
+  "clue": "He was east of Griselda and west of Linus.",
+  "clue_zh": "他在 Griselda 的东边、Linus 的西边。"
  },
  {
   "name": "Eiko",
-  "clue": "She was beside a shelf."
+  "clue": "She was beside a shelf.",
+  "clue_zh": "她身旁有一个架子。"
  },
  {
   "name": "Fleur",
-  "clue": "She was beside some flowers."
+  "clue": "She was beside some flowers.",
+  "clue_zh": "她身旁有一些花。"
  },
  {
   "name": "Griselda",
-  "clue": "She was in the top row of her area."
+  "clue": "She was in the top row of her area.",
+  "clue_zh": "她在自己所在区域的最上面一排。"
  },
  {
   "name": "Hyacinth",
-  "clue": "She was on the Cliff. No one in an adjacent column wore a hat."
+  "clue": "She was on the Cliff. No one in an adjacent column wore a hat.",
+  "clue_zh": "她在悬崖（Cliff）上。相邻的那一列里没有人戴帽子。"
  },
  {
   "name": "Isolde",
-  "clue": "She was siting in a chair. She was in a Cabin with someone wearing an eyepatch."
+  "clue": "She was siting in a chair. She was in a Cabin with someone wearing an eyepatch.",
+  "clue_zh": "她坐在一把椅子上。她和一个戴眼罩的人在同一间小屋（Cabin）里。"
  },
  {
   "name": "Julius",
-  "clue": "He was beside a barrel."
+  "clue": "He was beside a barrel.",
+  "clue_zh": "他身旁有一个木桶。"
  },
  {
   "name": "Kathleen",
-  "clue": "She was on a Sloop."
+  "clue": "She was on a Sloop.",
+  "clue_zh": "她在一艘单桅帆船（Sloop）上。"
  },
  {
   "name": "Linus",
-  "clue": "He was beside a tree."
+  "clue": "He was beside a tree.",
+  "clue_zh": "他身旁有一棵树。"
  },
  {
   "name": "Mortimer",
-  "clue": "He was on a ship, beside some rope."
+  "clue": "He was on a ship, beside some rope.",
+  "clue_zh": "他在一艘船上，旁边有一些绳子。"
  },
  {
   "name": "Nehemiah",
-  "clue": "He was in the Water, beside a ship."
+  "clue": "He was in the Water, beside a ship.",
+  "clue_zh": "他在水域（Water）里，旁边有一艘船。"
  },
  {
   "name": "Orville",
-  "clue": "He was on a ship."
+  "clue": "He was on a ship.",
+  "clue_zh": "他在一艘船上。"
  },
  {
   "name": "Pedro",
-  "clue": "He was on a bed."
+  "clue": "He was on a bed.",
+  "clue_zh": "他在一张床上。"
  },
  {
   "name": "Quincy",
-  "clue": "He was in the Water, beside a shark."
+  "clue": "He was in the Water, beside a shark.",
+  "clue_zh": "他在水域里，旁边有一条鲨鱼。"
  },
  {
   "name": "Rosalind",
-  "clue": "She was siting in a chair."
+  "clue": "She was siting in a chair.",
+  "clue_zh": "她坐在一把椅子上。"
  },
  {
   "name": "Seraphina",
-  "clue": "She was at least six rows north of Linus."
+  "clue": "She was at least six rows north of Linus.",
+  "clue_zh": "她在 Linus 正北方至少六行的位置。"
  },
  {
   "name": "Ursula",
-  "clue": "She was in front of a door."
+  "clue": "She was in front of a door.",
+  "clue_zh": "她在一扇门前面。"
  },
  {
   "name": "Wilfred",
-  "clue": "He was beside a pig."
+  "clue": "He was beside a pig.",
+  "clue_zh": "他身旁有一头猪。"
  },
  {
   "name": "Yannis",
-  "clue": "He was in the Woods. He was not beside a tree."
+  "clue": "He was in the Woods. He was not beside a tree.",
+  "clue_zh": "他在树林（Woods）里。他不在树旁边。"
  },
  {
   "name": "Zoe",
-  "clue": "She was beside a shrub."
+  "clue": "She was beside a shrub.",
+  "clue_zh": "她身旁有一丛灌木。"
  },
  {
   "name": "Treasure",
-  "clue": "In the last square. It can be buried beneath an object that cannot otherwise be occupied."
+  "clue": "In the last square. It can be buried beneath an object that cannot otherwise be occupied.",
+  "clue_zh": "在最后一格。它可以被埋在一个本来无法被占用的物件下面。"
  }
 ]
