@@ -213,7 +213,8 @@ async function main() {
         title: document.title,
         cells: document.querySelectorAll('.cell').length,
         clues: document.querySelectorAll('.clue').length,
-        chips: document.querySelectorAll('.chip').length,
+        hasChips: !!document.querySelector('.chips'),
+        cards: document.querySelectorAll('.clue').length,
         img: img ? [img.naturalWidth, img.naturalHeight] : null,
         hasUndo: !!document.getElementById('undo'),
         hasRedo: !!document.getElementById('redo'),
@@ -226,7 +227,7 @@ async function main() {
         hintRow: (document.querySelector('.hint-row')?.innerText || ''),
       })
     })()`).then(JSON.parse)
-    record('题目与线索数量正确（576 格 / 24 条）', basic.cells === 576 && basic.clues === 24 && basic.chips === 24, { cells: basic.cells, clues: basic.clues, chips: basic.chips })
+    record('题目与线索数量正确（576 格 / 24 张卡片）', basic.cells === 576 && basic.clues === 24 && basic.cards === 24 && !basic.hasChips, { cells: basic.cells, clues: basic.clues, cards: basic.cards, hasChips: basic.hasChips })
     record('棋盘图加载正确（1542×1473）', basic.img && basic.img[0] === 1542 && basic.img[1] === 1473, basic.img)
     record('来源署名完整（作者 / 美术 / 非官方）', /Manuel Garand/.test(basic.credit) && /Valentyna/.test(basic.credit) && /非官方/.test(basic.credit), basic.credit.slice(0, 120))
     record('规则区含原题要点（最后一格 / 可占用）', /最后一格/.test(basic.howto) && /可占用/.test(basic.howto) && /ROW/.test(basic.hintRow), null)
@@ -274,7 +275,7 @@ async function main() {
     const mark = await evalJS(`(() => {
       const cells = [...document.querySelectorAll('.cell')]
       const out = {}
-      document.querySelectorAll('.chip')[2].click()   // Cedric
+      document.querySelector('.clue[data-name="Cedric"]').click()   // 通过线索卡片选人
       cells[82].click()                                // R4C11
       out.note = (JSON.parse(localStorage.getItem('mrdc1_marks_v1') || '{}')['82'] || {}).notes || null
       out.letter = (cells[82].textContent || '').trim()
@@ -288,7 +289,7 @@ async function main() {
       out.afterErase = JSON.parse(localStorage.getItem('mrdc1_marks_v1') || '{}')['0'] || null
       document.getElementById('mode-note').click()
       // 重做：撤销后再重做应恢复笔记
-      document.querySelectorAll('.chip')[2].click()
+      document.querySelector('.clue[data-name="Cedric"]').click()
       cells[82].click()
       const note2 = (JSON.parse(localStorage.getItem('mrdc1_marks_v1') || '{}')['82'] || {}).notes || null
       document.getElementById('undo').click()
@@ -326,7 +327,7 @@ async function main() {
     // 4.7) 隐藏/显示标记
     const hideTest = await evalJS(`(() => {
       const cellAt = (i) => document.querySelectorAll('.cell')[i]
-      document.querySelectorAll('.chip')[0].click()
+      document.querySelector('.clue[data-name="Augustus"]').click()
       cellAt(5).click()
       const shown = (cellAt(5).textContent || '').trim()
       document.getElementById('toggle-hide').click()

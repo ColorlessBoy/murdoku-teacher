@@ -69,18 +69,6 @@
   .spacer-grow { flex: 1; }
   .zoom { display: flex; align-items: center; gap: 5px; }
   .zoom .state { min-width: 38px; text-align: center; }
-  .chips { display: flex; gap: 5px; flex-wrap: wrap; padding: 8px 12px; border-bottom: 1px solid rgba(160,140,100,.35); max-height: 96px; overflow: auto; }
-  .chip {
-    display: flex; align-items: center; gap: 5px; border: 2px solid #222; background: #d8cbb4;
-    color: var(--ink); font-size: 12px; font-weight: 700; padding: 2px 8px 2px 2px; border-radius: 6px;
-    cursor: pointer; box-shadow: 2px 2px 0 rgba(0,0,0,.28);
-  }
-  .chip .ini {
-    width: 18px; height: 18px; display: grid; place-items: center; background: #f3ede2;
-    border: 1.5px solid #222; border-radius: 4px; font-weight: 900; font-size: 12px;
-  }
-  .chip:hover { background: #e6d9c0; }
-  .chip.on { background: #ffe9a8; box-shadow: 0 0 0 2px var(--sel), 2px 2px 0 rgba(0,0,0,.28); }
   .board-wrap { flex: 1; overflow: auto; padding: 12px 14px 18px; }
   .board-plate {
     background: #fffdf6; border: 2px solid rgba(160,140,100,.55); border-radius: 12px;
@@ -181,9 +169,7 @@
     .toolbar { flex-wrap: nowrap; overflow-x: auto; padding: 6px 8px; gap: 5px; -webkit-overflow-scrolling: touch; }
     .toolbar .stamp-btn { padding: 5px 10px; font-size: 12px; }
     .toolbar .state { display: none; }
-    .chips { flex-wrap: nowrap; overflow-x: auto; max-height: none; padding: 6px 8px; -webkit-overflow-scrolling: touch; }
-    .chip { flex: 0 0 auto; }
-    .board-wrap { flex: 0 0 auto; overflow: visible; padding: 8px 10px 10px; }
+        .board-wrap { flex: 0 0 auto; overflow: visible; padding: 8px 10px 10px; }
     .board-plate { padding: 4px; border-radius: 10px; box-shadow: 4px 4px 0 rgba(0,0,0,.22); }
     .cell .notes span { font-size: clamp(5px, 1.6vw, 9px); }
     .cell .x { font-size: clamp(9px, 2.8vw, 15px); }
@@ -237,7 +223,6 @@
           <button class="stamp-btn small" id="zoom-in" title="放大">＋</button>
         </span>
       </div>
-      <div class="chips" id="chips"></div>
       <div class="board-wrap">
         <div class="board-plate" id="board-plate">
           <div class="board">
@@ -334,7 +319,6 @@
   const redoStack = [];   // 重做栈
   let actionLog = [];
   try { actionLog = JSON.parse(localStorage.getItem(LOG_KEY) || '[]') || [] } catch { actionLog = [] }
-  const chipsEl = document.getElementById('chips');
   const cluesEl = document.getElementById('clues');
   const cellsEl = document.getElementById('cells');
   const stateEl = document.getElementById('state');
@@ -369,27 +353,18 @@
     applyLang();
   };
 
-  const renderChips = () => {
-    chipsEl.innerHTML = '';
-    for (const c of clues) {
-      const el = document.createElement('button');
-      el.className = 'chip' + (state.selected === c.name ? ' on' : '');
-      el.innerHTML = '<span class="ini">' + c.name[0] + '</span>' + c.name;
-      el.onclick = () => { state.selected = c.name; renderChips(); renderClues(); flash('已选中 ' + c.name + '，点格子标记 ' + c.name[0]); };
-      chipsEl.appendChild(el);
-    }
-  };
   const renderClues = () => {
     cluesEl.innerHTML = '';
     for (const c of clues) {
       const el = document.createElement('div');
       el.className = 'clue' + (state.selected === c.name ? ' on' : '') + (c.name === 'Treasure' ? ' treasure' : '');
+      el.dataset.name = c.name;
       el.innerHTML = '<img class="avatar" alt="" src="' + (c.img || '') + '">' +
         '<div class="body"><div class="name">' + c.name + ' <span class="ini">' + c.name[0] + '</span></div>' +
         '<div class="txt-zh"></div><div class="txt"></div></div>';
       el.querySelector('.txt-zh').textContent = c.clue_zh || '';
       el.querySelector('.txt').textContent = c.clue;
-      el.onclick = () => { state.selected = c.name; renderChips(); renderClues(); flash('已选中 ' + c.name + '，点格子标记 ' + c.name[0]); };
+      el.onclick = () => { state.selected = c.name; renderClues(); flash('已选中 ' + c.name + '，点棋盘格子标记 ' + c.name[0]); };
       cluesEl.appendChild(el);
     }
   };
@@ -473,7 +448,7 @@
           const before = state.marks[idx] ? JSON.parse(JSON.stringify(state.marks[idx])) : null;
           const m = hit(r, c);
           if (state.mode === 'note') {
-            if (!state.selected) { flash('先选一个嫌疑人（右侧线索或上方字母）'); return; }
+            if (!state.selected) { flash('先点一张线索卡选角色，再点格子标记'); return; }
             if (m.x) m.x = false;
             const i = m.notes.indexOf(state.selected);
             if (i >= 0) m.notes.splice(i, 1); else m.notes.push(state.selected);
@@ -684,7 +659,7 @@
 
   fetch('clues.json?t=' + Date.now()).then(r => r.json()).then((rows) => {
     clues = rows;
-    renderChips(); renderClues(); buildGrid(); updateState();
+    renderClues(); buildGrid(); updateState();
     applyZoom();
     window.addEventListener('orientationchange', () => setTimeout(applyZoom, 150));
     bindToolbar(); initAnswer(); updateUndoRedo(); applyLang();
