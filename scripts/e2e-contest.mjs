@@ -142,7 +142,7 @@ const record = (name, ok, detail) => {
   if (VERBOSE) console.log((ok ? 'PASS' : 'FAIL') + ' · ' + name + (detail ? ' — ' + String(detail).slice(0, 200) : ''))
 }
 
-const KEYS = ['mrdc1_marks_v1', 'mrdc1_marks_v1_saved', 'mrdc1_answer_v1', 'mrdc1_tries_v1', 'mrdc1_hint_v1']
+const KEYS = ['mrdc1_marks_v1', 'mrdc1_marks_v1_saved', 'mrdc1_answer_v1', 'mrdc1_tries_v1', 'mrdc1_hint_v1', 'mrdc1_log_v1']
 const EXPECT_NAMES = ['Augustus', 'Bart', 'Cedric', 'Dudley', 'Eiko', 'Fleur', 'Griselda', 'Hyacinth', 'Isolde', 'Julius', 'Kathleen', 'Linus', 'Mortimer', 'Nehemiah', 'Orville', 'Pedro', 'Quincy', 'Rosalind', 'Seraphina', 'Ursula', 'Wilfred', 'Yannis', 'Zoe', 'Treasure']
 const EXPECT_CLUE_FRAGMENTS = {
   Cedric: 'Someone exactly eight rows north of him was beside the tombstone.',
@@ -215,6 +215,8 @@ async function main() {
         chips: document.querySelectorAll('.chip').length,
         img: img ? [img.naturalWidth, img.naturalHeight] : null,
         hasUndo: !!document.getElementById('undo'),
+        hasRedo: !!document.getElementById('redo'),
+        hasLog: !!document.getElementById('log-btn'),
         hasZoom: !!document.getElementById('zoom-in'),
         hasHint: !!document.getElementById('ans-hint'),
         hasHowto: !!document.querySelector('.howto'),
@@ -227,7 +229,7 @@ async function main() {
     record('棋盘图加载正确（1542×1473）', basic.img && basic.img[0] === 1542 && basic.img[1] === 1473, basic.img)
     record('来源署名完整（作者 / 美术 / 非官方）', /Manuel Garand/.test(basic.credit) && /Valentyna/.test(basic.credit) && /非官方/.test(basic.credit), basic.credit.slice(0, 120))
     record('规则区含原题要点（最后一格 / 可占用）', /最后一格/.test(basic.howto) && /可占用/.test(basic.howto) && /ROW/.test(basic.hintRow), null)
-    record('工具栏完整（撤销 / 缩放 / 提示 / 规则面板）', basic.hasUndo && basic.hasZoom && basic.hasHint && basic.hasHowto, null)
+    record('工具栏完整（撤销/重做/记录/缩放/提示/规则面板）', basic.hasUndo && basic.hasRedo && basic.hasLog && basic.hasZoom && basic.hasHint && basic.hasHowto, null)
 
     // 2) 覆盖层几何对齐
     const geom = await evalJS(`(() => {
@@ -275,11 +277,40 @@ async function main() {
       cells[0].click()
       out.afterErase = JSON.parse(localStorage.getItem('mrdc1_marks_v1') || '{}')['0'] || null
       document.getElementById('mode-note').click()
+      // 重做：撤销后再重做应恢复笔记
+      document.querySelectorAll('.chip')[2].click()
+      cells[82].click()
+      const note2 = (JSON.parse(localStorage.getItem('mrdc1_marks_v1') || '{}')['82'] || {}).notes || null
+      document.getElementById('undo').click()
+      out.redoDisabledBefore = document.getElementById('redo').disabled
+      document.getElementById('redo').click()
+      out.afterRedo = (JSON.parse(localStorage.getItem('mrdc1_marks_v1') || '{}')['82'] || {}).notes || null
+      out.redoDisabledAfter = document.getElementById('redo').disabled
+      // 新操作应清空重做栈
+      document.getElementById('undo').click()
+      cells[83].click()
+      out.redoClearedByNewAction = document.getElementById('redo').disabled
       return JSON.stringify(out)
     })()`).then(JSON.parse)
     record('笔记：点格子写入并显示首字母', mark.note && mark.note[0] === 'Cedric' && mark.letter === 'C', mark)
     record('撤销：恢复上一步（清掉刚写的笔记）', mark.afterUndo === null, mark.afterUndo)
     record('打叉 / 橡皮模式生效', mark.xAt0 === true && mark.afterErase === null, mark)
+
+    // 4.5) 操作记录面板 + 重做按钮状态
+    const logTest = await evalJS(`(() => {
+      const out = {}
+      out.undoDisabledInitially = document.getElementById('undo').disabled
+      document.getElementById('log-btn').click()
+      out.modalOpen = document.getElementById('log-modal').classList.contains('on')
+      out.count = document.querySelectorAll('.log-item').length
+      out.text = document.querySelector('.log-list')?.innerText || ''
+      const first = document.querySelector('.log-item')
+      if (first) first.click()
+      out.closedAfterClick = !document.getElementById('log-modal').classList.contains('on')
+      return JSON.stringify(out)
+    })()`).then(JSON.parse)
+    record('操作记录：可打开、有条目、点击条目定位并关闭', logTest.modalOpen && logTest.count > 0 && /笔记|撤销|重做/.test(logTest.text) && logTest.closedAfterClick, { count: logTest.count, text: logTest.text.slice(0, 120) })
+    record('重做按钮：撤销后可重做恢复、新操作清空重做栈', mark.redoDisabledBefore === false && Array.isArray(mark.afterRedo) && mark.afterRedo[0] === 'Cedric' && mark.redoDisabledAfter === true && mark.redoClearedByNewAction === true, { redoDisabledBefore: mark.redoDisabledBefore, afterRedo: mark.afterRedo, redoDisabledAfter: mark.redoDisabledAfter, redoClearedByNewAction: mark.redoClearedByNewAction })
 
     // 5) 隐藏标记 + 缩放
     const view = await evalJS(`(() => {
@@ -315,6 +346,14 @@ async function main() {
       cell5: (document.querySelectorAll('.cell')[5].textContent || '').trim(),
     })`).then(JSON.parse)
     record('刷新后笔记与尝试次数保留', after.marks === before.marks && after.tries === '2' && after.cell5 === 'A', after)
+    const logAfterReload = await evalJS(`(() => {
+      const n = JSON.parse(localStorage.getItem('mrdc1_log_v1') || '[]').length
+      document.getElementById('log-btn').click()
+      const rowCount = document.querySelectorAll('.log-item').length
+      document.getElementById('log-close').click()
+      return JSON.stringify({ stored: n, rendered: rowCount })
+    })()`).then(JSON.parse)
+    record('刷新后操作记录保留', logAfterReload.stored > 0 && logAfterReload.rendered > 0, logAfterReload)
 
     // 7) 答案判对闭环
     const answer = await evalJS(`(() => {
@@ -356,6 +395,8 @@ async function main() {
       return JSON.stringify({ marks: localStorage.getItem('mrdc1_marks_v1'), cell5: (document.querySelectorAll('.cell')[5].textContent || '').trim() })
     })()`).then(JSON.parse)
     record('清空：标记全部移除', reset.marks === '{}' && reset.cell5 === '', reset)
+    const logAfterReset = await evalJS(`JSON.stringify({ stored: JSON.parse(localStorage.getItem('mrdc1_log_v1') || '[]').length, lastType: (JSON.parse(localStorage.getItem('mrdc1_log_v1') || '[]').slice(-1)[0] || {}).type })`).then(JSON.parse)
+    record('清空后记录只保留 reset 一条', logAfterReset.stored === 1 && logAfterReset.lastType === 'reset', logAfterReset)
 
     // 10) 控制台与网络
     const errs = consoleErrors()

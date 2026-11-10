@@ -125,6 +125,23 @@
   .answer .feedback { margin-top: 6px; font-size: 11.5px; line-height: 1.55; font-weight: 700; min-height: 17px; }
   .answer .hintbox { margin-top: 6px; font-size: 11px; line-height: 1.6; color: var(--ink-soft); background: #fff7e2; border: 1.5px dashed rgba(160,140,100,.6); border-radius: 8px; padding: 6px 9px; display: none; }
   .answer .hintbox.on { display: block; }
+  .cell.flash { background: rgba(184,134,11,.6) !important; border-color: #8a6508 !important; }
+  .log-modal { position: fixed; inset: 0; background: rgba(24,16,8,.45); display: none; place-items: center; z-index: 60; }
+  .log-modal.on { display: grid; }
+  .log-box {
+    width: min(540px, 92vw); max-height: 74vh; display: flex; flex-direction: column;
+    background: linear-gradient(160deg,#f7f1e6,#eee6d6); border: 2px solid #000; border-radius: 12px;
+    box-shadow: 6px 6px 0 rgba(0,0,0,.35);
+  }
+  .log-head { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-bottom: 2px solid var(--line); font-weight: 900; font-size: 13px; }
+  .log-head .state { margin-left: auto; }
+  .log-list { overflow: auto; padding: 6px 8px 10px; }
+  .log-item { display: flex; gap: 8px; align-items: baseline; padding: 4px 5px; border-bottom: 1px dashed rgba(160,140,100,.35); cursor: pointer; font-size: 11.5px; }
+  .log-item:hover { background: #fff7e2; }
+  .log-item .lt { color: var(--ink-dim); font-variant-numeric: tabular-nums; min-width: 62px; font-weight: 600; }
+  .log-item .lm { flex: 1; color: var(--ink); font-weight: 700; }
+  .log-item .lc { color: var(--gold); font-weight: 800; min-width: 52px; text-align: right; }
+  .log-empty { color: var(--ink-dim); padding: 16px 6px; text-align: center; font-size: 11.5px; }
   .credit {
     padding: 7px 12px; border-top: 2px solid var(--line);
     background: rgba(243,237,226,.92); font-size: 10.5px; color: var(--ink-soft); line-height: 1.55;
@@ -156,6 +173,8 @@
         <button class="stamp-btn" id="mode-x">打叉</button>
         <button class="stamp-btn" id="mode-erase">橡皮</button>
         <button class="stamp-btn" id="undo">撤销</button>
+        <button class="stamp-btn" id="redo">重做</button>
+        <button class="stamp-btn" id="log-btn">记录</button>
         <button class="stamp-btn" id="toggle-hide">隐藏标记</button>
         <button class="stamp-btn danger" id="reset">清空</button>
         <span class="state" id="state"></span>
@@ -207,6 +226,12 @@
       </div>
     </div>
   </div>
+  <div class="log-modal" id="log-modal">
+    <div class="log-box">
+      <div class="log-head"><span>操作记录</span><span class="state" id="log-count"></span><button class="stamp-btn small" id="log-close">关闭</button></div>
+      <div class="log-list" id="log-list"></div>
+    </div>
+  </div>
   <div class="credit">
     <b>非官方互动版 · Unofficial interactive adaptation</b>
     <span class="sep">|</span>
@@ -230,6 +255,7 @@
   const ANS_KEY = 'mrdc1_answer_v1';
   const ANS_TRIES_KEY = 'mrdc1_tries_v1';
   const HINT_KEY = 'mrdc1_hint_v1';
+  const LOG_KEY = 'mrdc1_log_v1';
   const TREASURE = { row: 4, col: 11 };   // 官方公布：row 4, column 11（murdoku.com/contest/stats）
 
   const HINTS = [
@@ -247,7 +273,10 @@
   try { state.answer = Object.assign({ row: '', col: '' }, JSON.parse(localStorage.getItem(ANS_KEY) || '{}')) } catch {}
   try { hintLevel = Number(localStorage.getItem(HINT_KEY) || 0) || 0 } catch {}
 
-  const history = [];   // 撤销栈（本次打开页面内）
+  const undoStack = [];   // 撤销栈（本次打开页面内）
+  const redoStack = [];   // 重做栈
+  let actionLog = [];
+  try { actionLog = JSON.parse(localStorage.getItem(LOG_KEY) || '[]') || [] } catch { actionLog = [] }
   const chipsEl = document.getElementById('chips');
   const cluesEl = document.getElementById('clues');
   const cellsEl = document.getElementById('cells');
@@ -291,6 +320,54 @@
     }
   };
 
+  const saveLog = () => { try { localStorage.setItem(LOG_KEY, JSON.stringify(actionLog.slice(-300))) } catch {} };
+  const logAction = (type, r, c, detail) => {
+    actionLog.push({ at: Date.now(), type, r, c, detail: detail || '' });
+    if (actionLog.length > 300) actionLog = actionLog.slice(-300);
+    saveLog();
+  };
+  const LOG_LABEL = { note: '笔记', x: '打叉', erase: '橡皮', undo: '撤销', redo: '重做', reset: '清空' };
+  const LOG_DETAIL = { note: '加/减', x: '切换 ✕', erase: '清空格', undo: '回退一步', redo: '重做一步', reset: '全部清除' };
+  const renderLog = () => {
+    const list = document.getElementById('log-list');
+    const count = document.getElementById('log-count');
+    if (!list) return;
+    if (count) count.textContent = actionLog.length ? actionLog.length + ' 条' : '';
+    if (actionLog.length === 0) {
+      list.innerHTML = '<div class="log-empty">还没有操作记录。点格子做笔记/打叉，这里会按时间记下来。</div>';
+      return;
+    }
+    list.innerHTML = '';
+    for (let i = actionLog.length - 1; i >= 0; i -= 1) {
+      const e = actionLog[i];
+      const item = document.createElement('div');
+      item.className = 'log-item';
+      item.title = '点击定位到该格';
+      const where = e.r === null || e.r === undefined ? '' : 'R' + (e.r + 1) + 'C' + (e.c + 1);
+      item.innerHTML = '<span class="lt">' + fmtTime(e.at) + '</span>' +
+        '<span class="lm">' + (LOG_LABEL[e.type] || e.type) + (e.detail ? ' · ' + e.detail : '') + '</span>' +
+        '<span class="lc">' + where + '</span>';
+      item.onclick = () => {
+        closeLog();
+        if (e.r !== null && e.r !== undefined) flashCell(e.r, e.c);
+      };
+      list.appendChild(item);
+    }
+  };
+  const flashCell = (r, c) => {
+    const el = cellEl(r, c);
+    if (!el) return;
+    el.classList.add('flash');
+    setTimeout(() => el.classList.remove('flash'), 900);
+  };
+  const openLog = () => { renderLog(); document.getElementById('log-modal').classList.add('on') };
+  const closeLog = () => document.getElementById('log-modal').classList.remove('on');
+  const updateUndoRedo = () => {
+    const u = document.getElementById('undo'), rd = document.getElementById('redo');
+    if (u) u.disabled = undoStack.length === 0;
+    if (rd) rd.disabled = redoStack.length === 0;
+  };
+
   const hit = (r, c) => state.marks[r * N + c] || (state.marks[r * N + c] = { notes: [], x: false });
 
   const renderCell = (r, c, el) => {
@@ -331,18 +408,25 @@
           } else {
             delete state.marks[idx];
           }
-          history.push({ r, c, before });
-          if (history.length > 200) history.shift();
-          save(); renderCell(r, c, el); updateState();
+          const after = state.marks[idx] ? JSON.parse(JSON.stringify(state.marks[idx])) : null;
+          const type = state.mode === 'note' ? 'note' : state.mode === 'x' ? 'x' : 'erase';
+          undoStack.push({ r, c, before, after });
+          if (undoStack.length > 200) undoStack.shift();
+          redoStack.length = 0;
+          logAction(type, r, c, LOG_DETAIL[type] + (type === 'note' && state.selected ? ' · ' + state.selected[0] : ''));
+          save(); renderCell(r, c, el); updateState(); updateUndoRedo();
         };
         el.oncontextmenu = (e) => {
           e.preventDefault();
           const idx = r * N + c;
           const before = state.marks[idx] ? JSON.parse(JSON.stringify(state.marks[idx])) : null;
           const m = hit(r, c); m.x = !m.x; if (m.x) m.notes = [];
-          history.push({ r, c, before });
-          if (history.length > 200) history.shift();
-          save(); renderCell(r, c, el); updateState();
+          const after = state.marks[idx] ? JSON.parse(JSON.stringify(state.marks[idx])) : null;
+          undoStack.push({ r, c, before, after });
+          if (undoStack.length > 200) undoStack.shift();
+          redoStack.length = 0;
+          logAction(m.x ? 'x' : 'erase', r, c, m.x ? '右键打叉' : '右键清除');
+          save(); renderCell(r, c, el); updateState(); updateUndoRedo();
         };
         cellsEl.appendChild(el);
         renderCell(r, c, el);
@@ -350,14 +434,29 @@
     }
   };
 
-  const undo = () => {
-    const h = history.pop();
-    if (!h) { flash('没有可撤销的操作'); return; }
+  const applyMarks = (h, snapshot) => {
     const idx = h.r * N + h.c;
-    if (h.before === null) delete state.marks[idx];
-    else state.marks[idx] = h.before;
-    save(); renderCell(h.r, h.c, cellEl(h.r, h.c)); updateState();
+    if (snapshot === null) delete state.marks[idx];
+    else state.marks[idx] = JSON.parse(JSON.stringify(snapshot));
+    save(); renderCell(h.r, h.c, cellEl(h.r, h.c)); updateState(); updateUndoRedo();
+  };
+  const undo = () => {
+    const h = undoStack.pop();
+    if (!h) { flash('没有可撤销的操作'); return; }
+    applyMarks(h, h.before);
+    redoStack.push(h);
+    logAction('undo', h.r, h.c, '回退一步');
+    updateUndoRedo();
     flash('已撤销 R' + (h.r + 1) + 'C' + (h.c + 1) + ' 的上一步');
+  };
+  const redo = () => {
+    const h = redoStack.pop();
+    if (!h) { flash('没有可重做的操作'); return; }
+    applyMarks(h, h.after);
+    undoStack.push(h);
+    logAction('redo', h.r, h.c, '重做一步');
+    updateUndoRedo();
+    flash('已重做 R' + (h.r + 1) + 'C' + (h.c + 1) + ' 的修改');
   };
 
   const updateState = () => {
@@ -427,6 +526,10 @@
       };
     }
     document.getElementById('undo').onclick = undo;
+    document.getElementById('redo').onclick = redo;
+    document.getElementById('log-btn').onclick = openLog;
+    document.getElementById('log-close').onclick = closeLog;
+    document.getElementById('log-modal').addEventListener('click', (e) => { if (e.target.id === 'log-modal') closeLog() });
     document.getElementById('toggle-hide').onclick = (e) => {
       state.hide = !state.hide;
       e.currentTarget.classList.toggle('on', state.hide);
@@ -435,9 +538,10 @@
     };
     document.getElementById('reset').onclick = () => {
       if (!confirm('清空所有笔记和叉？这个操作不能撤销。')) return;
-      history.length = 0;
-      state.marks = {}; save(); buildGrid(); updateState();
-      flash('已清空所有标记');
+      undoStack.length = 0; redoStack.length = 0;
+      state.marks = {}; save(); buildGrid(); updateState(); updateUndoRedo();
+      actionLog = []; logAction('reset', null, null, '全部清除');
+      flash('已清空所有标记（记录里保留“清空”这一条）');
     };
     document.getElementById('zoom-in').onclick = () => setZoom(state.zoom + 0.3);
     document.getElementById('zoom-out').onclick = () => setZoom(state.zoom - 0.3);
@@ -466,7 +570,7 @@
   fetch('clues.json?t=' + Date.now()).then(r => r.json()).then((rows) => {
     clues = rows;
     renderChips(); renderClues(); buildGrid(); updateState(); setZoom(1);
-    bindToolbar(); initAnswer();
+    bindToolbar(); initAnswer(); updateUndoRedo();
   }).catch((error) => {
     document.body.innerHTML = '<pre style="color:#8b1d1d;padding:20px">clues.json 加载失败: ' + error + '</pre>';
   });
