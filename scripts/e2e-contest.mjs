@@ -111,7 +111,7 @@ async function main() {
   if (!chrome) throw new Error('未找到 Chrome（可用 --chrome 指定）')
   const devtoolsPort = 9500 + Math.floor(Math.random() * 300)
   const profile = mkdtempSync(join(tmpdir(), 'e2e-contest-'))
-  const proc = spawn(chrome, ['--headless=new', '--disable-gpu', '--no-first-run', '--no-default-browser-check', '--disable-dev-shm-usage', '--hide-scrollbars', `--remote-debugging-port=${devtoolsPort}`, `--user-data-dir=${profile}`, 'about:blank'], { stdio: 'ignore' })
+  const proc = spawn(chrome, ['--headless=new', '--disable-gpu', '--no-first-run', '--no-default-browser-check', '--disable-dev-shm-usage', '--hide-scrollbars', '--no-sandbox', '--disable-setuid-sandbox', `--remote-debugging-port=${devtoolsPort}`, `--user-data-dir=${profile}`, 'about:blank'], { stdio: 'ignore' })
   let cdp = null
   try {
     cdp = await connect(devtoolsPort)
