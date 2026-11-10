@@ -13,3 +13,9 @@ archive/chrome-extension/.env.model
 
 # 离线站源码是独立的 git worktree，勿纳入本仓库
 .worktree/
+
+# 插件运行态存档（随游戏自动同步，本地镜像即可，不入库）
+progress/local-storage.json
+progress/history.json
+progress/puzzles/
+progress/state/
