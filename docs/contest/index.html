@@ -10,13 +10,14 @@
     --ink: #2a1f0e;
     --ink-soft: rgba(60, 42, 16, .65);
     --ink-dim: rgba(60, 42, 16, .45);
-    --paper: #f3ede2;
     --line: rgba(160, 140, 100, .55);
     --gold: #a8761d;
     --note: #7a4a12;
     --xmark: #a52a2a;
     --sel: #b8860b;
     --stamp: #f8f7fb;
+    --ok: #1d6b3a;
+    --bad: #8b1d1d;
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; height: 100%; }
@@ -51,18 +52,23 @@
   .pill:hover { background: #fffbea; }
   .main { flex: 1; display: flex; min-height: 0; }
   .left { flex: 1 1 60%; min-width: 0; display: flex; flex-direction: column; }
-  .right { flex: 1 1 40%; min-width: 250px; max-width: 400px; border-left: 2px solid var(--line); display: flex; flex-direction: column; min-height: 0; background: rgba(243,237,226,.55); }
+  .right { flex: 1 1 40%; min-width: 260px; max-width: 420px; border-left: 2px solid var(--line); display: flex; flex-direction: column; min-height: 0; background: rgba(243,237,226,.55); }
   .toolbar { display: flex; gap: 7px; padding: 9px 12px; flex-wrap: wrap; align-items: center; border-bottom: 1px solid rgba(160,140,100,.35); }
   .stamp-btn {
     border: 2px solid #000; background: var(--stamp); color: #191922; font-weight: 900; font-size: 12.5px;
     padding: 5px 12px; border-radius: 11px; cursor: pointer; box-shadow: 3px 3px 0 rgba(0,0,0,.35);
-    transition: transform .06s ease;
+    transition: transform .06s ease; white-space: nowrap;
   }
   .stamp-btn:hover { background: #fffbea; }
   .stamp-btn:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 rgba(0,0,0,.35); }
   .stamp-btn.on { background: #ffe9a8; }
-  .stamp-btn.danger { color: #8b1d1d; }
+  .stamp-btn:disabled { opacity: .45; cursor: default; }
+  .stamp-btn.danger { color: var(--bad); }
+  .stamp-btn.small { padding: 3px 8px; font-size: 12px; border-radius: 9px; }
   .state { font-size: 11px; color: var(--ink-dim); font-weight: 600; }
+  .spacer-grow { flex: 1; }
+  .zoom { display: flex; align-items: center; gap: 5px; }
+  .zoom .state { min-width: 38px; text-align: center; }
   .chips { display: flex; gap: 5px; flex-wrap: wrap; padding: 8px 12px; border-bottom: 1px solid rgba(160,140,100,.35); max-height: 96px; overflow: auto; }
   .chip {
     display: flex; align-items: center; gap: 5px; border: 2px solid #222; background: #d8cbb4;
@@ -78,7 +84,7 @@
   .board-wrap { flex: 1; overflow: auto; padding: 12px 14px 18px; }
   .board-plate {
     background: #fffdf6; border: 2px solid rgba(160,140,100,.55); border-radius: 12px;
-    box-shadow: 6px 6px 0 rgba(0,0,0,.25); padding: 8px; max-width: 1000px; margin: 0 auto;
+    box-shadow: 6px 6px 0 rgba(0,0,0,.25); padding: 8px; max-width: none; margin: 0 auto;
   }
   .board { position: relative; width: 100%; }
   .board img { width: 100%; display: block; border-radius: 6px; }
@@ -91,6 +97,13 @@
   .hint-row { padding: 0 14px 8px; color: var(--ink-dim); font-size: 10.5px; line-height: 1.6; }
   .hint-row b { color: var(--ink-soft); }
   .right h2 { margin: 0; font-size: 12px; padding: 9px 12px 3px; font-weight: 900; letter-spacing: .5px; }
+  .howto { margin: 4px 8px 6px; border: 1.5px solid rgba(160,140,100,.5); border-radius: 9px; background: linear-gradient(160deg,#f7f1e6,#efe7d8); font-size: 11px; }
+  .howto summary { list-style: none; cursor: pointer; padding: 6px 10px; font-weight: 900; font-size: 11.5px; display: flex; align-items: center; gap: 6px; }
+  .howto summary::-webkit-details-marker { display: none; }
+  .howto summary::before { content: '▸'; color: var(--gold); font-weight: 900; }
+  .howto[open] summary::before { content: '▾'; }
+  .howto .body { padding: 0 10px 8px; color: var(--ink-soft); line-height: 1.65; }
+  .howto .body b { color: var(--ink); }
   .clues { flex: 1; overflow: auto; padding: 0 8px 10px; }
   .clue {
     border: 1.5px solid rgba(160,140,100,.5); border-radius: 9px; padding: 6px 9px; margin: 6px 4px;
@@ -102,12 +115,16 @@
   .clue .name .ini { font-weight: 800; font-size: 10.5px; color: var(--ink-dim); }
   .clue .txt { color: var(--ink-soft); font-size: 11.5px; margin-top: 2px; }
   .clue.treasure { border-style: dashed; }
-  .answer { border-top: 2px solid var(--line); padding: 8px 12px; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; background: rgba(243,237,226,.8); }
+  .answer { border-top: 2px solid var(--line); padding: 8px 12px; background: rgba(243,237,226,.8); }
+  .answer .row1 { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
   .answer label { font-size: 11.5px; font-weight: 800; color: var(--ink-soft); }
   .answer input {
     width: 58px; background: #fffdf6; border: 2px solid #000; color: var(--ink);
     border-radius: 8px; padding: 3px 7px; font-size: 12.5px; font-weight: 800; box-shadow: 2px 2px 0 rgba(0,0,0,.25);
   }
+  .answer .feedback { margin-top: 6px; font-size: 11.5px; line-height: 1.55; font-weight: 700; min-height: 17px; }
+  .answer .hintbox { margin-top: 6px; font-size: 11px; line-height: 1.6; color: var(--ink-soft); background: #fff7e2; border: 1.5px dashed rgba(160,140,100,.6); border-radius: 8px; padding: 6px 9px; display: none; }
+  .answer .hintbox.on { display: block; }
   .credit {
     padding: 7px 12px; border-top: 2px solid var(--line);
     background: rgba(243,237,226,.92); font-size: 10.5px; color: var(--ink-soft); line-height: 1.55;
@@ -115,10 +132,9 @@
   .credit b { color: var(--ink); }
   .credit a { color: #7a4a12; text-decoration: underline; }
   .credit .sep { color: var(--ink-dim); margin: 0 4px; }
-  .credit-sep { color: var(--ink-dim); margin: 0 4px; }
   @media (max-width: 760px) {
     .main { flex-direction: column; }
-    .right { max-width: none; border-left: 0; border-top: 2px solid var(--line); max-height: 40vh; }
+    .right { max-width: none; border-left: 0; border-top: 2px solid var(--line); max-height: 46vh; }
   }
 </style>
 </head>
@@ -139,13 +155,20 @@
         <button class="stamp-btn on" id="mode-note">笔记</button>
         <button class="stamp-btn" id="mode-x">打叉</button>
         <button class="stamp-btn" id="mode-erase">橡皮</button>
+        <button class="stamp-btn" id="undo">撤销</button>
         <button class="stamp-btn" id="toggle-hide">隐藏标记</button>
         <button class="stamp-btn danger" id="reset">清空</button>
         <span class="state" id="state"></span>
+        <span class="spacer-grow"></span>
+        <span class="zoom">
+          <button class="stamp-btn small" id="zoom-out" title="缩小">－</button>
+          <span class="state" id="zoom-level">100%</span>
+          <button class="stamp-btn small" id="zoom-in" title="放大">＋</button>
+        </span>
       </div>
       <div class="chips" id="chips"></div>
       <div class="board-wrap">
-        <div class="board-plate">
+        <div class="board-plate" id="board-plate">
           <div class="board">
             <img id="boardimg" src="board.png" alt="The Treasure Hunt 24x24 board">
             <div class="cells" id="cells"></div>
@@ -153,24 +176,34 @@
         </div>
       </div>
       <div class="hint-row">
-        规则（与 PDF 一致）：基础 Murdoku 规则；这次没有凶手——找出宝藏坐标即破案。
-        宝藏就在最后一格（The Treasure is in the very last square）；Sloop / Frigate / Galleon 都算 ship，并且各自算独立区域；门前有两格（见原图标注）。
-        <br>
-        <b>可占用：</b>ships（Sloop / Frigate / Galleon）、bed、chair、hammock
-        <span class="credit-sep">|</span>
-        <b>不可占用：</b>fire · tree · flowers · shark · sack · pig · tombstone · crate · rope · barrel · shelf · shrub · table · boulder
+        原题规则：基础 Murdoku 规则 · 这次没有凶手——找出宝藏坐标（ROW / COLUMN）即破案。
+        更多规则与图例见右侧「怎么玩」。<span class="state" id="save-state" style="margin-left:8px;"></span>
       </div>
     </div>
     <div class="right">
+      <details class="howto">
+        <summary>怎么玩 · 规则与图例</summary>
+        <div class="body">
+          <b>目标</b>：和普通 Murdoku 一样，每行每列各放一个人；但这次不找凶手，而是找出<b>宝藏的坐标</b>（ROW / COLUMN）。<br>
+          <b>原题提示</b>：宝藏就在最后一格（The Treasure is in the very last square）；有两个格子就在门前。<br>
+          <b>船</b>：Sloop、Frigate、Galleon 都算 ship，并且各自算独立区域。<br>
+          <b>可占用</b>：ships（Sloop / Frigate / Galleon）、bed、chair、hammock<br>
+          <b>不可占用</b>：fire · tree · flowers · shark · sack · pig · tombstone · crate · rope · barrel · shelf · shrub · table · boulder
+        </div>
+      </details>
       <h2>线索 CLUES</h2>
       <div class="clues" id="clues"></div>
       <div class="answer">
-        <label>我的答案 ROW</label>
-        <input id="ans-row" inputmode="numeric" placeholder="行">
-        <label>COLUMN</label>
-        <input id="ans-col" inputmode="numeric" placeholder="列">
-        <button class="stamp-btn" id="ans-check">判对</button>
-        <span class="state" id="ans-result"></span>
+        <div class="row1">
+          <label>我的答案 ROW</label>
+          <input id="ans-row" inputmode="numeric" placeholder="行">
+          <label>COLUMN</label>
+          <input id="ans-col" inputmode="numeric" placeholder="列">
+          <button class="stamp-btn" id="ans-check">判对</button>
+          <button class="stamp-btn" id="ans-hint">💡 提示</button>
+        </div>
+        <div class="feedback" id="ans-result"></div>
+        <div class="hintbox" id="hintbox"></div>
       </div>
     </div>
   </div>
@@ -196,24 +229,45 @@
   const KEY = 'mrdc1_marks_v1';
   const ANS_KEY = 'mrdc1_answer_v1';
   const ANS_TRIES_KEY = 'mrdc1_tries_v1';
-  const TREASURE = { row: 4, col: 11 };   // 官方公布：row 4, column 11
+  const HINT_KEY = 'mrdc1_hint_v1';
+  const TREASURE = { row: 4, col: 11 };   // 官方公布：row 4, column 11（murdoku.com/contest/stats）
 
-  const state = { mode: 'note', selected: null, hide: false, marks: {}, answer: { row: '', col: '' } };
+  const HINTS = [
+    '原题提示：宝藏就在最后一格（The Treasure is in the very last square）。想想「最后一格」指的是什么。',
+    '原题提示：有两个格子就在门前（看原图那个门的标记）。',
+    '方向提示：随便填一个你最有把握的猜测再点「判对」，我会告诉你行/列哪个对了。',
+    '范围提示：行在 1–6 之间，列在 8–14 之间。',
+    '再近一点：行就是 4，列在 10–12 之间。',
+    '最后一格提示：列是 11。行你已经有了：4。',
+  ];
+
+  const state = { mode: 'note', selected: null, hide: false, marks: {}, answer: { row: '', col: '' }, zoom: 1 };
+  let hintLevel = 0;
   try { state.marks = JSON.parse(localStorage.getItem(KEY) || '{}') || {} } catch {}
   try { state.answer = Object.assign({ row: '', col: '' }, JSON.parse(localStorage.getItem(ANS_KEY) || '{}')) } catch {}
+  try { hintLevel = Number(localStorage.getItem(HINT_KEY) || 0) || 0 } catch {}
 
-  const save = () => { try { localStorage.setItem(KEY, JSON.stringify(state.marks)) } catch {} };
-  const saveAns = () => { try { localStorage.setItem(ANS_KEY, JSON.stringify(state.answer)) } catch {} };
-  const pct = (v, total) => (v / total * 100) + '%';
-  const readTries = () => { try { return Number(localStorage.getItem(ANS_TRIES_KEY) || 0) || 0 } catch { return 0 } };
-  const bumpTries = () => { const n = readTries() + 1; try { localStorage.setItem(ANS_TRIES_KEY, String(n)) } catch {} return n };
-
-  let clues = [];
+  const history = [];   // 撤销栈（本次打开页面内）
   const chipsEl = document.getElementById('chips');
   const cluesEl = document.getElementById('clues');
   const cellsEl = document.getElementById('cells');
   const stateEl = document.getElementById('state');
   const ansResult = document.getElementById('ans-result');
+  const hintBox = document.getElementById('hintbox');
+  const saveState = document.getElementById('save-state');
+  const zoomLevel = document.getElementById('zoom-level');
+  const plate = document.getElementById('board-plate');
+
+  let clues = [];
+  const pct = (v, total) => (v / total * 100) + '%';
+  const readTries = () => { try { return Number(localStorage.getItem(ANS_TRIES_KEY) || 0) || 0 } catch { return 0 } };
+  const bumpTries = () => { const n = readTries() + 1; try { localStorage.setItem(ANS_TRIES_KEY, String(n)) } catch {} return n };
+  const fmtTime = (ts) => { const d = new Date(ts); return [d.getHours(), d.getMinutes(), d.getSeconds()].map(v => String(v).padStart(2, '0')).join(':') };
+  const save = () => {
+    try { localStorage.setItem(KEY, JSON.stringify(state.marks)); localStorage.setItem(KEY + '_saved', String(Date.now())) } catch {}
+    try { saveState.textContent = '已自动保存 · ' + fmtTime(Date.now()) } catch {}
+  };
+  const saveAns = () => { try { localStorage.setItem(ANS_KEY, JSON.stringify(state.answer)) } catch {} };
 
   const renderChips = () => {
     chipsEl.innerHTML = '';
@@ -221,7 +275,7 @@
       const el = document.createElement('button');
       el.className = 'chip' + (state.selected === c.name ? ' on' : '');
       el.innerHTML = '<span class="ini">' + c.name[0] + '</span>' + c.name;
-      el.onclick = () => { state.selected = c.name; renderChips(); renderClues(); };
+      el.onclick = () => { state.selected = c.name; renderChips(); renderClues(); flash('已选中 ' + c.name + '，点格子标记 ' + c.name[0]); };
       chipsEl.appendChild(el);
     }
   };
@@ -232,7 +286,7 @@
       el.className = 'clue' + (state.selected === c.name ? ' on' : '') + (c.name === 'Treasure' ? ' treasure' : '');
       el.innerHTML = '<div class="name">' + c.name + ' <span class="ini">' + c.name[0] + '</span></div><div class="txt"></div>';
       el.querySelector('.txt').textContent = c.clue;
-      el.onclick = () => { state.selected = c.name; renderChips(); renderClues(); };
+      el.onclick = () => { state.selected = c.name; renderChips(); renderClues(); flash('已选中 ' + c.name + '，点格子标记 ' + c.name[0]); };
       cluesEl.appendChild(el);
     }
   };
@@ -250,6 +304,7 @@
       el.appendChild(box);
     }
   };
+  const cellEl = (r, c) => cellsEl.children[r * N + c];
 
   const buildGrid = () => {
     cellsEl.innerHTML = '';
@@ -257,11 +312,14 @@
       for (let c = 0; c < N; c += 1) {
         const el = document.createElement('div');
         el.className = 'cell';
+        el.title = 'R' + (r + 1) + ' C' + (c + 1);
         el.style.left = pct(GRID_X0 + c * CELL, BOARD_W);
         el.style.top = pct(GRID_Y0 + r * CELL, BOARD_H);
         el.style.width = pct(CELL, BOARD_W);
         el.style.height = pct(CELL, BOARD_H);
         el.onclick = () => {
+          const idx = r * N + c;
+          const before = state.marks[idx] ? JSON.parse(JSON.stringify(state.marks[idx])) : null;
           const m = hit(r, c);
           if (state.mode === 'note') {
             if (!state.selected) { flash('先选一个嫌疑人（右侧线索或上方字母）'); return; }
@@ -271,15 +329,35 @@
           } else if (state.mode === 'x') {
             m.x = !m.x; if (m.x) m.notes = [];
           } else {
-            delete state.marks[r * N + c];
+            delete state.marks[idx];
           }
+          history.push({ r, c, before });
+          if (history.length > 200) history.shift();
           save(); renderCell(r, c, el); updateState();
         };
-        el.oncontextmenu = (e) => { e.preventDefault(); const m = hit(r, c); m.x = !m.x; if (m.x) m.notes = []; save(); renderCell(r, c, el); updateState(); };
+        el.oncontextmenu = (e) => {
+          e.preventDefault();
+          const idx = r * N + c;
+          const before = state.marks[idx] ? JSON.parse(JSON.stringify(state.marks[idx])) : null;
+          const m = hit(r, c); m.x = !m.x; if (m.x) m.notes = [];
+          history.push({ r, c, before });
+          if (history.length > 200) history.shift();
+          save(); renderCell(r, c, el); updateState();
+        };
         cellsEl.appendChild(el);
         renderCell(r, c, el);
       }
     }
+  };
+
+  const undo = () => {
+    const h = history.pop();
+    if (!h) { flash('没有可撤销的操作'); return; }
+    const idx = h.r * N + h.c;
+    if (h.before === null) delete state.marks[idx];
+    else state.marks[idx] = h.before;
+    save(); renderCell(h.r, h.c, cellEl(h.r, h.c)); updateState();
+    flash('已撤销 R' + (h.r + 1) + 'C' + (h.c + 1) + ' 的上一步');
   };
 
   const updateState = () => {
@@ -288,7 +366,56 @@
     stateEl.textContent = '笔记 ' + notes + ' 格 · 叉 ' + xs + ' 格';
   };
   let flashTimer = null;
-  const flash = (msg) => { stateEl.textContent = msg; clearTimeout(flashTimer); flashTimer = setTimeout(updateState, 1800); };
+  const flash = (msg) => { stateEl.textContent = msg; clearTimeout(flashTimer); flashTimer = setTimeout(updateState, 2200); };
+
+  const setZoom = (z) => {
+    state.zoom = Math.min(2, Math.max(1, Math.round(z * 10) / 10));
+    plate.style.width = (state.zoom * 100) + '%';
+    zoomLevel.textContent = Math.round(state.zoom * 100) + '%';
+    document.getElementById('zoom-out').disabled = state.zoom <= 1;
+    document.getElementById('zoom-in').disabled = state.zoom >= 2;
+  };
+
+  const showHint = () => {
+    if (hintLevel >= HINTS.length) {
+      hintBox.classList.add('on');
+      hintBox.innerHTML = '提示用完了 ✅ 答案：<b>ROW 4 · COLUMN 11</b>（宝藏就在最后一格、门前两格之一）。';
+      return;
+    }
+    const text = HINTS[hintLevel];
+    hintLevel += 1;
+    try { localStorage.setItem(HINT_KEY, String(hintLevel)) } catch {}
+    hintBox.classList.add('on');
+    hintBox.innerHTML = '💡 <b>提示 ' + hintLevel + ' / ' + HINTS.length + '</b>：' + text + (hintLevel < HINTS.length ? '（再点一次「提示」继续）' : '');
+  };
+
+  const checkAnswer = () => {
+    const row = Number(document.getElementById('ans-row').value.trim());
+    const col = Number(document.getElementById('ans-col').value.trim());
+    if (!row || !col || row < 1 || row > 24 || col < 1 || col > 24) {
+      ansResult.style.color = 'var(--ink-dim)';
+      ansResult.textContent = '请输入 1–24 的行、列再点判对。';
+      return;
+    }
+    state.answer.row = String(row); state.answer.col = String(col); saveAns();
+    const tries = bumpTries();
+    const right = row === TREASURE.row && col === TREASURE.col;
+    if (right) {
+      ansResult.style.color = 'var(--ok)';
+      ansResult.innerHTML = '🎉 对了！宝藏就在 <b>R' + row + ' C' + col + '</b> —— 第 ' + tries + ' 次猜中。<br>' +
+        '<span style="font-weight:600">原竞赛提交入口：<a href="https://murdoku.com/contest/" target="_blank" rel="noreferrer">murdoku.com/contest</a></span>';
+      return;
+    }
+    let msg;
+    if (row === TREASURE.row) msg = '❌ 不对——不过行已经对了，列再想想。';
+    else if (col === TREASURE.col) msg = '❌ 不对——列已经对了，行再想想。';
+    else if (Math.abs(row - TREASURE.row) <= 2 && Math.abs(col - TREASURE.col) <= 2) msg = '❌ 非常接近了：行列都只差一点点。';
+    else if (tries === 1) msg = '❌ 不对。先从原题的两句提示入手：「宝藏就在最后一格」「有两个格子就在门前」。';
+    else if (tries >= 4) msg = '❌ 还不对。点「💡 提示」可以拿原题线索，一步步来。';
+    else msg = '❌ 不对，再翻翻线索里「最后一格」和「门前两格」的说法。';
+    ansResult.style.color = 'var(--bad)';
+    ansResult.textContent = msg + '（已猜 ' + tries + ' 次）';
+  };
 
   const bindToolbar = () => {
     const modes = { note: 'mode-note', x: 'mode-x', erase: 'mode-erase' };
@@ -296,8 +423,10 @@
       document.getElementById(id).onclick = () => {
         state.mode = mode;
         for (const [, otherId] of Object.entries(modes)) document.getElementById(otherId).classList.toggle('on', otherId === id);
+        flash(mode === 'note' ? '笔记模式：点格子加/减当前选中的人' : mode === 'x' ? '打叉模式：点格子切换 ✕' : '橡皮模式：点格子清空');
       };
     }
+    document.getElementById('undo').onclick = undo;
     document.getElementById('toggle-hide').onclick = (e) => {
       state.hide = !state.hide;
       e.currentTarget.classList.toggle('on', state.hide);
@@ -305,42 +434,38 @@
       buildGrid();
     };
     document.getElementById('reset').onclick = () => {
-      if (!confirm('清空所有笔记和叉？')) return;
+      if (!confirm('清空所有笔记和叉？这个操作不能撤销。')) return;
+      history.length = 0;
       state.marks = {}; save(); buildGrid(); updateState();
+      flash('已清空所有标记');
     };
-    document.getElementById('ans-check').onclick = () => {
-      const row = Number(document.getElementById('ans-row').value.trim());
-      const col = Number(document.getElementById('ans-col').value.trim());
-      if (!row || !col || row < 1 || row > 24 || col < 1 || col > 24) {
-        ansResult.style.color = 'var(--ink-dim)';
-        ansResult.textContent = '请输入 1–24 的行、列';
-        return;
-      }
-      state.answer.row = String(row); state.answer.col = String(col); saveAns();
-      const tries = bumpTries();
-      if (row === TREASURE.row && col === TREASURE.col) {
-        ansResult.style.color = '#1d6b3a';
-        ansResult.textContent = '🎉 正确！宝藏就在 R' + row + ' C' + col + '（第 ' + tries + ' 次猜中）';
-      } else {
-        ansResult.style.color = '#8b1d1d';
-        ansResult.textContent = '❌ 不对，再想想（已猜 ' + tries + ' 次）';
-      }
-    };
+    document.getElementById('zoom-in').onclick = () => setZoom(state.zoom + 0.3);
+    document.getElementById('zoom-out').onclick = () => setZoom(state.zoom - 0.3);
+    document.getElementById('ans-hint').onclick = showHint;
+    document.getElementById('ans-check').onclick = checkAnswer;
+    for (const id of ['ans-row', 'ans-col']) {
+      document.getElementById(id).addEventListener('keydown', (e) => { if (e.key === 'Enter') checkAnswer(); });
+    }
   };
 
   const initAnswer = () => {
     document.getElementById('ans-row').value = state.answer.row || '';
     document.getElementById('ans-col').value = state.answer.col || '';
     const tries = readTries();
-    if (tries > 0) ansResult.textContent = '（已猜 ' + tries + ' 次）';
+    if (tries > 0) { ansResult.style.color = 'var(--ink-dim)'; ansResult.textContent = '已猜 ' + tries + ' 次'; }
+    if (hintLevel > 0) {
+      hintBox.classList.add('on');
+      hintBox.innerHTML = '已解锁 ' + hintLevel + ' / ' + HINTS.length + ' 条提示（点「💡 提示」继续）';
+    }
+    try { const ts = Number(localStorage.getItem(KEY + '_saved') || 0); if (ts) saveState.textContent = '上次保存 · ' + fmtTime(ts) } catch {}
   };
 
-  const backLink = document.getElementById('back-link')
-  if (backLink) backLink.href = location.pathname.startsWith('/play_puzzles/') ? '/play/?lang=zh_hans' : 'https://murdoku.com/play/'
+  const backLink = document.getElementById('back-link');
+  if (backLink) backLink.href = location.pathname.startsWith('/play_puzzles/') ? '/play/?lang=zh_hans' : 'https://murdoku.com/play/';
 
   fetch('clues.json?t=' + Date.now()).then(r => r.json()).then((rows) => {
     clues = rows;
-    renderChips(); renderClues(); buildGrid(); updateState();
+    renderChips(); renderClues(); buildGrid(); updateState(); setZoom(1);
     bindToolbar(); initAnswer();
   }).catch((error) => {
     document.body.innerHTML = '<pre style="color:#8b1d1d;padding:20px">clues.json 加载失败: ' + error + '</pre>';
