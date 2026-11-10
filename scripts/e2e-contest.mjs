@@ -165,6 +165,7 @@ async function main() {
     cdp = await connect(devtoolsPort)
     const { send, events } = cdp
     await send('Runtime.enable'); await send('Log.enable'); await send('Network.enable'); await send('Page.enable')
+    await send('Emulation.setDeviceMetricsOverride', { width: 1280, height: 900, deviceScaleFactor: 1, mobile: false })
 
     const evalJS = async (expression) => {
       const res = await send('Runtime.evaluate', { expression, awaitPromise: true, returnByValue: true })
@@ -322,7 +323,8 @@ async function main() {
     record('重做按钮：撤销后可重做恢复、新操作清空重做栈', mark.redoDisabledBefore === false && Array.isArray(mark.afterRedo) && mark.afterRedo[0] === 'Cedric' && mark.redoDisabledAfter === true && mark.redoClearedByNewAction === true, { redoDisabledBefore: mark.redoDisabledBefore, afterRedo: mark.afterRedo, redoDisabledAfter: mark.redoDisabledAfter, redoClearedByNewAction: mark.redoClearedByNewAction })
 
     // 5) 隐藏标记 + 缩放
-    const view = await evalJS(`(() => {
+    // 4.7) 隐藏/显示标记
+    const hideTest = await evalJS(`(() => {
       const cellAt = (i) => document.querySelectorAll('.cell')[i]
       document.querySelectorAll('.chip')[0].click()
       cellAt(5).click()
@@ -331,17 +333,56 @@ async function main() {
       const hidden = (cellAt(5).textContent || '').trim()
       document.getElementById('toggle-hide').click()
       const reshown = (cellAt(5).textContent || '').trim()
-      const z0 = document.getElementById('zoom-level').textContent
-      document.getElementById('zoom-in').click()
-      const z1 = document.getElementById('zoom-level').textContent
-      document.getElementById('zoom-out').click()
-      const z2 = document.getElementById('zoom-level').textContent
-      document.getElementById('zoom-out').click()
-      const z3 = document.getElementById('zoom-level').textContent
-      return JSON.stringify({ shown, hidden, reshown, z0, z1, z2, z3, plate: document.getElementById('board-plate').style.width })
+      return JSON.stringify({ shown, hidden, reshown })
     })()`).then(JSON.parse)
-    record('隐藏/显示标记切换', view.shown === 'A' && view.hidden === '' && view.reshown === 'A', view)
-    record('缩放闭环（100→130→100，下限生效）', view.z0 === '100%' && view.z1 === '130%' && view.z2 === '100%' && view.z3 === '100%', view)
+    record('隐藏/显示标记切换', hideTest.shown === 'A' && hideTest.hidden === '' && hideTest.reshown === 'A', hideTest)
+
+    // 4.8) 中英切换 + 字号可读性
+    const langTest = await evalJS(`(() => {
+      const out = {}
+      out.bodyFont = parseFloat(getComputedStyle(document.body).fontSize)
+      out.zhFont = parseFloat(getComputedStyle(document.querySelector('.clue .txt-zh')).fontSize)
+      out.enFont = parseFloat(getComputedStyle(document.querySelector('.clue .txt')).fontSize)
+      out.hasBtn = !!document.getElementById('lang-toggle')
+      document.getElementById('lang-toggle').click()
+      out.zhOnlyClass = document.body.classList.contains('zh-only')
+      out.enHidden = getComputedStyle(document.querySelector('.clue .txt')).display === 'none'
+      out.btnText = document.getElementById('lang-toggle').textContent
+      document.getElementById('lang-toggle').click()
+      out.backToBoth = !document.body.classList.contains('zh-only')
+      out.enShown = getComputedStyle(document.querySelector('.clue .txt')).display !== 'none'
+      return JSON.stringify(out)
+    })()`).then(JSON.parse)
+    record('中英切换：只看中文隐藏英文、再切回中英对照', langTest.hasBtn && langTest.zhOnlyClass && langTest.enHidden && langTest.backToBoth && langTest.enShown, langTest)
+    record('字号可读性：正文字号 ≥13px、线索中文 ≥13px、英文 ≥11px', langTest.bodyFont >= 13 && langTest.zhFont >= 12.5 && langTest.enFont >= 10.5, { body: langTest.bodyFont, zh: langTest.zhFont, en: langTest.enFont })
+
+    await sleep(350)   // 等「适应窗口」在布局稳定后应用
+    const zoomTest = await evalJS(`(() => {
+      const plate = document.getElementById('board-plate')
+      const wrap = document.querySelector('.board-wrap')
+      const out = {}
+      out.label0 = document.getElementById('zoom-level').textContent
+      out.width0 = Math.round(plate.getBoundingClientRect().width)
+      out.availW = Math.round(wrap.clientWidth - 28)
+      out.availH = Math.round(wrap.clientHeight - 28)
+      const pr = plate.getBoundingClientRect()
+      const imgH = document.getElementById('boardimg').getBoundingClientRect().height
+      out.imgHeight = Math.round(imgH)
+      out.fitsInWindow = imgH <= out.availH + 2 && pr.width <= out.availW + 2
+      document.getElementById('zoom-in').click()
+      out.labelIn = document.getElementById('zoom-level').textContent
+      out.widthIn = Math.round(plate.getBoundingClientRect().width)
+      for (let i = 0; i < 25; i += 1) document.getElementById('zoom-out').click()
+      out.labelMin = document.getElementById('zoom-level').textContent
+      out.widthMin = Math.round(plate.getBoundingClientRect().width)
+      out.minDisabled = document.getElementById('zoom-out').disabled
+      document.getElementById('zoom-fit').click()
+      out.labelFit = document.getElementById('zoom-level').textContent
+      out.widthFit = Math.round(plate.getBoundingClientRect().width)
+      return JSON.stringify(out)
+    })()`).then(JSON.parse)
+    record('桌面棋盘默认「适应窗口」：整盘可见、不超出可视区', zoomTest.label0 === '适应' && zoomTest.fitsInWindow, zoomTest)
+    record('缩放可放大/缩小（下限 30%）并可一键恢复适应', zoomTest.widthIn > zoomTest.width0 && /%/.test(zoomTest.labelIn) && /30%/.test(zoomTest.labelMin) && zoomTest.widthMin < zoomTest.width0 && zoomTest.minDisabled && zoomTest.labelFit === '适应' && Math.abs(zoomTest.widthFit - zoomTest.width0) <= 2, zoomTest)
 
     // 6) 刷新持久化
     const before = await evalJS(`JSON.stringify({ marks: localStorage.getItem('mrdc1_marks_v1'), tries: localStorage.getItem('mrdc1_tries_v1') })`).then(JSON.parse)
@@ -407,54 +448,68 @@ async function main() {
     const logAfterReset = await evalJS(`JSON.stringify({ stored: JSON.parse(localStorage.getItem('mrdc1_log_v1') || '[]').length, lastType: (JSON.parse(localStorage.getItem('mrdc1_log_v1') || '[]').slice(-1)[0] || {}).type })`).then(JSON.parse)
     record('清空后记录只保留 reset 一条', logAfterReset.stored === 1 && logAfterReset.lastType === 'reset', logAfterReset)
 
-    // 9.5) 手机端：棋盘与线索同页排布（390×844）
+    // 9.5) 手机端：棋盘吸顶 + 线索卡片滚动（390×844）
     await send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 2, mobile: true })
     await send('Page.reload')
     await ready()
     const mobile = await evalJS(`(() => {
       const out = {}
-      out.hasTabs = !!document.getElementById('mobile-tabs')
-      const left = document.querySelector('.left').getBoundingClientRect()
-      const right = document.querySelector('.right').getBoundingClientRect()
+      const leftEl = document.querySelector('.left')
+      const leftCS = getComputedStyle(leftEl)
       const board = document.getElementById('boardimg').getBoundingClientRect()
-      const clues = document.querySelector('.clues')
-      const clueRect = clues.getBoundingClientRect()
-      out.boardVisible = board.width > 0
-      out.cluesVisible = getComputedStyle(clues).display !== 'none'
-      out.samePage = right.top >= left.bottom - 2
+      const cluesEl = document.querySelector('.clues')
+      const cluesCS = getComputedStyle(cluesEl)
+      out.gridTemplate = cluesCS.gridTemplateColumns
+      out.cluesWidth = Math.round(cluesEl.getBoundingClientRect().width)
+      out.leftPosition = leftCS.position
+      out.boardVisible = board.width > 0 && board.top >= -1
       out.boardWidth = Math.round(board.width)
       out.vw = innerWidth
       out.overflow = document.documentElement.scrollWidth - innerWidth
-      out.pageScrollable = document.documentElement.scrollHeight > innerHeight + 40
-      out.clueVisibleInViewportAfterScroll = (() => { clues.scrollIntoView(); const r = clues.getBoundingClientRect(); return r.top >= -10 })()
+      out.clueGrid = cluesCS.display
+      out.colCount = (cluesCS.gridTemplateColumns || '').trim().split(' ').filter(Boolean).length
+      const cards = [...document.querySelectorAll('.clue')]
+      out.cardCount = cards.length
+      const avatars = [...document.querySelectorAll('.clue .avatar')]
+      out.avatarCount = avatars.length
+      out.avatarLoaded = avatars.filter((i) => i.complete && i.naturalWidth > 0).length
+      out.hasTabs = !!document.getElementById('mobile-tabs')
+      // 滚动到中部（吸顶生效区）后棋盘仍应可见
+      window.scrollTo(0, Math.round(leftEl.offsetHeight + 200))
+      out.scrollY = Math.round(window.scrollY)
+      const br2 = document.getElementById('boardimg').getBoundingClientRect()
+      out.stickyBoardTop = Math.round(br2.top)
+      out.stickyVisible = br2.top >= -2 && br2.top < innerHeight * 0.75
       const inp = document.getElementById('ans-row').getBoundingClientRect()
       out.inputSize = [Math.round(inp.width), Math.round(inp.height)]
-      const zh = [...document.querySelectorAll('.clue .txt-zh')].map((e) => e.textContent.trim()).filter(Boolean)
-      const en = [...document.querySelectorAll('.clue .txt')].map((e) => e.textContent.trim()).filter(Boolean)
-      out.zhCount = zh.length
-      out.enCount = en.length
-      out.clueCount = document.querySelectorAll('.clue').length
+      out.zhCount = [...document.querySelectorAll('.clue .txt-zh')].filter((e) => e.textContent.trim()).length
+      out.enCount = [...document.querySelectorAll('.clue .txt')].filter((e) => e.textContent.trim()).length
       return JSON.stringify(out)
     })()`).then(JSON.parse)
-    record('手机端：棋盘与线索同一页、纵向堆叠、无横向溢出', !mobile.hasTabs && mobile.boardVisible && mobile.cluesVisible && mobile.samePage && mobile.boardWidth <= mobile.vw && Math.abs(mobile.overflow) <= 2, mobile)
-    record('手机端：页面可滚动、线索在棋盘下方可见', mobile.pageScrollable && mobile.clueVisibleInViewportAfterScroll, { scrollable: mobile.pageScrollable })
-    record('手机端：双语线索齐全（24 中 + 24 英）、输入框触控尺寸足够', mobile.clueCount === 24 && mobile.zhCount === 24 && mobile.enCount === 24 && mobile.inputSize[1] >= 36 && mobile.inputSize[0] >= 60, mobile.inputSize)
+    record('手机端：棋盘吸顶始终可见、无横向溢出', mobile.leftPosition === 'sticky' && mobile.boardVisible && mobile.stickyVisible && Math.abs(mobile.overflow) <= 2, mobile)
+    record('手机端：线索卡片网格（一行多个）', mobile.cardCount === 24 && mobile.colCount >= 2 && mobile.clueGrid === 'grid', { cardCount: mobile.cardCount, colCount: mobile.colCount })
+    record('手机端：24 张人物头像全部加载', mobile.avatarCount === 24 && mobile.avatarLoaded === 24, { avatarCount: mobile.avatarCount, loaded: mobile.avatarLoaded })
+    record('手机端：双语线索齐全、输入框触控尺寸足够', mobile.zhCount === 24 && mobile.enCount === 24 && mobile.inputSize[1] >= 36 && mobile.inputSize[0] >= 60, { zh: mobile.zhCount, en: mobile.enCount, input: mobile.inputSize })
 
-    // 9.6) 桌面端：双栏同屏
+    // 9.6) 桌面端：双栏同屏 + 头像与卡片
     await send('Emulation.setDeviceMetricsOverride', { width: 1280, height: 900, deviceScaleFactor: 1, mobile: false })
     await send('Page.reload')
     await ready()
     const desktop = await evalJS(`JSON.stringify((() => {
       const left = document.querySelector('.left').getBoundingClientRect()
       const right = document.querySelector('.right').getBoundingClientRect()
+      const avatars = [...document.querySelectorAll('.clue .avatar')]
       return {
         hasTabs: !!document.getElementById('mobile-tabs'),
         sideBySide: right.left >= left.right - 2,
         cluesVisible: getComputedStyle(document.querySelector('.clues')).display !== 'none',
+        cardCount: document.querySelectorAll('.clue').length,
+        avatarLoaded: avatars.filter((i) => i.complete && i.naturalWidth > 0).length,
         overflow: document.documentElement.scrollWidth - innerWidth,
       }
     })())`).then(JSON.parse)
     record('桌面端：棋盘与线索左右同屏、无横向溢出', !desktop.hasTabs && desktop.sideBySide && desktop.cluesVisible && Math.abs(desktop.overflow) <= 2, desktop)
+    record('桌面端：24 张人物头像全部加载', desktop.avatarLoaded === 24, desktop)
 
     // 10) 控制台与网络
     const errs = consoleErrors()
