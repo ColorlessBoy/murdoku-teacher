@@ -40,7 +40,8 @@ dsh-webpane/                  ⇐ DSH 插件本体（Host + Client + 自带指�
 
 .agents/skills/live-logic-puzzle-coach/   tutor 工作流资料（CDP 旧路线，已弃用，仅历史参考）
 .agents/skills/murdoku-exam-coach/        examiner 协议（仍可用）
-scripts/                     插件路线的台账工具（murdoku-ledger / murdoku-state）
+scripts/                     插件路线的台账工具（murdoku-ledger / murdoku-state）+ 资源拉取（fetch-playwriter-extension.sh）
+playwriter-extension/        Playwriter 浏览器扩展（Chrome「加载已解压」用；npm 包解出，不入库，丢了跑 scripts/fetch-playwriter-extension.sh 复原）
 progress/                    本地存档
 ├── local-storage.json        mrd_* 快照
 ├── history.json              通关记录

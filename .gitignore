@@ -14,6 +14,11 @@ archive/chrome-extension/.env.model
 # 离线站源码是独立的 git worktree，勿纳入本仓库
 .worktree/
 
+# Playwriter 浏览器扩展（Chrome「加载已解压」用；第三方 npm 包解出，不入库）
+# 丢失后跑 scripts/fetch-playwriter-extension.sh 从 npm 重新拉取
+playwriter-extension/
+playwriter-extension.zip
+
 # 插件运行态存档（随游戏自动同步，本地镜像即可，不入库）
 progress/local-storage.json
 progress/history.json
