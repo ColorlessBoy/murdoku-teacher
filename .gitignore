@@ -7,6 +7,9 @@ chat-history.json
 last-feedback.json
 .DS_Store
 
-extension/.env.precommit
+archive/chrome-extension/.env.precommit
+archive/chrome-extension/.env.model
+.webpane-headless-profile/
 
-extension/.env.model
+# 离线站源码是独立的 git worktree，勿纳入本仓库
+.worktree/

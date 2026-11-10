@@ -1,0 +1,7 @@
+- insert:
+    - id: dsh-webpane
+      name: '@local/dsh-webpane'
+      config:
+        root: '/Users/penglingwei/Documents/murdoku/.worktree/original-app/public'
+        entry: '/play/?lang=zh_hans'
+        progressDir: '/Users/penglingwei/Documents/murdoku/progress'

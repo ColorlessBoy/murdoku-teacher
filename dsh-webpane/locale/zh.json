@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "网页面板 · Murdoku 离线版",
+    "description": "由 DSH 自身源托管 Murdoku 离线副本，在右侧栏标签页里打开，并提供 agent 可读、可点的同源 DOM 桥。"
+  }
+}

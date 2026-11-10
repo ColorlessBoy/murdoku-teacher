@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Web Pane · Murdoku Offline",
+    "description": "Serves the offline Murdoku copy from the DSH origin and shows it in a right-sidebar tab, with a same-origin DOM bridge the agent can read and click."
+  }
+}

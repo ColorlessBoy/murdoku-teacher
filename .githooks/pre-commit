@@ -4,20 +4,16 @@ set -eu
 ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 cd "$ROOT"
 
-if [ -f extension/.env.precommit ]; then
-  set -a
-  . extension/.env.precommit
-  set +a
-fi
+echo "[pre-commit] DSH 插件语法检查"
+for f in dsh-webpane/index.js dsh-webpane/client.js dsh-webpane/headless.js dsh-webpane/history.js; do
+  node --check "$f"
+done
+node -e "const s=require('fs').readFileSync('.agents/skills/murdoku-webpane/scripts/annotate-step.js','utf8'); new Function('return ('+s+')')"
 
-cd extension
-echo "[pre-commit] unit tests"
-node --test test/*.test.mjs test/core/*.test.mjs
+echo "[pre-commit] 教学脚本语法检查"
+node --check .agents/skills/murdoku-webpane/scripts/teaching-step.mjs
+node --check .agents/skills/murdoku-webpane/scripts/prelude.mjs
+node --check scripts/murdoku-ledger.mjs
+node --check scripts/murdoku-state.mjs
 
-if [ "${SKIP_E2E:-0}" = "1" ]; then
-  echo "[pre-commit] e2e skipped (SKIP_E2E=1)"
-  exit 0
-fi
-
-echo "[pre-commit] local fixture e2e"
-node scripts/e2e-precommit.mjs
+echo "[pre-commit] ok（旧 Chrome 扩展测试已归档，见 archive/chrome-extension/）"

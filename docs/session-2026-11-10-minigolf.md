@@ -16,7 +16,7 @@
 
 ## 1. 做题过程：(state, action, state') 台账
 
-完整机器可读版：`extension/lessons/puzzle-minigolf-hard-ledger.json`、`progress/ledger/puzzle-minigolf-hard.jsonl`（31 步）。
+完整机器可读版：`archive/chrome-extension/lessons/puzzle-minigolf-hard-ledger.json`、`progress/ledger/puzzle-minigolf-hard.jsonl`（31 步）。
 state = `{placed, notes, xMarks, notesTotal}`；action = `{kind, who, cells, reason}`；user = `accept / reject / none / rollback`。
 
 | # | state（before） | action | state'（after） | 用户 |
@@ -59,7 +59,7 @@ state = `{placed, notes, xMarks, notesTotal}`；action = `{kind, who, cells, rea
 - `scripts/murdoku-state.mjs`：从 CDP 读游戏 `mrd_progress_<puzzle>`（落子/X）+ 可见 DOM 笔记，输出 `{puzzle, placed, notes, xMarks, notesTotal}`。
 - `scripts/murdoku-ledger.mjs`：`init | state | append | verify | rollback`。
 - `progress/ledger/<puzzle>.jsonl`：每步 `state_before → action → state_after (+ user)`。
-- `extension/lessons/puzzle-minigolf-hard-ledger.json`：人类可读台账（31 步）。
+- `archive/chrome-extension/lessons/puzzle-minigolf-hard-ledger.json`：人类可读台账（31 步）。
 
 ### 每步协议
 

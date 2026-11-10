@@ -9,6 +9,10 @@ metadata:
 
 # Live Logic Puzzle Coach
 
+> ⚠️ **路线已弃用（2026-11）**：本 skill 记录的 Chrome 扩展 + Playwriter/CDP（19988）方案已归档到 `archive/chrome-extension/`，不再维护。
+> 当前用 **DSH 插件路线**：`.agents/skills/murdoku-webpane/SKILL.md`（同源面板、自动存档、无需扩展）。本文只作历史资料。
+
+
 ## When to use
 
 - The puzzle runs on a live web page; placements, notes, and X marks are DOM state.

@@ -15,7 +15,11 @@
  * visible layer only). Roles are the suspect letters in display order.
  */
 
+import fs from 'node:fs';
+import path from 'node:path';
+
 const CDP = process.env.MURDOKU_CDP || 'http://127.0.0.1:19988';
+const STATE_DIR = process.env.MURDOKU_STATE_DIR || path.join(process.cwd(), 'progress', 'state');
 const ROLE_ORDER = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'V'];
 
 async function loadChromium() {
@@ -47,7 +51,50 @@ function puzzleIdFromUrl(url, forced) {
   return m ? m[1] : 'unknown';
 }
 
+/** 读插件导出的 canonical state（dsh-webpane 的 ledger-state 动作写入）。 */
+function readPluginStateFile(opts) {
+  try {
+    if (!fs.existsSync(STATE_DIR)) return null;
+    const files = fs.readdirSync(STATE_DIR).filter((f) => f.endsWith('.json'));
+    if (files.length === 0) return null;
+    const target = opts.puzzle
+      ? path.join(STATE_DIR, `${opts.puzzle}.json`)
+      : files.length === 1 ? path.join(STATE_DIR, files[0]) : null;
+    if (!target || !fs.existsSync(target)) return null;
+    const d = JSON.parse(fs.readFileSync(target, 'utf8'));
+    if (!d || typeof d !== 'object' || !d.placed) return null;
+    const out = { puzzle: d.puzzle, placed: {}, notes: {}, xMarks: Array.isArray(d.xMarks) ? d.xMarks.slice().sort((a, b) => a - b) : [], notesTotal: 0, source: 'plugin' };
+    for (const r of ROLE_ORDER) {
+      if (d.placed[r] !== undefined) out.placed[r] = d.placed[r];
+      const ns = Array.isArray(d.notes && d.notes[r]) ? d.notes[r].slice().sort((a, b) => a - b) : [];
+      out.notes[r] = ns;
+      out.notesTotal += ns.length;
+    }
+    if (typeof d.notesTotal === 'number') out.notesTotal = d.notesTotal;
+    return out;
+  } catch {
+    return null;
+  }
+}
+
 export async function readState(opts = {}) {
+  // 插件模式下 CDP 不可用：优先读 dsh-webpane 导出的状态文件
+  const mode = process.env.MURDOKU_STATE_SOURCE;
+  if (mode !== 'cdp') {
+    const fromFile = readPluginStateFile(opts);
+    if (fromFile && (mode === 'plugin' || process.env.MURDOKU_STATE_PREFER === 'file')) return fromFile;
+    if (fromFile) {
+      try {
+        return await readStateCdp(opts);
+      } catch {
+        return fromFile;
+      }
+    }
+  }
+  return readStateCdp(opts);
+}
+
+async function readStateCdp(opts = {}) {
   const page = await getPage();
   const raw = await page.evaluate(() => {
     const progress = {};
