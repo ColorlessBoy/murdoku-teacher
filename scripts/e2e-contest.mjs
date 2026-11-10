@@ -309,6 +309,9 @@ async function main() {
       out.hammock = hover(5, 21)
       out.fire = hover(10, 4)
       out.shark = hover(13, 1)
+      out.flowers = hover(12, 21)
+      out.barrel = hover(16, 20)
+      out.notShark = hover(22, 3)
       out.object = hover(1, 1)
       out.empty = hover(1, 3)
       document.getElementById('grid').dispatchEvent(new PointerEvent('pointerleave'))
@@ -323,7 +326,25 @@ async function main() {
     record('人物卡名字不换行（单行显示）', nameWrap.count === 24 && nameWrap.nowrap && nameWrap.oneLine, nameWrap)
 
     record('悬浮气泡：椅子 / 床 / 吊床 显示坐标 + 物件名', bubble.chair.on && /R15C13 点/.test(bubble.chair.text) && /椅子（chair）/.test(bubble.chair.text) && /床（bed）/.test(bubble.bed.text) && /吊床（hammock）/.test(bubble.hammock.text), bubble.chair)
-    record('悬浮气泡：篝火 / 鲨鱼(R13C1) / 未配对物件 / 空格文案区分', bubble.fire.on && /篝火（fire）/.test(bubble.fire.text) && /R13C1 点/.test(bubble.shark.text) && /鲨鱼（shark）/.test(bubble.shark.text) && /物件（object）/.test(bubble.object.text) && !/物件/.test(bubble.empty.text) && bubble.hidden, { fire: bubble.fire.text, shark: bubble.shark.text, object: bubble.object.text, empty: bubble.empty.text })
+    record('悬浮气泡：篝火 / 鲨鱼(R13C1) / 花丛 / 木桶 / 未配对 / 空格文案区分', bubble.fire.on && /篝火（fire）/.test(bubble.fire.text) && /R13C1 点/.test(bubble.shark.text) && /鲨鱼（shark）/.test(bubble.shark.text) && /花丛（flowers）/.test(bubble.flowers.text) && /木桶（barrel）/.test(bubble.barrel.text) && /物件（object）/.test(bubble.object.text) && /物件（object）/.test(bubble.notShark.text) && !/物件/.test(bubble.empty.text) && bubble.hidden, { fire: bubble.fire.text, shark: bubble.shark.text, flowers: bubble.flowers.text, barrel: bubble.barrel.text, object: bubble.object.text })
+
+    // 3.9) Shift+点击手动标注物件
+    const tag = await evalJS(`(() => {
+      const out = {}
+      const el = document.querySelector('.cell[data-i="' + ((5 - 1) * 24 + (5 - 1)) + '"]')
+      const b = el.getBoundingClientRect()
+      el.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, button: 0, shiftKey: true, clientX: b.left + 5, clientY: b.top + 5 }))
+      out.open = document.getElementById('dialog').open
+      out.title = document.getElementById('dialogTitle').textContent
+      out.buttons = document.querySelectorAll('#dialogBody .tag').length
+      document.querySelector('#dialogBody .tag[data-t="crate"]').click()
+      out.closed = !document.getElementById('dialog').open
+      out.saved = localStorage.getItem('murdoku-obj-manual-v1')
+      el.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, clientX: b.left + 10, clientY: b.top + 10 }))
+      out.bubble = document.querySelector('.tip').textContent
+      return JSON.stringify(out)
+    })()`).then(JSON.parse)
+    record('手动标注：Shift+点击物件格 → 选择图例类型 → 气泡生效并保存', tag.open && /R5C5/.test(tag.title) && tag.buttons === 19 && tag.closed && /木箱（crate）/.test(tag.bubble) && /crate/.test(tag.saved || ''), tag)
 
     // 4) 中英切换
     const lang = await evalJS(`(() => {
@@ -555,7 +576,7 @@ async function main() {
     const errs = consoleErrors()
     record('无控制台报错 / 无 404', errs.length === 0, errs.slice(0, 5))
 
-    await evalJS(`localStorage.removeItem(${JSON.stringify(STORAGE_KEY)})`)
+    await evalJS(`localStorage.removeItem(${JSON.stringify(STORAGE_KEY)});localStorage.removeItem('murdoku-obj-manual-v1')`)
 
     const failed = cases.filter((c) => !c.ok)
     const report = { url: BASE_URL, passed: cases.length - failed.length, failed: failed.length, cases }
