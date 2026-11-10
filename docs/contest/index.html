@@ -149,9 +149,43 @@
   .credit b { color: var(--ink); }
   .credit a { color: #7a4a12; text-decoration: underline; }
   .credit .sep { color: var(--ink-dim); margin: 0 4px; }
+  .mobile-tabs { display: none; }
   @media (max-width: 760px) {
+    .topbar { padding: 8px 10px; gap: 8px; }
+    .topbar .meta { display: none; }
+    .topbar h1 { font-size: 14px; }
+    .topbar .back { width: 30px; height: 30px; font-size: 16px; border-radius: 9px; }
+    .pill { font-size: 10px; padding: 2px 7px; }
+    .mobile-tabs {
+      display: flex; gap: 6px; padding: 6px 10px; border-bottom: 2px solid var(--line);
+      background: rgba(243,237,226,.92); position: sticky; top: 0; z-index: 30;
+    }
+    .mobile-tabs .stamp-btn { flex: 1; text-align: center; }
     .main { flex-direction: column; }
-    .right { max-width: none; border-left: 0; border-top: 2px solid var(--line); max-height: 46vh; }
+    .left { flex: 1 1 auto; min-height: 0; }
+    .right { max-width: none; border-left: 0; border-top: 2px solid var(--line); flex: 1 1 auto; min-height: 0; max-height: none; }
+    body.mt-board .right { display: none; }
+    body.mt-clues .left, body.mt-answer .left { display: none; }
+    body.mt-clues .answer { display: none; }
+    body.mt-answer .clues, body.mt-answer .howto, body.mt-answer .right h2 { display: none; }
+    .toolbar { flex-wrap: nowrap; overflow-x: auto; padding: 6px 8px; gap: 5px; -webkit-overflow-scrolling: touch; }
+    .toolbar .stamp-btn { padding: 4px 9px; font-size: 12px; }
+    .toolbar .state { display: none; }
+    .chips { flex-wrap: nowrap; overflow-x: auto; max-height: none; padding: 6px 8px; -webkit-overflow-scrolling: touch; }
+    .chip { flex: 0 0 auto; }
+    .board-wrap { padding: 6px 8px 10px; }
+    .board-plate { padding: 4px; border-radius: 10px; box-shadow: 4px 4px 0 rgba(0,0,0,.22); }
+    .hint-row { padding: 0 10px 6px; font-size: 10px; }
+    .cell .notes span { font-size: clamp(5px, 1.6vw, 9px); }
+    .cell .x { font-size: clamp(9px, 2.8vw, 15px); }
+    .howto { margin: 6px 8px; }
+    .right h2 { padding: 8px 12px 2px; }
+    .clues { padding: 0 6px 8px; }
+    .answer { padding: 10px 12px 14px; }
+    .answer input { width: 76px; font-size: 16px; padding: 8px 10px; min-height: 42px; border-radius: 9px; }
+    .answer .row1 { gap: 8px; }
+    .answer .stamp-btn { padding: 8px 14px; font-size: 13.5px; }
+    .credit { font-size: 10px; padding: 8px 10px; }
   }
 </style>
 </head>
@@ -165,6 +199,11 @@
     </div>
     <div class="spacer"></div>
     <a class="pill" href="treasure-hunt-EN.pdf" target="_blank" rel="noreferrer">PDF 原题</a>
+  </div>
+  <div class="mobile-tabs" id="mobile-tabs" aria-label="手机端切换">
+    <button class="stamp-btn small on" data-pane="board">棋盘</button>
+    <button class="stamp-btn small" data-pane="clues">线索</button>
+    <button class="stamp-btn small" data-pane="answer">答案</button>
   </div>
   <div class="main">
     <div class="left">
@@ -304,7 +343,7 @@
       const el = document.createElement('button');
       el.className = 'chip' + (state.selected === c.name ? ' on' : '');
       el.innerHTML = '<span class="ini">' + c.name[0] + '</span>' + c.name;
-      el.onclick = () => { state.selected = c.name; renderChips(); renderClues(); flash('已选中 ' + c.name + '，点格子标记 ' + c.name[0]); };
+      el.onclick = () => { state.selected = c.name; renderChips(); renderClues(); flash('已选中 ' + c.name + '，点格子标记 ' + c.name[0]); toBoardOnMobile(); };
       chipsEl.appendChild(el);
     }
   };
@@ -315,7 +354,7 @@
       el.className = 'clue' + (state.selected === c.name ? ' on' : '') + (c.name === 'Treasure' ? ' treasure' : '');
       el.innerHTML = '<div class="name">' + c.name + ' <span class="ini">' + c.name[0] + '</span></div><div class="txt"></div>';
       el.querySelector('.txt').textContent = c.clue;
-      el.onclick = () => { state.selected = c.name; renderChips(); renderClues(); flash('已选中 ' + c.name + '，点格子标记 ' + c.name[0]); };
+      el.onclick = () => { state.selected = c.name; renderChips(); renderClues(); flash('已选中 ' + c.name + '，点格子标记 ' + c.name[0]); toBoardOnMobile(); };
       cluesEl.appendChild(el);
     }
   };
@@ -467,6 +506,23 @@
   let flashTimer = null;
   const flash = (msg) => { stateEl.textContent = msg; clearTimeout(flashTimer); flashTimer = setTimeout(updateState, 2200); };
 
+  /* ---------- 手机端：棋盘 / 线索 / 答案 三页切换 ---------- */
+  const isMobile = () => window.matchMedia('(max-width: 760px)').matches;
+  const setPane = (pane) => {
+    document.body.classList.remove('mt-board', 'mt-clues', 'mt-answer');
+    document.body.classList.add('mt-' + pane);
+    for (const btn of document.querySelectorAll('#mobile-tabs .stamp-btn')) {
+      btn.classList.toggle('on', btn.dataset.pane === pane);
+    }
+  };
+  const initMobileTabs = () => {
+    setPane('board');
+    for (const btn of document.querySelectorAll('#mobile-tabs .stamp-btn')) {
+      btn.onclick = () => setPane(btn.dataset.pane);
+    }
+  };
+  const toBoardOnMobile = () => { if (isMobile()) setPane('board'); };
+
   const setZoom = (z) => {
     state.zoom = Math.min(2, Math.max(1, Math.round(z * 10) / 10));
     plate.style.width = (state.zoom * 100) + '%';
@@ -570,7 +626,7 @@
   fetch('clues.json?t=' + Date.now()).then(r => r.json()).then((rows) => {
     clues = rows;
     renderChips(); renderClues(); buildGrid(); updateState(); setZoom(1);
-    bindToolbar(); initAnswer(); updateUndoRedo();
+    bindToolbar(); initAnswer(); updateUndoRedo(); initMobileTabs();
   }).catch((error) => {
     document.body.innerHTML = '<pre style="color:#8b1d1d;padding:20px">clues.json 加载失败: ' + error + '</pre>';
   });
