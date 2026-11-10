@@ -315,6 +315,13 @@ async function main() {
       out.hidden = !document.querySelector('.tip').classList.contains('on')
       return JSON.stringify(out)
     })()`).then(JSON.parse)
+    const nameWrap = await evalJS(`(() => {
+      const spans = [...document.querySelectorAll('#cards .portrait span')]
+      const cs = spans.map((e) => getComputedStyle(e))
+      return JSON.stringify({ count: spans.length, nowrap: cs.every((c) => c.whiteSpace === 'nowrap'), oneLine: spans.every((e) => e.getBoundingClientRect().height <= 20) })
+    })()`).then(JSON.parse)
+    record('人物卡名字不换行（单行显示）', nameWrap.count === 24 && nameWrap.nowrap && nameWrap.oneLine, nameWrap)
+
     record('悬浮气泡：椅子 / 床 / 吊床 显示坐标 + 物件名', bubble.chair.on && /R15C13 点/.test(bubble.chair.text) && /椅子（chair）/.test(bubble.chair.text) && /床（bed）/.test(bubble.bed.text) && /吊床（hammock）/.test(bubble.hammock.text), bubble.chair)
     record('悬浮气泡：篝火 / 鲨鱼(R13C1) / 未配对物件 / 空格文案区分', bubble.fire.on && /篝火（fire）/.test(bubble.fire.text) && /R13C1 点/.test(bubble.shark.text) && /鲨鱼（shark）/.test(bubble.shark.text) && /物件（object）/.test(bubble.object.text) && !/物件/.test(bubble.empty.text) && bubble.hidden, { fire: bubble.fire.text, shark: bubble.shark.text, object: bubble.object.text, empty: bubble.empty.text })
 
