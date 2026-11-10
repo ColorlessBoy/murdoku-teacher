@@ -24,6 +24,20 @@ window.__ModuleLoader__.load({
     const h = React.createElement
     beacon('react-ok')
 
+    /** 每个浏览器标签页一个稳定 id：用于把快照和命令精确路由到用户正在看的那个面板。 */
+    const getClientId = () => {
+      try {
+        let id = sessionStorage.getItem('webpane-client-id')
+        if (!id) {
+          id = 'c-' + Math.random().toString(36).slice(2, 10)
+          sessionStorage.setItem('webpane-client-id', id)
+        }
+        return id
+      } catch {
+        return 'c-unknown'
+      }
+    }
+
     const TAB_ID = '@local/dsh-webpane'
     const TAB_KIND = 'webpane'
     const DEFAULT_URL = '/play/?lang=zh_hans'
@@ -219,6 +233,37 @@ window.__ModuleLoader__.load({
         if (element) beacon('frame-attach:' + sessionId)
       }
 
+      // 每个浏览器各自把 iframe 里的 mrd_* 快照推给 Host：远程/多客户端时 Agent 也能看到真实盘面
+      React.useEffect(() => {
+        const clientId = getClientId()
+        const push = () => {
+          const frame = holder.current.iframe
+          if (!frame) return
+          let win = null
+          try { win = frame.contentWindow } catch { return }
+          if (!win) return
+          let storage = null
+          try {
+            const ls = win.localStorage
+            storage = {}
+            for (let i = 0; i < ls.length; i += 1) {
+              const key = ls.key(i)
+              if (key && key.startsWith('mrd_')) storage[key] = ls.getItem(key)
+            }
+          } catch { return }
+          let url = ''
+          try { url = (win.location?.pathname ?? '') + (win.location?.search ?? '') } catch { /* ignore */ }
+          fetch('/__webpane/progress-push', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ clientId, at: Date.now(), url, storage }),
+          }).catch(() => {})
+        }
+        const timer = setInterval(push, 4000)
+        setTimeout(push, 1200)
+        return () => clearInterval(timer)
+      }, [sessionId])
+
       React.useEffect(() => {
         beacon('body-mount:' + sessionId)
         panes.set(sessionId, holder)
@@ -301,7 +346,7 @@ window.__ModuleLoader__.load({
             let source = null
             const connect = () => {
               if (disposed) return
-              const es = new EventSource('/__webpane/panel')
+              const es = new EventSource('/__webpane/panel?client=' + encodeURIComponent(getClientId()))
               source = es
               es.onopen = () => beacon('sse-open')
               es.onerror = () => {

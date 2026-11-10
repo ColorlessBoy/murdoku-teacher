@@ -10,6 +10,62 @@
  * 由 Host 在 /play/index.html 里注入（插件侧注入，不改原站文件）。
  */
 (() => {
+  // ── 竞赛关入口：在关卡列表里注入一张「原生卡片」，点开是寻宝竞赛互动页。
+  try {
+    const CARD_ID = '__dsh_contest_card'
+    const injectCard = () => {
+      if (!/^\/play\/?$/.test(location.pathname)) return
+      if (document.getElementById(CARD_ID)) return
+      const sample = document.querySelector('.puzzle-card-tilt')
+      if (!sample || !sample.parentElement) return
+      const card = document.createElement('div')
+      card.id = CARD_ID
+      card.className = 'puzzle-card-tilt'
+      card.style.cssText = 'position:relative;overflow:visible;'
+      card.innerHTML = [
+        '<div role="button" tabindex="0" style="position:relative;display:flex;flex-direction:column;align-items:center;gap:10px;padding:16px;height:340px;',
+        'background:linear-gradient(155deg,#f3ede2 0%,#eee8dc 50%,#e8e1d4 100%);border:2px solid rgba(160,140,100,.5);border-radius:12px;cursor:pointer;',
+        'color:#2a1f0e;box-shadow:6px 6px 0 rgba(0,0,0,.30);box-sizing:border-box;font-family:inherit;text-align:center;">',
+        '<svg width="14" height="14" viewBox="0 0 20 20" style="position:absolute;top:-1px;left:50%;margin-left:-7px;filter:drop-shadow(rgba(0,0,0,.3) 3px 3px 0);">',
+        '<circle cx="10" cy="10" r="8" fill="#c9a227" stroke="#000" stroke-width="2"></circle><circle cx="10" cy="10" r="5" fill="#e3c04d"></circle></svg>',
+        '<div style="width:100%;border-radius:8px;overflow:hidden;border:2px solid rgba(160,140,100,.45);background:#fffdf6;flex:0 0 auto;">',
+        '<img src="/play_puzzles/contest/board-thumb.png" alt="" style="width:100%;height:118px;object-fit:cover;display:block;"></div>',
+        '<div style="font-size:15px;font-weight:900;line-height:1.25;">寻宝 · The Treasure Hunt</div>',
+        '<div style="font-size:11px;color:rgba(60,42,16,.65);font-weight:700;">竞赛题 · 24×24 · 无凶手 · 找宝藏坐标</div>',
+        '<div style="margin-top:auto;display:inline-block;background:#f8f7fb;border:2px solid #000;border-radius:11px;padding:5px 14px;font-weight:900;font-size:12.5px;box-shadow:3px 3px 0 rgba(0,0,0,.35);">开始调查</div>',
+        '</div>',
+      ].join('')
+      card.addEventListener('click', () => { location.href = '/play_puzzles/contest/index.html' })
+      sample.parentElement.appendChild(card)
+    }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => setTimeout(injectCard, 600), { once: true })
+    else setTimeout(injectCard, 600)
+    setInterval(injectCard, 1500)
+  } catch { /* ignore */ }
+
+  // ── 远端跳转：Host 通过 /__webpane/nav 下发一个目标 URL，任何已打开的 /play 页面都会自己跳过去。
+  //    这样即使 agent 的面板通道连不到用户浏览器（远程/多端），也能「替他点开」某一关。
+  try {
+    const NAV_SEEN = '__webpane_nav_seen'
+    const pollNav = () => {
+      fetch('/__webpane/nav', { headers: { accept: 'application/json' } })
+        .then((response) => response.json())
+        .then((payload) => {
+          const nav = payload && payload.nav
+          if (!nav || !nav.url || !nav.at) return
+          const seen = Number(localStorage.getItem(NAV_SEEN) || 0)
+          if (Number(nav.at) <= seen) return
+          localStorage.setItem(NAV_SEEN, String(nav.at))
+          const current = location.pathname + location.search
+          if (current === nav.url) return
+          location.assign(nav.url)
+        })
+        .catch(() => {})
+    }
+    setTimeout(pollNav, 800)
+    setInterval(pollNav, 2500)
+  } catch { /* ignore */ }
+
   const CATALOG_KEY = 'mrd_catalog_v2'
   const HISTORY_KEY = 'mrd_local_completed'
 

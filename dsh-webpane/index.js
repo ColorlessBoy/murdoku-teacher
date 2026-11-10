@@ -6,7 +6,7 @@
  * - `/__webpane/*` 上跑一条极简 host→client 通道（SSE 下行 + POST 上行），
  *   工具 `webpane` 把动作推给面板执行，面板回传结果。
  */
-import { createReadStream, existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
+import { createReadStream, existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
 import { dirname, extname, join, normalize, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createHeadless } from './headless.js'
@@ -120,6 +120,8 @@ export function apply(ctx, config) {
   let sequence = 0
   /** @type {string[]} 客户端自检信标 */
   const logs = []
+  /** 让任意已打开的 /play 页面自己跳转（不依赖命令通道，跨浏览器/跨来源都能用） */
+  let navRequest = null
 
   const writeEvent = (res, event, data) => {
     res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`)
@@ -150,6 +152,9 @@ export function apply(ctx, config) {
     })
     res.flushHeaders?.()
     res.write(': connected\n\n')
+    if (sink === panels) {
+      try { res.dshClient = new URL(req.url ?? '/', 'http://localhost').searchParams.get('client') || '' } catch { res.dshClient = '' }
+    }
     sink.add(res)
     if (sink === panels) setTimeout(() => { void syncProgress() }, 800)
     const keep = setInterval(() => { res.write(': ping\n\n') }, 15000)
@@ -185,7 +190,7 @@ export function apply(ctx, config) {
   })
 
   /** 发一条命令给所有面板；带 session 时只有持有该 session 面板的页面会执行并回传。 */
-  const sendCommand = (action, payload, session, timeoutMs) => new Promise((resolve, reject) => {
+  const sendCommand = (action, payload, session, timeoutMs, targetClient) => new Promise((resolve, reject) => {
     const id = ++sequence
     const timer = setTimeout(() => {
       pending.delete(id)
@@ -197,7 +202,10 @@ export function apply(ctx, config) {
       resolve: (value) => { clearTimeout(timer); resolve(value) },
       reject: (error) => { clearTimeout(timer); reject(error) },
     })
-    for (const panel of panels) writeEvent(panel, 'command', { id, action, payload, session })
+    const targets = targetClient
+      ? [...panels].filter((panel) => panel.dshClient === targetClient)
+      : [...panels]
+    for (const panel of (targets.length > 0 ? targets : panels)) writeEvent(panel, 'command', { id, action, payload, session })
   })
 
   /**
@@ -403,7 +411,7 @@ export function apply(ctx, config) {
     }, 1200)
   }
 
-  const askPanel = async (action, payload, session) => {
+  const askPanel = async (action, payload, session, targetClient) => {
     if (action === '__sync') return syncAction(session)
     if (action === 'ledger-state' || action === '__ledger-state') return ledgerStateAction(session, payload)
     if (await ensurePanel()) {
@@ -412,23 +420,23 @@ export function apply(ctx, config) {
         const visible = await probeVisible(session)
         if (visible) {
           headlessSessions.delete(String(session))
-          return sendCommand(action, payload, session, COMMAND_TIMEOUT_MS)
+          return sendCommand(action, payload, session, COMMAND_TIMEOUT_MS, targetClient)
         }
         // 不可见：让页面试着把面板调出来；调不出来就走 headless
         for (const panel of panels) writeEvent(panel, 'open-tab', { session })
         await sleep(500)
-        if (await probeVisible(session)) return sendCommand(action, payload, session, COMMAND_TIMEOUT_MS)
+        if (await probeVisible(session)) return sendCommand(action, payload, session, COMMAND_TIMEOUT_MS, targetClient)
         return runHeadless(action, payload, session)
       }
-      return sendCommand(action, payload, session, COMMAND_TIMEOUT_MS)
+      return sendCommand(action, payload, session, COMMAND_TIMEOUT_MS, targetClient)
     }
     if (session !== undefined && session !== null) return runHeadless(action, payload, session)
     throw new Error('侧边栏面板没有连上：请在当前 session 的右侧栏引导页点「网页 · Murdoku」打开一次')
   }
 
   /** 对外入口：动作完成后顺手刷新 ledger 状态文件。 */
-  const dispatchAction = async (action, payload, session) => {
-    const value = await askPanel(action, payload, session)
+  const dispatchAction = async (action, payload, session, targetClient) => {
+    const value = await askPanel(action, payload, session, targetClient)
     if (action !== 'ledger-state' && action !== '__ledger-state' && action !== '__sync') {
       scheduleLedgerExport(session)
     }
@@ -602,7 +610,7 @@ export function apply(ctx, config) {
         }
         try {
           const body = await readJson(req)
-          const value = await dispatchAction(String(body.action ?? ''), body.payload ?? {}, body.session)
+          const value = await dispatchAction(String(body.action ?? ''), body.payload ?? {}, body.session, body.client ? String(body.client) : undefined)
           void syncProgress()
           res.writeHead(200, { 'content-type': 'application/json' }).end(JSON.stringify({ ok: true, value }))
         } catch (error) {
@@ -656,6 +664,70 @@ export function apply(ctx, config) {
         let snapshot = null
         try { snapshot = JSON.parse(readFileSync(join(progressDir, 'local-storage.json'), 'utf8')) } catch { /* not saved yet */ }
         res.writeHead(200, { 'content-type': 'application/json' }).end(JSON.stringify({ sync: result, snapshot }))
+        return
+      }
+      if (url.pathname === '/__webpane/progress-push' && req.method === 'POST') {
+        if (!sameOrigin(req)) {
+          res.writeHead(403).end('cross-origin')
+          return
+        }
+        try {
+          const body = await readJson(req)
+          const clientId = String(body.clientId ?? 'unknown').replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 48) || 'unknown'
+          const at = Number(body.at ?? Date.now())
+          const storage = (body.storage && typeof body.storage === 'object') ? body.storage : {}
+          const dir = join(progressDir, 'clients')
+          mkdirSync(dir, { recursive: true })
+          const file = join(dir, clientId + '.json')
+          let prev = null
+          try { prev = JSON.parse(readFileSync(file, 'utf8')) } catch { /* none */ }
+          // 同一客户端只保留较新的快照；但仍记录最近一次看到的时间
+          if (!prev || at >= Number(prev.at ?? 0)) {
+            writeFileSync(file, JSON.stringify({ clientId, at, url: body.url ?? '', storage, savedAt: Date.now() }, null, 1))
+          }
+          res.writeHead(200, { 'content-type': 'application/json' }).end(JSON.stringify({ ok: true, clientId, keys: Object.keys(storage).length }))
+        } catch (error) {
+          res.writeHead(400, { 'content-type': 'application/json' }).end(JSON.stringify({ ok: false, error: String(error) }))
+        }
+        return
+      }
+      if (url.pathname === '/__webpane/clients' && req.method === 'GET') {
+        const dir = join(progressDir, 'clients')
+        const clients = []
+        try {
+          for (const name of readdirSync(dir)) {
+            if (!name.endsWith('.json')) continue
+            try {
+              const row = JSON.parse(readFileSync(join(dir, name), 'utf8'))
+              clients.push({ clientId: row.clientId, at: row.at, url: row.url, keys: Object.keys(row.storage || {}).length })
+            } catch { /* skip */ }
+          }
+        } catch { /* no dir */ }
+        clients.sort((a, b) => Number(b.at ?? 0) - Number(a.at ?? 0))
+        res.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-store' }).end(JSON.stringify({ ok: true, clients }))
+        return
+      }
+      if (url.pathname === '/__webpane/nav' && req.method === 'GET') {
+        res.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-store' }).end(JSON.stringify({ ok: true, nav: navRequest }))
+        return
+      }
+      if (url.pathname === '/__webpane/nav' && req.method === 'POST') {
+        if (!sameOrigin(req)) {
+          res.writeHead(403).end('cross-origin')
+          return
+        }
+        try {
+          const body = await readJson(req)
+          const target = String(body.url ?? '')
+          if (!target.startsWith('/play/')) {
+            res.writeHead(400, { 'content-type': 'application/json' }).end(JSON.stringify({ ok: false, error: 'url 必须以 /play/ 开头' }))
+            return
+          }
+          navRequest = { url: target, at: Number(body.at ?? Date.now()) }
+          res.writeHead(200, { 'content-type': 'application/json' }).end(JSON.stringify({ ok: true, nav: navRequest }))
+        } catch (error) {
+          res.writeHead(400, { 'content-type': 'application/json' }).end(JSON.stringify({ ok: false, error: String(error) }))
+        }
         return
       }
       if (url.pathname === '/__webpane/log' && req.method === 'POST') {

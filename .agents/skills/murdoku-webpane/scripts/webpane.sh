@@ -60,6 +60,17 @@ PY
     ;;
 esac
 
+# 可选：只发给指定浏览器客户端（多端/远程访问时用）
+if [ -n "${WEBPANE_CLIENT:-}" ]; then
+  python3 - <<'PY'
+import json, os
+path = '/tmp/webpane-request.json'
+body = json.load(open(path))
+body['client'] = os.environ['WEBPANE_CLIENT']
+json.dump(body, open(path, 'w'))
+PY
+fi
+
 curl -s -X POST -H 'content-type: application/json' \
   --data-binary @/tmp/webpane-request.json \
   --max-time "${WEBPANE_TIMEOUT:-60}" \

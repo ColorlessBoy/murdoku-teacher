@@ -35,6 +35,9 @@ progress/                    本地存档
 ├── lessons/<id>.jsonl|md     可回放教学记录
 └── archive/<id>.json         单文件归档（教完一局合并）
 
+contest 互动页                竞赛关「寻宝」(24×24)：原题棋盘图 + 24×24 笔记板 + 线索栏 + 答案判对
+                             （文件在 .worktree/original-app/public/play_puzzles/contest/，从右侧栏右下角金色按钮进入）
+
 docs/                        产品与复盘
 archive/                     已放弃的旧路线（Chrome 扩展 + Playwright/CDP），仅参考
 .worktree/original-app/      离线站源码 worktree（插件静态托管的 root，别删）

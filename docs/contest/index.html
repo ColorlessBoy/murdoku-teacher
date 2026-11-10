@@ -1,0 +1,341 @@
+<!doctype html>
+<html lang="zh-hans">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>寻宝 · The Treasure Hunt · 非官方互动版 (Unofficial)</title>
+<style>
+  :root {
+    --ink: #2a1f0e;
+    --ink-soft: rgba(60, 42, 16, .65);
+    --ink-dim: rgba(60, 42, 16, .45);
+    --paper: #f3ede2;
+    --line: rgba(160, 140, 100, .55);
+    --gold: #a8761d;
+    --note: #7a4a12;
+    --xmark: #a52a2a;
+    --sel: #b8860b;
+    --stamp: #f8f7fb;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    color: var(--ink);
+    font-family: Inter, -apple-system, "system-ui", "Segoe UI", Roboto, "PingFang SC", sans-serif;
+    font-size: 13px; line-height: 1.5;
+    background: #eee7db repeating-linear-gradient(2deg, rgba(0,0,0,0), rgba(0,0,0,0) 11px, rgba(120,80,40,.02) 11px, rgba(120,80,40,.02) 12px);
+  }
+  .app { display: flex; flex-direction: column; height: 100%; }
+  .topbar {
+    display: flex; align-items: center; gap: 10px; padding: 10px 14px;
+    background: linear-gradient(155deg, #f3ede2 0%, #eee8dc 55%, #e8e1d4 100%);
+    border-bottom: 2px solid var(--line);
+    box-shadow: 0 3px 0 rgba(0,0,0,.08);
+    flex-wrap: wrap;
+  }
+  .back {
+    width: 34px; height: 34px; display: grid; place-items: center; text-decoration: none;
+    color: var(--ink); background: var(--stamp); border: 2px solid #000; border-radius: 10px;
+    box-shadow: 3px 3px 0 rgba(0,0,0,.35); font-size: 18px; font-weight: 900; flex: 0 0 auto;
+  }
+  .topbar .titles { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+  .topbar h1 { font-size: 15px; margin: 0; font-weight: 900; letter-spacing: .2px; }
+  .topbar .meta { font-size: 11px; color: var(--ink-soft); }
+  .topbar .spacer { flex: 1; }
+  .pill {
+    font-size: 11px; font-weight: 800; padding: 3px 9px; border-radius: 9px;
+    border: 2px solid #000; background: var(--stamp); box-shadow: 2px 2px 0 rgba(0,0,0,.3);
+    color: var(--ink); text-decoration: none; white-space: nowrap;
+  }
+  .pill:hover { background: #fffbea; }
+  .main { flex: 1; display: flex; min-height: 0; }
+  .left { flex: 1 1 60%; min-width: 0; display: flex; flex-direction: column; }
+  .right { flex: 1 1 40%; min-width: 250px; max-width: 400px; border-left: 2px solid var(--line); display: flex; flex-direction: column; min-height: 0; background: rgba(243,237,226,.55); }
+  .toolbar { display: flex; gap: 7px; padding: 9px 12px; flex-wrap: wrap; align-items: center; border-bottom: 1px solid rgba(160,140,100,.35); }
+  .stamp-btn {
+    border: 2px solid #000; background: var(--stamp); color: #191922; font-weight: 900; font-size: 12.5px;
+    padding: 5px 12px; border-radius: 11px; cursor: pointer; box-shadow: 3px 3px 0 rgba(0,0,0,.35);
+    transition: transform .06s ease;
+  }
+  .stamp-btn:hover { background: #fffbea; }
+  .stamp-btn:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 rgba(0,0,0,.35); }
+  .stamp-btn.on { background: #ffe9a8; }
+  .stamp-btn.danger { color: #8b1d1d; }
+  .state { font-size: 11px; color: var(--ink-dim); font-weight: 600; }
+  .chips { display: flex; gap: 5px; flex-wrap: wrap; padding: 8px 12px; border-bottom: 1px solid rgba(160,140,100,.35); max-height: 96px; overflow: auto; }
+  .chip {
+    display: flex; align-items: center; gap: 5px; border: 2px solid #222; background: #d8cbb4;
+    color: var(--ink); font-size: 11px; font-weight: 700; padding: 2px 7px 2px 2px; border-radius: 6px;
+    cursor: pointer; box-shadow: 2px 2px 0 rgba(0,0,0,.28);
+  }
+  .chip .ini {
+    width: 18px; height: 18px; display: grid; place-items: center; background: #f3ede2;
+    border: 1.5px solid #222; border-radius: 4px; font-weight: 900; font-size: 11px;
+  }
+  .chip:hover { background: #e6d9c0; }
+  .chip.on { background: #ffe9a8; box-shadow: 0 0 0 2px var(--sel), 2px 2px 0 rgba(0,0,0,.28); }
+  .board-wrap { flex: 1; overflow: auto; padding: 12px 14px 18px; }
+  .board-plate {
+    background: #fffdf6; border: 2px solid rgba(160,140,100,.55); border-radius: 12px;
+    box-shadow: 6px 6px 0 rgba(0,0,0,.25); padding: 8px; max-width: 1000px; margin: 0 auto;
+  }
+  .board { position: relative; width: 100%; }
+  .board img { width: 100%; display: block; border-radius: 6px; }
+  .cells { position: absolute; inset: 0; }
+  .cell { position: absolute; border: 1px solid rgba(42,31,14,.05); cursor: pointer; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+  .cell:hover { background: rgba(184,134,11,.22); border-color: rgba(120,80,20,.5); }
+  .cell .notes { display: flex; flex-wrap: wrap; align-content: center; justify-content: center; line-height: 1; pointer-events: none; }
+  .cell .notes span { font-size: 9px; font-weight: 900; color: var(--note); text-shadow: 0 0 2px #fff; }
+  .cell .x { font-size: 15px; font-weight: 900; color: var(--xmark); text-shadow: 0 0 2px #fff; pointer-events: none; }
+  .hint-row { padding: 0 14px 8px; color: var(--ink-dim); font-size: 10.5px; }
+  .right h2 { margin: 0; font-size: 12px; padding: 9px 12px 3px; font-weight: 900; letter-spacing: .5px; }
+  .clues { flex: 1; overflow: auto; padding: 0 8px 10px; }
+  .clue {
+    border: 1.5px solid rgba(160,140,100,.5); border-radius: 9px; padding: 6px 9px; margin: 6px 4px;
+    background: linear-gradient(160deg, #f7f1e6, #efe7d8); cursor: pointer;
+  }
+  .clue:hover { border-color: rgba(120,80,20,.75); }
+  .clue.on { border-color: var(--sel); box-shadow: 0 0 0 2px rgba(184,134,11,.35); background: #fff7e2; }
+  .clue .name { font-weight: 900; font-size: 12.5px; display: flex; gap: 6px; align-items: baseline; }
+  .clue .name .ini { font-weight: 800; font-size: 10.5px; color: var(--ink-dim); }
+  .clue .txt { color: var(--ink-soft); font-size: 11.5px; margin-top: 2px; }
+  .clue.treasure { border-style: dashed; }
+  .answer { border-top: 2px solid var(--line); padding: 8px 12px; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; background: rgba(243,237,226,.8); }
+  .answer label { font-size: 11.5px; font-weight: 800; color: var(--ink-soft); }
+  .answer input {
+    width: 58px; background: #fffdf6; border: 2px solid #000; color: var(--ink);
+    border-radius: 8px; padding: 3px 7px; font-size: 12.5px; font-weight: 800; box-shadow: 2px 2px 0 rgba(0,0,0,.25);
+  }
+  .credit {
+    padding: 7px 12px; border-top: 2px solid var(--line);
+    background: rgba(243,237,226,.92); font-size: 10.5px; color: var(--ink-soft); line-height: 1.55;
+  }
+  .credit b { color: var(--ink); }
+  .credit a { color: #7a4a12; text-decoration: underline; }
+  .credit .sep { color: var(--ink-dim); margin: 0 4px; }
+  @media (max-width: 760px) {
+    .main { flex-direction: column; }
+    .right { max-width: none; border-left: 0; border-top: 2px solid var(--line); max-height: 40vh; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="topbar">
+    <a class="back" id="back-link" href="https://murdoku.com/play/" title="返回">←</a>
+    <div class="titles">
+      <h1>寻宝 · The Treasure Hunt</h1>
+      <div class="meta">Murdoku Contest #1 · 24×24 · 23 名嫌疑人 + 1 处宝藏 · 无凶手</div>
+    </div>
+    <div class="spacer"></div>
+    <a class="pill" href="treasure-hunt-EN.pdf" target="_blank" rel="noreferrer">PDF 原题</a>
+  </div>
+  <div class="main">
+    <div class="left">
+      <div class="toolbar">
+        <button class="stamp-btn on" id="mode-note">笔记</button>
+        <button class="stamp-btn" id="mode-x">打叉</button>
+        <button class="stamp-btn" id="mode-erase">橡皮</button>
+        <button class="stamp-btn" id="toggle-hide">隐藏标记</button>
+        <button class="stamp-btn danger" id="reset">清空</button>
+        <span class="state" id="state"></span>
+      </div>
+      <div class="chips" id="chips"></div>
+      <div class="board-wrap">
+        <div class="board-plate">
+          <div class="board">
+            <img id="boardimg" src="board.png" alt="The Treasure Hunt 24x24 board">
+            <div class="cells" id="cells"></div>
+          </div>
+        </div>
+      </div>
+      <div class="hint-row">规则：基础 Murdoku 规则；这次没有凶手——找出宝藏坐标即破案。图例：fire · tree · flowers · shark · sack · pig · tombstone · crate · rope · barrel · shelf · shrub · table · boulder · bed · chair · hammock</div>
+    </div>
+    <div class="right">
+      <h2>线索 CLUES</h2>
+      <div class="clues" id="clues"></div>
+      <div class="answer">
+        <label>我的答案 ROW</label>
+        <input id="ans-row" inputmode="numeric" placeholder="行">
+        <label>COLUMN</label>
+        <input id="ans-col" inputmode="numeric" placeholder="列">
+        <button class="stamp-btn" id="ans-check">判对</button>
+        <span class="state" id="ans-result"></span>
+      </div>
+    </div>
+  </div>
+  <div class="credit">
+    <b>非官方互动版 · Unofficial interactive adaptation</b>
+    <span class="sep">|</span>
+    原题《The Treasure Hunt》by <a href="https://murdoku.com/contest/" target="_blank" rel="noreferrer">Manuel Garand</a>（murdoku.com · Murdoku Contest #1）
+    <span class="sep">|</span>
+    美术 by Valentyna Bezdushna &amp; Manuel Garand
+    <span class="sep">|</span>
+    原题 PDF：<a href="treasure-hunt-EN.pdf" target="_blank" rel="noreferrer">treasure-hunt-EN.pdf</a>
+    <span class="sep">|</span>
+    本页只做棋盘展示、笔记与答案核对，题目与美术版权归原作者所有，与 murdoku.com 无隶属关系。
+  </div>
+</div>
+<script>
+(() => {
+  const BOARD_W = 1542, BOARD_H = 1473;
+  const GRID_X0 = (52.8 - 28) * 3.472;
+  const GRID_Y0 = (29.5 - 22) * 3.472;
+  const CELL = 16.7458 * 3.472;
+  const N = 24;
+  const KEY = 'mrdc1_marks_v1';
+  const ANS_KEY = 'mrdc1_answer_v1';
+  const ANS_TRIES_KEY = 'mrdc1_tries_v1';
+  const TREASURE = { row: 4, col: 11 };   // 官方公布：row 4, column 11
+
+  const state = { mode: 'note', selected: null, hide: false, marks: {}, answer: { row: '', col: '' } };
+  try { state.marks = JSON.parse(localStorage.getItem(KEY) || '{}') || {} } catch {}
+  try { state.answer = Object.assign({ row: '', col: '' }, JSON.parse(localStorage.getItem(ANS_KEY) || '{}')) } catch {}
+
+  const save = () => { try { localStorage.setItem(KEY, JSON.stringify(state.marks)) } catch {} };
+  const saveAns = () => { try { localStorage.setItem(ANS_KEY, JSON.stringify(state.answer)) } catch {} };
+  const pct = (v, total) => (v / total * 100) + '%';
+  const readTries = () => { try { return Number(localStorage.getItem(ANS_TRIES_KEY) || 0) || 0 } catch { return 0 } };
+  const bumpTries = () => { const n = readTries() + 1; try { localStorage.setItem(ANS_TRIES_KEY, String(n)) } catch {} return n };
+
+  let clues = [];
+  const chipsEl = document.getElementById('chips');
+  const cluesEl = document.getElementById('clues');
+  const cellsEl = document.getElementById('cells');
+  const stateEl = document.getElementById('state');
+  const ansResult = document.getElementById('ans-result');
+
+  const renderChips = () => {
+    chipsEl.innerHTML = '';
+    for (const c of clues) {
+      const el = document.createElement('button');
+      el.className = 'chip' + (state.selected === c.name ? ' on' : '');
+      el.innerHTML = '<span class="ini">' + c.name[0] + '</span>' + c.name;
+      el.onclick = () => { state.selected = c.name; renderChips(); renderClues(); };
+      chipsEl.appendChild(el);
+    }
+  };
+  const renderClues = () => {
+    cluesEl.innerHTML = '';
+    for (const c of clues) {
+      const el = document.createElement('div');
+      el.className = 'clue' + (state.selected === c.name ? ' on' : '') + (c.name === 'Treasure' ? ' treasure' : '');
+      el.innerHTML = '<div class="name">' + c.name + ' <span class="ini">' + c.name[0] + '</span></div><div class="txt"></div>';
+      el.querySelector('.txt').textContent = c.clue;
+      el.onclick = () => { state.selected = c.name; renderChips(); renderClues(); };
+      cluesEl.appendChild(el);
+    }
+  };
+
+  const hit = (r, c) => state.marks[r * N + c] || (state.marks[r * N + c] = { notes: [], x: false });
+
+  const renderCell = (r, c, el) => {
+    const m = state.marks[r * N + c];
+    el.innerHTML = '';
+    if (!m || state.hide) return;
+    if (m.x) { const x = document.createElement('div'); x.className = 'x'; x.textContent = '✕'; el.appendChild(x); return; }
+    if (m.notes && m.notes.length) {
+      const box = document.createElement('div'); box.className = 'notes';
+      for (const n of m.notes) { const s = document.createElement('span'); s.textContent = n[0]; box.appendChild(s); }
+      el.appendChild(box);
+    }
+  };
+
+  const buildGrid = () => {
+    cellsEl.innerHTML = '';
+    for (let r = 0; r < N; r += 1) {
+      for (let c = 0; c < N; c += 1) {
+        const el = document.createElement('div');
+        el.className = 'cell';
+        el.style.left = pct(GRID_X0 + c * CELL, BOARD_W);
+        el.style.top = pct(GRID_Y0 + r * CELL, BOARD_H);
+        el.style.width = pct(CELL, BOARD_W);
+        el.style.height = pct(CELL, BOARD_H);
+        el.onclick = () => {
+          const m = hit(r, c);
+          if (state.mode === 'note') {
+            if (!state.selected) { flash('先选一个嫌疑人（右侧线索或上方字母）'); return; }
+            if (m.x) m.x = false;
+            const i = m.notes.indexOf(state.selected);
+            if (i >= 0) m.notes.splice(i, 1); else m.notes.push(state.selected);
+          } else if (state.mode === 'x') {
+            m.x = !m.x; if (m.x) m.notes = [];
+          } else {
+            delete state.marks[r * N + c];
+          }
+          save(); renderCell(r, c, el); updateState();
+        };
+        el.oncontextmenu = (e) => { e.preventDefault(); const m = hit(r, c); m.x = !m.x; if (m.x) m.notes = []; save(); renderCell(r, c, el); updateState(); };
+        cellsEl.appendChild(el);
+        renderCell(r, c, el);
+      }
+    }
+  };
+
+  const updateState = () => {
+    let notes = 0, xs = 0;
+    for (const k in state.marks) { const m = state.marks[k]; if (m.x) xs += 1; else if (m.notes && m.notes.length) notes += 1; }
+    stateEl.textContent = '笔记 ' + notes + ' 格 · 叉 ' + xs + ' 格';
+  };
+  let flashTimer = null;
+  const flash = (msg) => { stateEl.textContent = msg; clearTimeout(flashTimer); flashTimer = setTimeout(updateState, 1800); };
+
+  const bindToolbar = () => {
+    const modes = { note: 'mode-note', x: 'mode-x', erase: 'mode-erase' };
+    for (const [mode, id] of Object.entries(modes)) {
+      document.getElementById(id).onclick = () => {
+        state.mode = mode;
+        for (const [, otherId] of Object.entries(modes)) document.getElementById(otherId).classList.toggle('on', otherId === id);
+      };
+    }
+    document.getElementById('toggle-hide').onclick = (e) => {
+      state.hide = !state.hide;
+      e.currentTarget.classList.toggle('on', state.hide);
+      e.currentTarget.textContent = state.hide ? '显示标记' : '隐藏标记';
+      buildGrid();
+    };
+    document.getElementById('reset').onclick = () => {
+      if (!confirm('清空所有笔记和叉？')) return;
+      state.marks = {}; save(); buildGrid(); updateState();
+    };
+    document.getElementById('ans-check').onclick = () => {
+      const row = Number(document.getElementById('ans-row').value.trim());
+      const col = Number(document.getElementById('ans-col').value.trim());
+      if (!row || !col || row < 1 || row > 24 || col < 1 || col > 24) {
+        ansResult.style.color = 'var(--ink-dim)';
+        ansResult.textContent = '请输入 1–24 的行、列';
+        return;
+      }
+      state.answer.row = String(row); state.answer.col = String(col); saveAns();
+      const tries = bumpTries();
+      if (row === TREASURE.row && col === TREASURE.col) {
+        ansResult.style.color = '#1d6b3a';
+        ansResult.textContent = '🎉 正确！宝藏就在 R' + row + ' C' + col + '（第 ' + tries + ' 次猜中）';
+      } else {
+        ansResult.style.color = '#8b1d1d';
+        ansResult.textContent = '❌ 不对，再想想（已猜 ' + tries + ' 次）';
+      }
+    };
+  };
+
+  const initAnswer = () => {
+    document.getElementById('ans-row').value = state.answer.row || '';
+    document.getElementById('ans-col').value = state.answer.col || '';
+    const tries = readTries();
+    if (tries > 0) ansResult.textContent = '（已猜 ' + tries + ' 次）';
+  };
+
+  const backLink = document.getElementById('back-link')
+  if (backLink) backLink.href = location.pathname.startsWith('/play_puzzles/') ? '/play/?lang=zh_hans' : 'https://murdoku.com/play/'
+
+  fetch('clues.json').then(r => r.json()).then((rows) => {
+    clues = rows;
+    renderChips(); renderClues(); buildGrid(); updateState();
+    bindToolbar(); initAnswer();
+  }).catch((error) => {
+    document.body.innerHTML = '<pre style="color:#8b1d1d;padding:20px">clues.json 加载失败: ' + error + '</pre>';
+  });
+})();
+</script>
+</body>
+</html>
