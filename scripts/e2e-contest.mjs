@@ -200,11 +200,21 @@ async function main() {
         overflow: document.documentElement.scrollWidth - innerWidth,
         clock: document.getElementById('clock').textContent,
         submitDisabled: document.getElementById('submit').disabled,
+        noLogo: !document.getElementById('logo'), noBack: !document.getElementById('back'),
+        langClockRow: (() => { const l = document.getElementById('lang').getBoundingClientRect(), c = document.getElementById('clock').getBoundingClientRect(); return Math.abs((l.top + l.height / 2) - (c.top + c.height / 2)) <= 2 })(),
+        splitter: !!document.getElementById('splitter'),
+        toolsOk: ['note','x','erase','undo','redo','log','hide','clear','hint','submit','how','about','legend'].every((id) => !!document.getElementById(id)),
+        oldToolsGone: ['share','print','sound','options','back','logo'].every((id) => !document.getElementById(id)),
+        axisFirst: document.querySelector('.axis.r span')?.textContent + '/' + document.querySelector('.axis.c span')?.textContent,
+        axisLast: [...q('.axis.r span')].pop().textContent + '/' + [...q('.axis.c span')].pop().textContent,
       })
     })()`).then(JSON.parse)
     record('页面加载：标题 / 576 格 / 24 人物卡 / 计时器启动', /The Treasure Hunt/.test(basic.title) && basic.cells === 576 && basic.cards === 24 && basic.portraits === 24 && /\d+:\d\d/.test(basic.clock), basic)
     record('桌面布局：左线索栏 · 中棋盘 · 右工具列（比例接近原站）', basic.threeCols && Math.abs(basic.leftW - 495) <= 12 && basic.toolsW === 168 && basic.fieldW > 600 && Math.abs(basic.overflow) <= 2, basic)
-    record('棋盘格标题正确（R1 · C1）且 SUBMIT 初始禁用', /^R1 · C1/.test(basic.cell0) && basic.submitDisabled === true, { cell0: basic.cell0 })
+    record('顶栏精简：无 logo / 无 back，语言与计时并排', basic.noLogo && basic.noBack && basic.langClockRow, { noLogo: basic.noLogo, noBack: basic.noBack, langClockRow: basic.langClockRow })
+    record('右栏重构：笔记/打叉/橡皮/撤销/重做/记录/隐藏/清空 + 提示/提交/玩法', basic.toolsOk && basic.oldToolsGone, { toolsOk: basic.toolsOk, oldToolsGone: basic.oldToolsGone })
+    record('侧栏可拖拽：splitter 存在', basic.splitter, null)
+    record('坐标补零：R01 · C01 与轴标 R01/C01 … R24/C24', basic.cell0.startsWith('R01 · C01') && basic.axisFirst === 'R01/C01' && basic.axisLast === 'R24/C24' && basic.submitDisabled === true, { cell0: basic.cell0, axisFirst: basic.axisFirst, axisLast: basic.axisLast })
 
     // 2) 内嵌数据完整性
     const data = await evalJS(`(() => {
@@ -216,6 +226,7 @@ async function main() {
       return JSON.stringify({
         names: C.map((c) => c.n),
         cardsOk: C.every((c) => c.en && c.zh && String(c.p || '').startsWith('data:image/png;base64,')),
+        zhAreas: (() => { const m = Object.fromEntries(C.map((c) => [c.n, c.zh])); return [m['Hyacinth'], m['Isolde'], m['Kathleen'], m['Yanis'], m['Nehemiah'], m['Quincy']] })(),
         solutionsOk: C.slice(0, 23).every((c) => Array.isArray(D.solutions[0][c.n]) && D.solutions[0][c.n].length === 2),
         treasure: sols[23],
         unique: new Set(idxs).size,
@@ -231,12 +242,56 @@ async function main() {
     })()`).then(JSON.parse)
     record('角色顺序与名称正确（24 张，含 Treasure）', JSON.stringify(data.names) === JSON.stringify(EXPECT_NAMES), data.names)
     record('卡面数据完整：英文 / 中文 / 头像 base64', data.cardsOk, null)
+    const zhAreas = data.zhAreas || []
+    record('中文地名带英文括注（Cliff / Cabin / Sloop / Woods / Water）', zhAreas[0].includes('悬崖（Cliff）') && zhAreas[1].includes('小屋（Cabin）') && zhAreas[2].includes('单桅帆船（Sloop）') && zhAreas[3].includes('树林（Woods）') && zhAreas[4].includes('水域（Water）') && zhAreas[5].includes('水域（Water）'), zhAreas)
     record('全解数据完整：23 个位置 + 宝藏 R4C11、互不重复、嫌疑人不落在物件格', data.solutionsOk && JSON.stringify(data.treasure) === JSON.stringify(TREASURE) && data.unique === 24 && data.inBounds && data.suspectConflicts === 0, { treasure: data.treasure, unique: data.unique, suspectConflicts: data.suspectConflicts, treasureBlocked: data.treasureBlocked })
     record('区域 / 不可占格 / 棋盘图 / 图例数据齐全', data.areas === 24 && data.areaRowLen.length === 1 && data.areaRowLen[0] === 24 && data.blockedCount > 50 && data.boardImg && data.legendImg, { areas: data.areas, blocked: data.blockedCount })
 
     // 3) 署名 About
     const aboutInfo = await evalJS(`(() => { document.getElementById('about').click(); const d = document.getElementById('dialog'); const b = document.getElementById('dialogBody'); const out = { open: d.open, title: document.getElementById('dialogTitle').textContent, text: b.innerText, href: String(b.innerHTML).includes('murdoku.com/contest') }; document.getElementById('dialog').close(); out.closed = !d.open; return JSON.stringify(out) })()`).then(JSON.parse)
     record('About 署名：作者 / 美术 / 官方赛事页链接', aboutInfo.open && /Manuel Garand/.test(aboutInfo.text) && /Valentyna/.test(aboutInfo.text) && aboutInfo.href && aboutInfo.closed, aboutInfo.title)
+
+    // 3.5) 图例弹窗
+    await evalJS(`document.getElementById('legend').click()`)
+    await sleep(400)
+    const legend = await evalJS(`(() => {
+      const d = document.getElementById('dialog')
+      const img = document.querySelector('#dialogBody .legend-img')
+      const out = { open: d.open, title: document.getElementById('dialogTitle').textContent, hasImg: !!img, imgW: img ? img.naturalWidth : 0, srcOk: !!(img && String(img.src).startsWith('data:image/png;base64,')), items: document.querySelectorAll('#dialogBody .legend-list > div').length }
+      d.close()
+      out.closed = !d.open
+      return JSON.stringify(out)
+    })()`).then(JSON.parse)
+    record('图例：弹窗显示 PDF 图例图像 + 中英物件名', legend.open && legend.hasImg && (legend.imgW > 100 || legend.srcOk) && legend.items >= 15 && legend.closed, legend)
+
+    // 3.6) 线索 → 棋盘高亮（篝火 / 区域 / 候选格）
+    const hl = await evalJS(`(() => {
+      const out = {}
+      // 通过名字精确选中 Augustus
+      const D = JSON.parse(document.getElementById('game-data').textContent)
+      const idx = D.cards.findIndex((c) => c.n === 'Augustus')
+      document.querySelectorAll('#cards .portrait')[idx].click()
+      out.fireLinked = document.querySelectorAll('#grid .cell.linked').length
+      out.cand = document.querySelectorAll('#grid .cell.cand').length
+      out.status = document.getElementById('status').textContent
+      const idx2 = D.cards.findIndex((c) => c.n === 'Hyacinth')
+      document.querySelectorAll('#cards .portrait')[idx2].click()
+      out.cliffLinked = document.querySelectorAll('#grid .cell.linked').length
+      out.cliffStatus = document.getElementById('status').textContent
+      document.querySelectorAll('#cards .portrait')[idx2].click()   // 再点取消
+      out.afterToggleOff = document.querySelectorAll('#grid .cell.linked').length
+      return JSON.stringify(out)
+    })()`).then(JSON.parse)
+    record('线索高亮：点 Augustus 高亮篝火 ×2 + 候选格，点 Hyacinth 高亮悬崖区域', hl.fireLinked === 2 && /篝火|fire/.test(hl.status) && hl.cand > 0 && hl.cliffLinked > 0 && /CLIFF|悬崖/.test(hl.cliffStatus), hl)
+    record('线索高亮：再次点击同一人物可取消高亮', hl.afterToggleOff === 0, { after: hl.afterToggleOff })
+
+    // 3.7) 悬浮坐标 + 区域/物件名
+    const hover = await evalJS(`JSON.stringify({
+      c0: document.querySelector('.cell[data-i="0"]').title,
+      fire: document.querySelector('.cell[data-i="' + ((3-1)*24+21-1) + '"]').title,
+      water: document.querySelector('.cell[data-i="' + ((16-1)*24+16-1) + '"]').title,
+    })`).then(JSON.parse)
+    record('悬浮字：坐标补零 + 区域中英名 + 已知物件名', /^R01 · C01/.test(hover.c0) && /WOODS（树林）/.test(hover.c0) && /篝火（fire）/.test(hover.fire), hover)
 
     // 4) 中英切换
     const lang = await evalJS(`(() => {
@@ -296,9 +351,11 @@ async function main() {
         }, 430)
       })
     })()`).then(JSON.parse)
-    record('放置：长按格子放下人物（Augustus → R9C4）', place.placed && place.placed['0'] === place.idx, place)
-    const undo = await evalJS(`(() => { document.getElementById('undo').click(); return new Promise((resolve) => setTimeout(() => { const st = JSON.parse(localStorage.getItem(${JSON.stringify(STORAGE_KEY)}) || 'null'); resolve(JSON.stringify({ placed: st ? st.s.placed : null })) }, 200)) })()`).then(JSON.parse)
-    record('撤销：撤掉刚放的人物', undo.placed && Object.keys(undo.placed).length === 0, undo)
+    record('放置：长按格子放下人物（Augustus → R9C04）', place.placed && place.placed['0'] === place.idx, place)
+    const undo = await evalJS(`(() => { document.getElementById('undo').click(); return new Promise((resolve) => setTimeout(() => { const st = JSON.parse(localStorage.getItem(${JSON.stringify(STORAGE_KEY)}) || 'null'); resolve(JSON.stringify({ placed: st ? st.s.placed : null, redoDisabled: document.getElementById('redo').disabled })) }, 200)) })()`).then(JSON.parse)
+    record('撤销：撤掉刚放的人物，重做按钮可用', undo.placed && Object.keys(undo.placed).length === 0 && undo.redoDisabled === false, undo)
+    const redo = await evalJS(`(() => { document.getElementById('redo').click(); return new Promise((resolve) => setTimeout(() => { const st = JSON.parse(localStorage.getItem(${JSON.stringify(STORAGE_KEY)}) || 'null'); resolve(JSON.stringify({ placed: st ? st.s.placed : null })) }, 200)) })()`).then(JSON.parse)
+    record('重做：恢复被撤销的人物', redo.placed && redo.placed['0'] === place.idx, redo)
 
     // 7) 打叉 + 橡皮
     const tools = await evalJS(`(() => {
@@ -321,7 +378,79 @@ async function main() {
     })()`).then(JSON.parse)
     record('橡皮 / 撤销：清掉刚打的叉', eraseTest.marks && Object.keys(eraseTest.marks).length === 0, eraseTest)
 
+    // 记录 / 隐藏
+    const logTest = await evalJS(`(() => {
+      document.getElementById('log').click()
+      const d = document.getElementById('dialog')
+      const rows = [...document.querySelectorAll('#dialogBody .logrow')]
+      const out = { open: d.open, title: document.getElementById('dialogTitle').textContent, rows: rows.length, text: document.getElementById('dialogBody').innerText }
+      d.close()
+      return JSON.stringify(out)
+    })()`).then(JSON.parse)
+    record('记录：历史弹窗列出操作（放置 / 撤销 / 重做 / 打叉）', logTest.open && logTest.rows >= 3 && /Place|UNDO|Redo|Rev|放置/.test(logTest.text), { rows: logTest.rows })
+    const hideTest = await evalJS(`(() => {
+      const out = {}
+      const D = JSON.parse(document.getElementById('game-data').textContent)
+      const sz = 24, I = (r, c) => (r - 1) * sz + c - 1
+      const blocked = new Set(D.blocked.map((p) => I(p[0], p[1])))
+      let target = -1
+      for (let i = 0; i < 576; i += 1) if (!blocked.has(i)) { target = i; break }
+      document.querySelectorAll('#cards .portrait')[1].click()
+      return new Promise((resolve) => {
+        const el = document.querySelector('.cell[data-i="' + target + '"]')
+        const r = el.getBoundingClientRect()
+        el.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, button: 0, clientX: r.left + 5, clientY: r.top + 5 }))
+        setTimeout(() => {
+          window.dispatchEvent(new PointerEvent('pointerup', { bubbles: true }))
+          setTimeout(() => {
+            const note = el.querySelector('.note')
+            out.noteVisible = !!note && getComputedStyle(note).display !== 'none'
+            document.getElementById('hide').click()
+            const note2 = el.querySelector('.note')
+            out.noteHidden = !note2 || getComputedStyle(note2).display === 'none'
+            out.hideLabel = document.getElementById('hide').textContent
+            document.getElementById('hide').click()
+            const note3 = el.querySelector('.note')
+            out.noteBack = !note3 || getComputedStyle(note3).display !== 'none'
+            resolve(JSON.stringify(out))
+          }, 120)
+        }, 60)
+      })
+    })()`).then(JSON.parse)
+    record('隐藏：一键隐藏/恢复笔记', hideTest.noteVisible && hideTest.noteHidden && hideTest.noteBack, hideTest)
+
+    // 清空（可撤销）
+    const clearTest = await evalJS(`(() => {
+      const before = Object.keys(JSON.parse(localStorage.getItem(${JSON.stringify(STORAGE_KEY)}) || 'null').s.placed).length
+      document.getElementById('clear').click()
+      const d = document.getElementById('dialog')
+      const opened = d.open
+      document.getElementById('clearNow').click()
+      return new Promise((resolve) => setTimeout(() => {
+        const st = JSON.parse(localStorage.getItem(${JSON.stringify(STORAGE_KEY)}) || 'null')
+        const after = Object.keys(st.s.placed).length
+        document.getElementById('undo').click()
+        setTimeout(() => {
+          const st2 = JSON.parse(localStorage.getItem(${JSON.stringify(STORAGE_KEY)}) || 'null')
+          resolve(JSON.stringify({ opened, before, after, afterUndo: Object.keys(st2.s.placed).length }))
+        }, 150)
+      }, 150))
+    })()`).then(JSON.parse)
+    record('清空：确认后清空整盘、撤销可恢复', clearTest.opened && clearTest.after === 0 && clearTest.afterUndo === clearTest.before, clearTest)
+
     // 8) 缩放 + 提示
+    const splitTest = await evalJS(`(() => {
+      const sp = document.getElementById('splitter')
+      const r = sp.getBoundingClientRect()
+      const w0 = Math.round(document.getElementById('left').getBoundingClientRect().width)
+      sp.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, button: 0, pointerId: 1, clientX: r.left + 3, clientY: 400 }))
+      sp.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, pointerId: 1, clientX: r.left + 130, clientY: 400 }))
+      sp.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerId: 1 }))
+      const w1 = Math.round(document.getElementById('left').getBoundingClientRect().width)
+      return JSON.stringify({ w0, w1, stored: localStorage.getItem('murdoku-left-w') })
+    })()`).then(JSON.parse)
+    record('侧栏拖拽：宽度变化并记住', splitTest.w1 > splitTest.w0 + 60 && splitTest.stored === String(splitTest.w1), splitTest)
+
     const zoomInfo = await evalJS(`(() => {
       const out = {}
       out.fit0 = document.getElementById('fit').textContent
@@ -332,6 +461,20 @@ async function main() {
       return JSON.stringify(out)
     })()`).then(JSON.parse)
     record('缩放：＋ / 适应 百分比切换', zoomInfo.fit0 === '100%' && zoomInfo.afterPlus !== '100%' && zoomInfo.back === '100%', zoomInfo)
+    const wheelView = await evalJS(`(() => {
+      const vp = document.getElementById('viewport')
+      const board = document.getElementById('board')
+      const r = vp.getBoundingClientRect()
+      const t0 = board.style.transform || 'none'
+      vp.dispatchEvent(new WheelEvent('wheel', { bubbles: true, cancelable: true, deltaY: -120, ctrlKey: true, clientX: r.left + r.width / 2, clientY: r.top + r.height / 2 }))
+      const t1 = board.style.transform
+      vp.dispatchEvent(new WheelEvent('wheel', { bubbles: true, cancelable: true, deltaX: 30, deltaY: 20, clientX: r.left + 200, clientY: r.top + 200 }))
+      const t2 = board.style.transform
+      document.getElementById('fit').click()
+      const t3 = board.style.transform
+      return JSON.stringify({ t0, t1, t2, t3, fit: document.getElementById('fit').textContent })
+    })()`).then(JSON.parse)
+    record('棋盘本地缩放 / 平移：ctrl+滚轮缩放、滚轮平移、适应复位（页面不滚动）', /scale\(([2-9]|1\.[0-9]+)\)/.test(wheelView.t1) && wheelView.t2 !== wheelView.t1 && wheelView.t3 === 'translate(0px, 0px) scale(1)' && wheelView.fit === '100%', wheelView)
     const hintInfo = await evalJS(`(() => { document.getElementById('hint').click(); return JSON.stringify({ status: document.getElementById('status').textContent, suggest: document.querySelectorAll('#grid .cell.suggest').length, dialog: document.getElementById('dialog').open }) })()`).then(JSON.parse)
     record('提示：状态栏给出角色 + 高亮目标格（不弹窗）', /Try |试着/.test(hintInfo.status) && hintInfo.suggest >= 1 && hintInfo.dialog === false, hintInfo)
 
@@ -350,7 +493,7 @@ async function main() {
     const win = await dialog()
     await closeDialog()
     const wonState = await state()
-    record('SUBMIT 判对：找到宝藏 R4C11、won=true', win.open && /R4 · C11/.test(win.body) && /Treasure found|找到宝藏/.test(win.title) && wonState && wonState.s.won === true, { title: win.title, body: win.body.slice(0, 120) })
+    record('SUBMIT 判对：找到宝藏 R04 · C11、won=true', win.open && /R0?4 · C0?11/.test(win.body) && /Treasure found|找到宝藏/.test(win.title) && wonState && wonState.s.won === true, { title: win.title, body: win.body.slice(0, 120) })
 
     // 10) 刷新持久化
     await send('Page.reload'); await ready()
